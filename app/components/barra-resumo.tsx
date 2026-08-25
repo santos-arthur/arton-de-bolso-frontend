@@ -49,7 +49,7 @@ function CampoComLegenda({
       <legend className="px-1 text-xs uppercase tracking-wide opacity-70">
         <span className="font-bold">{rotulo}</span>
       </legend>
-      <span className="text-xl">{children}</span>
+      <div className="text-xl">{children}</div>
     </fieldset>
   );
 }
