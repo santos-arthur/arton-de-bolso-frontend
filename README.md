@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arton de Bolso — Front-end
 
-## Getting Started
+Front-end web standalone da ficha simplificada de Tormenta20. Servidor Node
+(Next.js, com Route Handlers de verdade — não export estático), pensado para
+rodar numa VPS própria (ex: `rpg.arthursantos.com.br`), enquanto o Foundry
+roda separado (ex: numa máquina pessoal com a porta exposta). Conversa com o
+Foundry por WebSocket através do módulo irmão
+[`../arton-de-bolso/`](../arton-de-bolso/README.md), que faz o papel de
+relay — ver [`../docs/arquitetura.md`](../docs/arquitetura.md).
 
-First, run the development server:
+Todo o código (classes, funções, variáveis) é escrito em **português do Brasil**.
+
+## Como funciona
+
+Todo o handshake com o Foundry (login via `POST /join`, conexão socket.io)
+acontece **dentro do processo Node deste front** — nunca no navegador do
+jogador. Isso existe por causa do cookie de sessão do Foundry
+(`SameSite=Strict`) combinado com o CORS dele (`Access-Control-Allow-Origin: *`):
+essa combinação impede um navegador de completar esse login em origem
+cruzada, mas não afeta uma chamada servidor-a-servidor (sem navegador, sem
+política de cookie de navegador).
+
+- **[`app/lib/foundry-server.ts`](app/lib/foundry-server.ts)** — único
+  arquivo que fala HTTP/socket.io com o Foundry. Mantém uma sessão por
+  jogador logado (em memória do processo — reinício do servidor derruba
+  todo mundo, precisam logar de novo).
+- **`app/api/login`** — recebe usuário/senha do navegador, faz o login no
+  Foundry por trás, e devolve um cookie próprio (`ab_sessao`, httpOnly)
+  referenciando a sessão em memória.
+- **`app/api/sessao`** — checagem rápida de "já estou logado?".
+- **`app/api/usuarios`** — lista de usuários do Foundry (pro dropdown de
+  login).
+- **`app/api/ficha/eventos`** — Server-Sent Events: empurra a ficha (e
+  qualquer atualização) pro navegador em tempo real.
+- **`app/api/ficha/acao`** — recebe uma ação do navegador (ajustar PV,
+  equipar item, etc.) e repassa pro Foundry.
+- **[`app/lib/foundry-provider.tsx`](app/lib/foundry-provider.tsx)** — único
+  arquivo do lado do navegador que sabe desses endpoints; todo o resto da UI
+  usa só `useFoundry()`.
+
+## Variáveis de ambiente
+
+- `FOUNDRY_URL` — URL absoluta do servidor Foundry (ex: `http://meu-host:30000`).
+- `FOUNDRY_SOCKET_PATH` — opcional, só se o Foundry usar um `routePrefix`
+  customizado (padrão: `/socket.io`).
+
+## Rodando
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # desenvolvimento
+# ou
+npm run build && npm run start   # produção — processo Node normal, sem passo de export
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pendências conhecidas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Sem persistência de sessão**: tudo em memória do processo. Reiniciar o
+  servidor derruba todos os jogadores logados (precisam entrar de novo) —
+  aceitável na escala atual, mas seria o primeiro ponto a resolver antes de
+  qualquer necessidade de múltiplas instâncias/deploys sem downtime.
+- **Vários mestres conectados ao mesmo tempo** no lado do módulo Foundry
+  ainda pode gerar respostas duplicadas — ver `arton-de-bolso/README.md`.

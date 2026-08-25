@@ -8,6 +8,8 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
 import BarraResumoCondicional from "./components/barra-resumo-condicional";
 import Navegacao from "./components/navegacao";
+import { FoundryProvider } from "./lib/foundry-provider";
+import FoundryGate from "./components/foundry-gate";
 
 // Evita que o Font Awesome injete o CSS via JS em runtime (o que causaria um
 // flash de ícones sem estilo no SSR); o styles.css importado acima já cobre.
@@ -62,7 +64,7 @@ const iowan = localFont({
 
 export const metadata: Metadata = {
   title: "Arton de Bolso",
-  description: "Sistema usado para criar os designs de telas para o Arton de Bolso, extensão estilo companion para FoundryVtt com o sistema Tormenta20",
+  description: "Ficha simplificada de Tormenta20 para jogos presenciais e híbridos — conecta por WebSocket no módulo Foundry arton-de-bolso.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -80,13 +82,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ThemeProvider>
-          <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300 pb-24">
-            <BarraResumoCondicional />
-            <Navegacao />
-            <div className="flex-1 flex flex-col w-full max-w-7xl px-4 min-[1313px]:px-0 overflow-hidden">
-              {children}
-            </div>
-          </div>
+          <FoundryProvider>
+            <FoundryGate>
+              <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300 pb-24">
+                <BarraResumoCondicional />
+                <Navegacao />
+                <div className="flex-1 flex flex-col w-full max-w-7xl px-4 min-[1313px]:px-0 overflow-hidden">
+                  {children}
+                </div>
+              </div>
+            </FoundryGate>
+          </FoundryProvider>
         </ThemeProvider>
       </body>
     </html>

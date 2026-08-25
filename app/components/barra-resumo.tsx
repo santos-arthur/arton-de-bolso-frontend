@@ -4,105 +4,38 @@ import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { type ReactNode } from "react";
 import BotaoDescanso from "./botao-descanso";
-import CampoComDetalhe, { formatarBonus, type ItemDetalhe } from "./campo-com-detalhe";
+import CampoComDetalhe from "./campo-com-detalhe";
+import { useFoundry } from "../lib/foundry-provider";
 
-const personagem = {
-  nome: 'Milo "Bulette" Barrilmonte',
-  nivel: 11,
-  raca: "Hynne",
-  origem: "Cosmopolita",
-  classes: "Ladino 10",
-  divindade: "Valkaria",
-  xp: null as { atual: number; proximo: number } | null,
-  imagem: "https://a1cf74336522e87f135f-2f21ace9a6cf0052456644b80fa06d4f.ssl.cf2.rackcdn.com/images/characters/large/800/Samwise-Gamgee.The-Lord-of-the-Rings-The-Fellowship-of-the-Ring.webp",
-  atributos: [
-    { sigla: "FOR", valor: 3 },
-    { sigla: "DES", valor: 2 },
-    { sigla: "CON", valor: 2 },
-    { sigla: "INT", valor: 1 },
-    { sigla: "SAB", valor: 0 },
-    { sigla: "CAR", valor: 4 },
-  ],
-  pv: { atual: 68, temporario: 12 },
-  pm: { atual: 22, temporario: 0 },
-  bencaosDosDeuses: 3,
-  defesaExtra: [
-    { rotulo: "Armadura", valor: 2 },
-    { rotulo: "Escudo pesado", valor: 2 },
-    { rotulo: "Poder XYZ", valor: 1 },
-  ],
-};
-
-function valorAtributo(sigla: string) {
-  return personagem.atributos.find((atributo) => atributo.sigla === sigla)?.valor ?? 0;
-}
-
-function CampoComLegenda({
-  rotulo,
-  children,
-}: {
-  rotulo: string;
-  children: ReactNode;
-}) {
+function CampoComLegenda({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
-    <fieldset className="w-full rounded-lg border-2 border-red-900 px-3 pb-1">
+    <fieldset className="flex-1 rounded-lg border-2 border-red-900 px-3 pb-1">
       <legend className="px-1 text-xs uppercase tracking-wide opacity-70">
         <span className="font-bold">{rotulo}</span>
       </legend>
-      <div className="text-xl">{children}</div>
+      <div className="whitespace-nowrap text-xl">{children}</div>
     </fieldset>
   );
 }
 
-function CampoRecurso({
-  rotulo,
-  atual,
-  maximo,
-  temporario,
-}: {
-  rotulo: string;
-  atual: number;
-  maximo?: number;
-  temporario?: number;
-}) {
-  const temTemporario = !!temporario && temporario > 0;
-
+/** Só leitura — recursos genéricos (ex: Bênçãos) só podem ser ajustados pelo mestre direto no Foundry. */
+function CampoRecurso({ rotulo, atual, max }: { rotulo: string; atual: number; max: number | null }) {
   return (
     <fieldset className="flex h-full min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center">
-      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-        {rotulo}
-      </legend>
+      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">{rotulo}</legend>
       <span className="text-xl font-bold">
         {atual}
-        {maximo !== undefined && ` / ${maximo}`}
+        {max !== null && ` / ${max}`}
       </span>
-      {temTemporario && <span className="text-sm opacity-70">+{temporario} temp.</span>}
     </fieldset>
   );
 }
 
-function BarraXp({ atual, proximo }: { atual: number; proximo: number }) {
-  const percentual = Math.min(100, Math.round((atual / proximo) * 100));
+export default function BarraResumo({ compacta = false, onAbrirModalRecurso }: { compacta?: boolean; onAbrirModalRecurso?: (recurso: "pv" | "pm") => void }) {
+  const { ficha } = useFoundry();
 
-  return (
-    <div className="flex w-full flex-col gap-1">
-      <div className="flex flex-row justify-between text-sm">
-        <span>XP</span>
-        <span>
-          {atual} / {proximo}
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-olive-800/20 dark:bg-olive-400/20">
-        <div
-          className="h-full rounded-full bg-red-900"
-          style={{ width: `${percentual}%` }}
-        />
-      </div>
-    </div>
-  );
-}
+  if (!ficha) return null;
 
-export default function BarraResumo({ compacta = false }: { compacta?: boolean }) {
   const {
     nome,
     nivel,
@@ -111,51 +44,26 @@ export default function BarraResumo({ compacta = false }: { compacta?: boolean }
     classes,
     divindade,
     xp,
+    img,
     pv,
     pm,
-    bencaosDosDeuses,
-  } = personagem;
+    defesa,
+    recursosGenericos
+  } = ficha;
 
-  const con = valorAtributo("CON");
-  const des = valorAtributo("DES");
-
-  const pvPorClasse = nivel * 5;
-  const pvPorConstituicao = con * nivel;
-  const pvItens: ItemDetalhe[] = [
-    { rotulo: "Classe (nível × 5)", valor: pvPorClasse },
-    { rotulo: `Constituição (${formatarBonus(con)} × nível)`, valor: pvPorConstituicao },
-  ];
-  const pvMaximo = pvPorClasse + pvPorConstituicao;
-
-  const pmPorClasse = nivel * 4;
-  const pmItens: ItemDetalhe[] = [
-    { rotulo: "Classe (nível × 4)", valor: pmPorClasse },
-  ];
-  const pmMaximo = pmPorClasse;
-
-  const defesaItens: ItemDetalhe[] = [
-    { rotulo: "Base", valor: 10 },
-    { rotulo: "Destreza", valor: des },
-    ...personagem.defesaExtra,
-  ];
-  const defesaTotal = defesaItens.reduce((soma, item) => soma + item.valor, 0);
-
-  const tamanhoFoto = compacta
-    ? "size-20 md:size-24 lg:size-28"
-    : "size-28 md:size-40 lg:size-48";
-  const tamanhoIconeFoto = compacta
-    ? "size-8! md:size-10! lg:size-12!"
-    : "size-12! md:size-16! lg:size-20!";
+  const tamanhoFoto = compacta ? "size-20 md:size-24 lg:size-28" : "size-28 md:size-40 lg:size-48";
+  const tamanhoIconeFoto = compacta ? "size-8! md:size-10! lg:size-12!" : "size-12! md:size-16! lg:size-20!";
 
   return (
     <div className="flex flex-col items-center w-full shrink-0 dark:bg-olive-900 bg-olive-400 shadow-2xs dark:shadow-2xs-dark py-4">
       <div className="grid-cabecalho gap-x-4 gap-y-2 md:gap-x-6 lg:gap-x-8 w-full max-w-7xl px-4 min-[1313px]:px-0">
         <div className="area-foto">
-          {personagem.imagem ? (
-            <img
-              src={personagem.imagem}
-              alt="Imagem do personagem"
-              className={`shrink-0 object-center object-cover rounded-xl border-2 border-red-900 ${tamanhoFoto}`}
+          {img ? (
+            <div
+              role="img"
+              aria-label="Imagem do personagem"
+              className={`shrink-0 rounded-xl border-2 border-red-900 bg-cover bg-center ${tamanhoFoto}`}
+              style={{ backgroundImage: `url(${img})` }}
             />
           ) : (
             <div
@@ -166,90 +74,83 @@ export default function BarraResumo({ compacta = false }: { compacta?: boolean }
           )}
         </div>
 
-        {/* Linha do nome: sempre ao lado da foto, mesmo no celular; o restante
-            (detalhes e recursos) ocupa a largura toda, inclusive embaixo da foto. */}
         <div className="area-nome flex flex-col justify-center min-w-0 text-olive-800 dark:text-olive-400">
           <div className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 w-full lg:gap-x-8">
             <div className="min-w-0 text-3xl font-bold md:text-4xl lg:text-4xl">{nome}</div>
             <div className="flex flex-wrap items-center gap-4">
               <BotaoDescanso />
-              <span className="whitespace-nowrap text-xl font-bold">Nível: {nivel}</span>
+              <span className="whitespace-nowrap text-xl font-bold">Nível: {nivel ?? "—"}</span>
             </div>
           </div>
         </div>
 
         <div className="area-resto flex flex-col justify-center gap-2 min-w-0 text-olive-800 dark:text-olive-400">
-          {/* Linha de detalhes: isolada da linha de cima. Grid fixo (2x2 ou
-              1x4) em vez de flex-wrap, pra nunca sobrar um item sozinho numa
-              linha maior embaixo. XP (quando existir) ganha a própria linha,
-              sempre 100% da largura. */}
-          <div className="grid w-full grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            <CampoComLegenda rotulo="Raça">{raca}</CampoComLegenda>
-            <CampoComLegenda rotulo="Origem">{origem}</CampoComLegenda>
-            <CampoComLegenda rotulo="Classe">{classes}</CampoComLegenda>
-            <CampoComLegenda rotulo="Divindade">{divindade}</CampoComLegenda>
+          <div className="flex w-full flex-wrap gap-3 md:gap-4">
+            <CampoComLegenda rotulo="Raça">{raca || "—"}</CampoComLegenda>
+            <CampoComLegenda rotulo="Origem">{origem || "—"}</CampoComLegenda>
+            <CampoComLegenda rotulo="Classe">{classes || "—"}</CampoComLegenda>
+            <CampoComLegenda rotulo="Divindade">{divindade || "—"}</CampoComLegenda>
           </div>
 
           {xp && (
-            <div className="w-full">
-              <BarraXp atual={xp.atual} proximo={xp.proximo} />
+            <div className="flex w-full flex-col gap-1">
+              <div className="flex flex-row justify-between text-sm">
+                <span>XP</span>
+                <span>
+                  {xp.atual} / {xp.proximo}
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-olive-800/20 dark:bg-olive-400/20">
+                <div
+                  className="h-full rounded-full bg-red-900"
+                  style={{ width: `${Math.min(100, Math.round((xp.atual / xp.proximo) * 100))}%` }}
+                />
+              </div>
             </div>
           )}
 
-          {/* Linha de PV/PM/Bênçãos/Defesa: isolada das linhas acima. No celular
-              vira grid 2x2, no tablet grid de 4 colunas e no desktop (lg) volta
-              a ser exatamente como antes: flex sem quebra, 1/4 cada, h-16.
-              Some na tela de Combate, onde esses itens saem da barra e passam
-              a viver na própria tela. */}
           {!compacta && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
-              <CampoComDetalhe
-                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-                itens={pvItens}
-                total={pvMaximo}
-                temporario={pv.temporario}
+              <fieldset
+                role="button"
+                tabIndex={0}
+                onClick={() => onAbrirModalRecurso?.("pv")}
+                className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                  PV
-                </legend>
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">PV</legend>
                 <span className="text-xl font-bold">
                   {pv.atual}
-                  {pv.temporario > 0 && (
-                    <span className="text-sm font-normal opacity-60"> +{pv.temporario}</span>
-                  )}
-                  {` / ${pvMaximo}`}
+                  {!!pv.temp && <span className="text-sm font-normal opacity-60"> +{pv.temp}</span>}
+                  {` / ${pv.max}`}
                 </span>
-              </CampoComDetalhe>
-              <CampoComDetalhe
-                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-                itens={pmItens}
-                total={pmMaximo}
-                temporario={pm.temporario}
+              </fieldset>
+
+              <fieldset
+                role="button"
+                tabIndex={0}
+                onClick={() => onAbrirModalRecurso?.("pm")}
+                className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
               >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                  PM
-                </legend>
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">PM</legend>
                 <span className="text-xl font-bold">
                   {pm.atual}
-                  {pm.temporario > 0 && (
-                    <span className="text-sm font-normal opacity-60"> +{pm.temporario}</span>
-                  )}
-                  {` / ${pmMaximo}`}
+                  {!!pm.temp && <span className="text-sm font-normal opacity-60"> +{pm.temp}</span>}
+                  {` / ${pm.max}`}
                 </span>
-              </CampoComDetalhe>
-              <CampoRecurso rotulo="Bênçãos" atual={bencaosDosDeuses} />
+              </fieldset>
+
+              {recursosGenericos.map((recurso) => (
+                <CampoRecurso key={recurso.chave} rotulo={recurso.label} atual={recurso.atual} max={recurso.max} />
+              ))}
+
               <CampoComDetalhe
                 classeContainer="relative flex-1 basis-0 min-w-0 h-full"
                 classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-                itens={defesaItens}
-                total={defesaTotal}
+                itens={defesa.itens}
+                total={defesa.total ?? 0}
               >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                  Defesa
-                </legend>
-                <span className="text-xl font-bold">{defesaTotal}</span>
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">Defesa</legend>
+                <span className="text-xl font-bold">{defesa.total}</span>
               </CampoComDetalhe>
             </div>
           )}

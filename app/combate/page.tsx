@@ -1,40 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import CampoComDetalhe, { formatarBonus, type ItemDetalhe } from "../components/campo-com-detalhe";
-import ModalRecurso from "../components/modal-recurso";
+import CampoComDetalhe from "../components/campo-com-detalhe";
+import ModalRecursoFicha from "../components/modal-recurso-ficha";
+import { useFoundry } from "../lib/foundry-provider";
 
-const PERSONAGEM = {
-  nivel: 11,
-  atributos: {
-    con: 2,
-    des: 2,
-  },
-  bencaosDosDeuses: 3,
-  defesaExtra: [
-    { rotulo: "Armadura", valor: 2 },
-    { rotulo: "Escudo pesado", valor: 2 },
-    { rotulo: "Poder XYZ", valor: 1 },
-  ] as ItemDetalhe[],
-};
-
-function CampoRecurso({
-  rotulo,
-  atual,
-  maximo,
-}: {
-  rotulo: string;
-  atual: number;
-  maximo?: number;
-}) {
+/** Só leitura — recursos genéricos (ex: Bênçãos) só podem ser ajustados pelo mestre direto no Foundry. */
+function CampoRecurso({ rotulo, atual, max }: { rotulo: string; atual: number; max: number | null }) {
   return (
     <fieldset className="flex h-full min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center">
-      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-        {rotulo}
-      </legend>
+      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">{rotulo}</legend>
       <span className="text-xl font-bold">
         {atual}
-        {maximo !== undefined && ` / ${maximo}`}
+        {max !== null && ` / ${max}`}
       </span>
     </fieldset>
   );
@@ -45,7 +23,7 @@ function CampoRecursoClicavel({
   atual,
   maximo,
   temporario,
-  onClick,
+  onClick
 }: {
   rotulo: string;
   atual: number;
@@ -66,14 +44,10 @@ function CampoRecursoClicavel({
       }}
       className="flex h-full min-w-0 flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
     >
-      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-        {rotulo}
-      </legend>
+      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">{rotulo}</legend>
       <span className="text-xl font-bold">
         {atual}
-        {temporario > 0 && (
-          <span className="text-sm font-normal opacity-60"> +{temporario}</span>
-        )}
+        {temporario > 0 && <span className="text-sm font-normal opacity-60"> +{temporario}</span>}
         {` / ${maximo}`}
       </span>
     </fieldset>
@@ -81,30 +55,12 @@ function CampoRecursoClicavel({
 }
 
 export default function Page() {
-  const { nivel, atributos, bencaosDosDeuses, defesaExtra } = PERSONAGEM;
-
-  const pvPorClasse = nivel * 5;
-  const pvPorConstituicao = atributos.con * nivel;
-  const pvItens: ItemDetalhe[] = [
-    { rotulo: "Classe (nível × 5)", valor: pvPorClasse },
-    { rotulo: `Constituição (${formatarBonus(atributos.con)} × nível)`, valor: pvPorConstituicao },
-  ];
-  const pvMaximo = pvPorClasse + pvPorConstituicao;
-
-  const pmPorClasse = nivel * 4;
-  const pmItens: ItemDetalhe[] = [{ rotulo: "Classe (nível × 4)", valor: pmPorClasse }];
-  const pmMaximo = pmPorClasse;
-
-  const [pv, setPv] = useState({ atual: 68, temporario: 12 });
-  const [pm, setPm] = useState({ atual: 22, temporario: 0 });
+  const { ficha } = useFoundry();
   const [modalAberto, setModalAberto] = useState<"pv" | "pm" | null>(null);
 
-  const defesaItens: ItemDetalhe[] = [
-    { rotulo: "Base", valor: 10 },
-    { rotulo: "Destreza", valor: atributos.des },
-    ...defesaExtra,
-  ];
-  const defesaTotal = defesaItens.reduce((soma, item) => soma + item.valor, 0);
+  if (!ficha) return null;
+
+  const { pv, pm, defesa, recursosGenericos } = ficha;
 
   return (
     <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
@@ -113,60 +69,35 @@ export default function Page() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <CampoRecursoClicavel
           rotulo="PV"
-          atual={pv.atual}
-          maximo={pvMaximo}
-          temporario={pv.temporario}
+          atual={pv.atual ?? 0}
+          maximo={pv.max ?? 0}
+          temporario={pv.temp}
           onClick={() => setModalAberto("pv")}
         />
         <CampoRecursoClicavel
           rotulo="PM"
-          atual={pm.atual}
-          maximo={pmMaximo}
-          temporario={pm.temporario}
+          atual={pm.atual ?? 0}
+          maximo={pm.max ?? 0}
+          temporario={pm.temp}
           onClick={() => setModalAberto("pm")}
         />
-        <CampoRecurso rotulo="Bênçãos" atual={bencaosDosDeuses} />
+
+        {recursosGenericos.map((recurso) => (
+          <CampoRecurso key={recurso.chave} rotulo={recurso.label} atual={recurso.atual} max={recurso.max} />
+        ))}
+
         <CampoComDetalhe
           classeContainer="relative h-full min-w-0"
           classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-          itens={defesaItens}
-          total={defesaTotal}
+          itens={defesa.itens}
+          total={defesa.total ?? 0}
         >
-          <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-            Defesa
-          </legend>
-          <span className="text-xl font-bold">{defesaTotal}</span>
+          <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">Defesa</legend>
+          <span className="text-xl font-bold">{defesa.total}</span>
         </CampoComDetalhe>
       </div>
 
-      {modalAberto === "pv" && (
-        <ModalRecurso
-          rotulo="PV"
-          atual={pv.atual}
-          maximo={pvMaximo}
-          itensMaximo={pvItens}
-          temporario={pv.temporario}
-          onFechar={() => setModalAberto(null)}
-          onAlterarAtual={(novoValor) => setPv((atual) => ({ ...atual, atual: novoValor }))}
-          onAlterarTemporario={(novoValor) =>
-            setPv((atual) => ({ ...atual, temporario: novoValor }))
-          }
-        />
-      )}
-      {modalAberto === "pm" && (
-        <ModalRecurso
-          rotulo="PM"
-          atual={pm.atual}
-          maximo={pmMaximo}
-          itensMaximo={pmItens}
-          temporario={pm.temporario}
-          onFechar={() => setModalAberto(null)}
-          onAlterarAtual={(novoValor) => setPm((atual) => ({ ...atual, atual: novoValor }))}
-          onAlterarTemporario={(novoValor) =>
-            setPm((atual) => ({ ...atual, temporario: novoValor }))
-          }
-        />
-      )}
+      {modalAberto && <ModalRecursoFicha recurso={modalAberto} onFechar={() => setModalAberto(null)} />}
     </div>
   );
 }

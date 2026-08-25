@@ -4,6 +4,7 @@ import { faBed, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import SelectPersonalizado from "./select-personalizado";
+import { useFoundry } from "../lib/foundry-provider";
 
 type Qualidade = "Ruim" | "Normal" | "Confortável" | "Luxuoso";
 
@@ -26,7 +27,18 @@ const DADOS_INICIAIS: DadosDescanso = {
 };
 
 function ModalDescanso({ onFechar }: { onFechar: () => void }) {
+  const { descansar } = useFoundry();
   const [dados, setDados] = useState<DadosDescanso>(DADOS_INICIAIS);
+
+  function aoConfirmar() {
+    descansar({
+      pvExtraPorNivel: dados.pvExtraPorNivel,
+      pmExtraPorNivel: dados.pmExtraPorNivel,
+      cuidadosProlongados: dados.cuidadosProlongados,
+      acompanhamentoMedico: dados.acompanhamentoMedico
+    });
+    onFechar();
+  }
 
   useEffect(() => {
     function aoTeclar(evento: KeyboardEvent) {
@@ -149,7 +161,7 @@ function ModalDescanso({ onFechar }: { onFechar: () => void }) {
           </button>
           <button
             type="button"
-            onClick={onFechar}
+            onClick={aoConfirmar}
             className="rounded-full border-2 border-red-900 bg-red-900 px-4 py-2 text-sm font-semibold text-olive-50 transition-opacity hover:opacity-90"
           >
             Descansar

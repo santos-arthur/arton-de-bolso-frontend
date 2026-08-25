@@ -15,7 +15,7 @@ export function ThemeSwitcher() {
     <div
       role="radiogroup"
       aria-label="Tema"
-      className="inline-flex items-center gap-1 rounded-full border border-foreground/15 bg-foreground/5 p-1"
+      className="flex w-full items-center gap-1 rounded-full border-2 border-red-900 p-1"
     >
       {OPTIONS.map((option) => {
         const active = theme === option.value;
@@ -26,10 +26,10 @@ export function ThemeSwitcher() {
             role="radio"
             aria-checked={active}
             onClick={() => setTheme(option.value)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-full px-3 py-1 text-sm font-semibold transition-colors ${
               active
-                ? "bg-foreground text-background"
-                : "text-foreground/70 hover:text-foreground"
+                ? "bg-red-900 text-olive-50"
+                : "text-olive-800 hover:bg-black/5 dark:text-olive-400 dark:hover:bg-white/5"
             }`}
           >
             {option.label}
