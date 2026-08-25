@@ -4,7 +4,7 @@ import { faBars, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const ITENS_NAV = [
   { rotulo: "Detalhes", href: "/" },
@@ -16,9 +16,54 @@ const ITENS_NAV = [
   { rotulo: "Configurações", href: "/configuracoes" },
 ];
 
+type Retangulo = { top: number; left: number; width: number; height: number };
+
+// Mede a posição do link ativo (relativa ao container) e devolve um retângulo
+// pra desenhar o indicador colorido por cima — recalculado sempre que a rota
+// muda, o que faz o indicador "deslizar" via transition do CSS.
+function useIndicadorAtivo(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  linksRef: React.RefObject<Record<string, HTMLAnchorElement | null>>,
+  pathname: string,
+) {
+  const [indicador, setIndicador] = useState<Retangulo | null>(null);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const ativo = linksRef.current[pathname];
+    if (!container || !ativo) {
+      setIndicador(null);
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const ativoRect = ativo.getBoundingClientRect();
+
+    // top/left de um elemento absoluto são relativos à padding box do
+    // ancestral posicionado, não à border box — por isso descontamos
+    // clientTop/clientLeft (a espessura da borda) aqui.
+    setIndicador({
+      top: ativoRect.top - containerRect.top - container.clientTop,
+      left: ativoRect.left - containerRect.left - container.clientLeft,
+      width: ativoRect.width,
+      height: ativoRect.height,
+    });
+  }, [pathname, containerRef, linksRef]);
+
+  return indicador;
+}
+
 export default function Navegacao() {
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
+
+  const dockRef = useRef<HTMLDivElement>(null);
+  const dockLinksRef = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const indicadorDock = useIndicadorAtivo(dockRef, dockLinksRef, pathname);
+
+  const painelRef = useRef<HTMLDivElement>(null);
+  const painelLinksRef = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const indicadorPainel = useIndicadorAtivo(painelRef, painelLinksRef, pathname);
 
   useEffect(() => {
     if (!menuAberto) return;
@@ -35,7 +80,21 @@ export default function Navegacao() {
     <>
       {/* Dock flutuante (estilo macOS): fixo na base da tela, a partir do md */}
       <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-40 hidden justify-center px-4 md:flex">
-        <div className="pointer-events-auto flex flex-row flex-wrap items-center gap-1 rounded-full border-2 border-red-900 bg-olive-300/90 p-1 text-olive-800 shadow-2xl backdrop-blur-md dark:bg-olive-900/90 dark:text-olive-400">
+        <div
+          ref={dockRef}
+          className="pointer-events-auto relative flex flex-row flex-wrap items-center gap-1 rounded-full border-2 border-red-900 bg-olive-300/90 p-1 text-olive-800 shadow-2xl backdrop-blur-md dark:bg-olive-900/90 dark:text-olive-400"
+        >
+          {indicadorDock && (
+            <div
+              className="absolute rounded-full bg-red-900 transition-all duration-300 ease-out"
+              style={{
+                top: indicadorDock.top,
+                left: indicadorDock.left,
+                width: indicadorDock.width,
+                height: indicadorDock.height,
+              }}
+            />
+          )}
           {ITENS_NAV.map((item) => {
             const ativo = pathname === item.href;
 
@@ -43,10 +102,13 @@ export default function Navegacao() {
               <Link
                 key={item.href}
                 href={item.href}
+                ref={(el) => {
+                  dockLinksRef.current[item.href] = el;
+                }}
                 aria-current={ativo ? "page" : undefined}
-                className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                className={`relative z-10 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                   ativo
-                    ? "bg-red-900 text-olive-50"
+                    ? "text-olive-50"
                     : "hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
@@ -102,25 +164,41 @@ export default function Navegacao() {
             </button>
           </div>
 
-          {ITENS_NAV.map((item) => {
-            const ativo = pathname === item.href;
+          <div ref={painelRef} className="relative flex flex-col gap-1">
+            {indicadorPainel && (
+              <div
+                className="absolute rounded-lg bg-red-900 transition-all duration-300 ease-out"
+                style={{
+                  top: indicadorPainel.top,
+                  left: indicadorPainel.left,
+                  width: indicadorPainel.width,
+                  height: indicadorPainel.height,
+                }}
+              />
+            )}
+            {ITENS_NAV.map((item) => {
+              const ativo = pathname === item.href;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMenuAberto(false)}
-                aria-current={ativo ? "page" : undefined}
-                className={`rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors ${
-                  ativo
-                    ? "border-red-900 bg-red-900 text-olive-50"
-                    : "border-transparent hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-              >
-                {item.rotulo}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  ref={(el) => {
+                    painelLinksRef.current[item.href] = el;
+                  }}
+                  onClick={() => setMenuAberto(false)}
+                  aria-current={ativo ? "page" : undefined}
+                  className={`relative z-10 rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                    ativo
+                      ? "border-red-900 text-olive-50"
+                      : "border-transparent hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {item.rotulo}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     </>
