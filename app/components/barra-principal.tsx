@@ -14,7 +14,7 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useFoundry } from "../lib/foundry-provider";
+import { useFoundry, usePersonagens } from "../lib/foundry-provider";
 
 /**
  * Barra de menu principal — navegação entre as telas do app (home,
@@ -24,7 +24,8 @@ import { useFoundry } from "../lib/foundry-provider";
  * celular.
  */
 export default function BarraPrincipal() {
-  const { ficha, somenteLeitura, logout } = useFoundry();
+  const { ficha, somenteLeitura, logout, selecionarPersonagem } = useFoundry();
+  const { listas } = usePersonagens();
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -49,9 +50,23 @@ export default function BarraPrincipal() {
     };
   }, [menuAberto]);
 
+  // Atalho fixo pro personagem principal: o primeiro de "Meus Personagens",
+  // independente de qual ficha esteja aberta — abrir a de um companheiro não
+  // pode sequestrar o caminho de volta pra minha própria ficha. Só cai pra
+  // ficha aberta quem não tem personagem próprio nenhum.
+  const meuPrincipal = listas.meus[0] ?? null;
+  const atalho = meuPrincipal ?? (ficha ? { id: ficha.id, nome: ficha.nome, img: ficha.img } : null);
+  const atalhoEhFichaAberta = !meuPrincipal;
+
+  function abrirAtalho() {
+    if (atalho && ficha?.id !== atalho.id) selecionarPersonagem(atalho.id);
+  }
+
   const itensMenu: { rotulo: string; href?: string; icone: IconDefinition; acao?: () => void }[] = [
     { rotulo: "Início", href: "/", icone: faHouse },
-    ...(ficha ? [{ rotulo: `Ficha de ${ficha.nome}`, href: "/detalhes", icone: faUser }] : []),
+    ...(atalho
+      ? [{ rotulo: `Ficha de ${atalho.nome}`, href: "/detalhes", icone: faUser, acao: abrirAtalho }]
+      : []),
     { rotulo: "Configurações", href: "/configuracoes", icone: faGear },
     { rotulo: "Sair", icone: faRightFromBracket, acao: () => logout() }
   ];
@@ -65,23 +80,26 @@ export default function BarraPrincipal() {
         </Link>
 
         <div ref={menuRef} className="relative flex shrink-0 flex-row items-center gap-2">
-          {ficha && (
+          {atalho && (
             <Link
               href="/detalhes"
+              onClick={abrirAtalho}
               className="hidden max-w-56 flex-row items-center gap-2 rounded-full border-2 border-red-900 py-1 pl-1 pr-3 text-sm font-semibold transition-colors hover:bg-black/5 sm:flex dark:hover:bg-white/5"
             >
-              {ficha.img ? (
+              {atalho.img ? (
                 <span
                   role="img"
                   aria-hidden="true"
                   className="size-7 shrink-0 rounded-full border border-red-900 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${ficha.img})` }}
+                  style={{ backgroundImage: `url(${atalho.img})` }}
                 />
               ) : (
                 <FontAwesomeIcon icon={faUser} className="size-5! shrink-0" />
               )}
-              <span className="truncate">{ficha.nome}</span>
-              {somenteLeitura && <FontAwesomeIcon icon={faEye} className="size-3.5! shrink-0 opacity-70" title="Somente leitura" />}
+              <span className="truncate">{atalho.nome}</span>
+              {atalhoEhFichaAberta && somenteLeitura && (
+                <FontAwesomeIcon icon={faEye} className="size-3.5! shrink-0 opacity-70" title="Somente leitura" />
+              )}
             </Link>
           )}
 
@@ -120,7 +138,10 @@ export default function BarraPrincipal() {
                     key={item.rotulo}
                     href={item.href}
                     role="menuitem"
-                    onClick={() => setMenuAberto(false)}
+                    onClick={() => {
+                      setMenuAberto(false);
+                      item.acao?.();
+                    }}
                     className={classe}
                   >
                     {conteudo}
