@@ -2,63 +2,103 @@
 
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
-import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
+import { useMemo, useState } from "react";
+import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
+import CartaoExpansivel from "../components/cartao-expansivel";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
+import type { Magia } from "../lib/foundry-types";
+
+/** Referência estável: `?? []` criaria um array novo a cada render e invalidaria o memo. */
+const SEM_MAGIAS: Magia[] = [];
 
 export default function Page() {
   const { ficha } = useFoundry();
-  const [expandidoId, setExpandidoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [circulo, setCirculo] = useState<number | null>(null);
+  const [soPreparadas, setSoPreparadas] = useState(false);
+
+  const magias = ficha?.magias ?? SEM_MAGIAS;
+  const circulos = useMemo(
+    () => [...new Set(magias.map((m) => m.circulo))].sort((a, b) => a - b),
+    [magias]
+  );
+
+  // Agrupar por círculo é como o livro organiza e como se procura na mesa.
+  const porCirculo = useMemo(() => {
+    const alvo = normalizar(busca);
+    const filtradas = magias.filter(
+      (m) =>
+        (circulo === null || m.circulo === circulo) &&
+        (!soPreparadas || m.preparada) &&
+        (!alvo || normalizar(`${m.nome} ${m.escola}`).includes(alvo))
+    );
+    const grupos = new Map<number, typeof filtradas>();
+    for (const magia of filtradas) {
+      if (!grupos.has(magia.circulo)) grupos.set(magia.circulo, []);
+      grupos.get(magia.circulo)!.push(magia);
+    }
+    return [...grupos.entries()].sort(([a], [b]) => a - b);
+  }, [magias, busca, circulo, soPreparadas]);
 
   if (!ficha) return null;
 
+  const total = porCirculo.reduce((soma, [, lista]) => soma + lista.length, 0);
+
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Magias">
-        <span className="text-sm opacity-70">{ficha.magias.length}</span>
-      </CabecalhoPagina>
+      <CabecalhoPagina titulo="Magias">{magias.length}</CabecalhoPagina>
 
-      {ficha.magias.length === 0 && <EstadoVazio>Nenhuma magia nesta ficha.</EstadoVazio>}
+      {magias.length > 0 && (
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar magia...">
+          <ChipFiltro ativo={circulo === null} onClick={() => setCirculo(null)}>
+            Todos
+          </ChipFiltro>
+          {circulos.map((c) => (
+            <ChipFiltro key={c} ativo={circulo === c} onClick={() => setCirculo(circulo === c ? null : c)}>
+              {c}º
+            </ChipFiltro>
+          ))}
+          <ChipFiltro ativo={soPreparadas} onClick={() => setSoPreparadas((v) => !v)}>
+            Preparadas
+          </ChipFiltro>
+        </CampoBusca>
+      )}
 
-      <ul className="flex flex-col gap-2">
-        {ficha.magias.map((magia) => {
-          const expandido = expandidoId === magia.id;
-          return (
-            <li key={magia.id} className="rounded-lg border-2 border-red-900 px-3 py-2">
-              <div className="flex items-center gap-3">
-                {magia.img && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={magia.img} alt="" className="size-8 rounded-md object-cover" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setExpandidoId(expandido ? null : magia.id)}
-                  className="flex-1 text-left font-bold"
-                >
-                  {magia.nome}
-                </button>
-                {magia.preparada && (
-                  <FontAwesomeIcon icon={faStar} title="Preparada" className="size-3.5! text-red-900" />
-                )}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Tag>{magia.circulo}º círculo</Tag>
-                {magia.escola && <Tag>{magia.escola}</Tag>}
-                {magia.tipo && <Tag>{magia.tipo}</Tag>}
-                {magia.ativacao && <Tag>{magia.ativacao}</Tag>}
-              </div>
-              {expandido && magia.descricao && (
-                <div
-                  className="mt-2 border-t border-red-900/40 pt-2 text-sm [&_p]:mb-2 last:[&_p]:mb-0"
-                  dangerouslySetInnerHTML={{ __html: magia.descricao }}
+      {total === 0 ? (
+        <EstadoVazio>{magias.length ? "Nenhuma magia encontrada." : "Nenhuma magia nesta ficha."}</EstadoVazio>
+      ) : (
+        porCirculo.map(([numero, lista]) => (
+          <section key={numero} className="flex flex-col gap-2">
+            <TituloSecao>{numero}º círculo</TituloSecao>
+            <ul className="flex flex-col gap-2">
+              {lista.map((magia) => (
+                <CartaoExpansivel
+                  key={magia.id}
+                  nome={magia.nome}
+                  img={magia.img}
+                  descricao={magia.descricao}
+                  destacado={magia.preparada}
+                  etiquetas={
+                    <>
+                      {magia.escola && <Tag>{magia.escola}</Tag>}
+                      {magia.tipo && <Tag>{magia.tipo}</Tag>}
+                      {magia.ativacao && <Tag>{magia.ativacao}</Tag>}
+                    </>
+                  }
+                  acessorio={
+                    magia.preparada ? (
+                      <FontAwesomeIcon icon={faStar} title="Preparada" className="size-3.5! shrink-0 text-acento" />
+                    ) : undefined
+                  }
                 />
-              )}
-            </li>
-          );
-        })}
-      </ul>
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
     </PaginaFicha>
   );
 }

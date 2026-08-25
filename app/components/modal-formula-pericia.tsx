@@ -1,10 +1,14 @@
 "use client";
 
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect } from "react";
+import FolhaModal from "./folha-modal";
 import type { FormulaPericia } from "../lib/foundry-types";
 
+/**
+ * Decomposição de um teste de perícia. Usa a mesma folha dos outros
+ * detalhamentos: sobe do rodapé no celular, modal centrado a partir de sm.
+ * O app nunca rola nada — isto mostra de onde vem o número que você soma ao
+ * d20 rolado na mesa.
+ */
 export default function ModalFormulaPericia({
   formula,
   onFechar
@@ -12,52 +16,31 @@ export default function ModalFormulaPericia({
   formula: FormulaPericia;
   onFechar: () => void;
 }) {
-  useEffect(() => {
-    function aoTeclar(evento: KeyboardEvent) {
-      if (evento.key === "Escape") onFechar();
-    }
-    document.addEventListener("keydown", aoTeclar);
-    return () => document.removeEventListener("keydown", aoTeclar);
-  }, [onFechar]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onFechar}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(evento) => evento.stopPropagation()}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-red-900 bg-olive-300 p-6 text-olive-800 shadow-xl dark:bg-olive-900 dark:text-olive-400"
-      >
-        <div className="flex flex-row items-center justify-between">
-          <h2 className="text-2xl font-bold">{formula?.label ?? "Perícia"}</h2>
-          <button
-            type="button"
-            onClick={onFechar}
-            aria-label="Fechar"
-            className="rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <FontAwesomeIcon icon={faXmark} className="size-5!" />
-          </button>
-        </div>
+    <FolhaModal titulo={formula?.label ?? "Perícia"} onFechar={onFechar}>
+      {formula ? (
+        <>
+          <div className="flex flex-col gap-2 text-base">
+            {formula.partes.map((parte) => (
+              <div key={parte.rotulo} className="flex flex-row items-center justify-between gap-4">
+                <span className="min-w-0 truncate opacity-80">{parte.rotulo}</span>
+                <span className="numero shrink-0 font-semibold">{parte.valorFormatado}</span>
+              </div>
+            ))}
+            <div className="mt-1 flex flex-row items-center justify-between gap-4 border-t border-borda pt-2 text-lg font-bold">
+              <span>Total</span>
+              <span className="numero">{formula.totalFormatado}</span>
+            </div>
+          </div>
 
-        {formula ? (
-          <>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg">
-              <span className="font-bold">1d20</span>
-              {formula.partes.map((parte) => (
-                <span key={parte.rotulo}>
-                  {parte.valorFormatado} <span className="text-sm opacity-70">({parte.rotulo})</span>
-                </span>
-              ))}
-            </div>
-            <div className="border-t border-red-900/40 pt-3 text-lg font-bold">
-              Total dos bônus: {formula.totalFormatado}
-            </div>
-          </>
-        ) : (
-          <p className="opacity-70">Perícia não encontrada.</p>
-        )}
-      </div>
-    </div>
+          <div className="rounded-xl border border-borda bg-superficie-alta px-4 py-3 text-center">
+            <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">Role na mesa</span>
+            <p className="numero text-xl font-bold">1d20 {formula.totalFormatado}</p>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm opacity-60">Sem detalhamento para esta perícia.</p>
+      )}
+    </FolhaModal>
   );
 }

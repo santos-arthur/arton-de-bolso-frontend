@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { calcularDescanso } from "./descanso";
 import type {
   Ficha,
   ListaPersonagens,
@@ -23,6 +24,51 @@ type DescansoOpcoes = Extract<MensagemParaFoundry, { tipo: "descansar" }>["opcoe
 const LIMITE_TROCA_MS = 10000;
 
 const LISTAS_VAZIAS: ListaPersonagens = { meus: [], companheiros: [] };
+
+/**
+ * Aplica na ficha local o mesmo efeito que o Foundry vai aplicar, para a tela
+ * responder no toque em vez de esperar a volta pelo relay (Foundry → nosso
+ * servidor → SSE). O push que chega em seguida substitui isto pelo estado
+ * real; se der erro, o provider repede a ficha e o palpite é descartado.
+ *
+ * As regras aqui espelham `applyDamage`/`spendMana` do sistema tormenta20:
+ * o gasto sai dos pontos temporários primeiro, PM nunca fica negativo e PV
+ * pode — em T20 é o que separa "caído" de "morrendo".
+ */
+function ajustarRecursoLocal(ficha: Ficha, chave: "pv" | "pm", delta: number): Ficha {
+  const recurso = ficha[chave];
+  const max = recurso.max ?? 0;
+  const temp = recurso.temp;
+
+  if (delta < 0) {
+    const gasto = Math.abs(delta);
+    const doTemporario = Math.min(temp, gasto);
+    const bruto = (recurso.atual ?? 0) - (gasto - doTemporario);
+    const atual = chave === "pm" ? Math.max(0, bruto) : bruto;
+    return { ...ficha, [chave]: { ...recurso, atual, temp: temp - doTemporario } };
+  }
+
+  return { ...ficha, [chave]: { ...recurso, atual: Math.min(max, (recurso.atual ?? 0) + delta) } };
+}
+
+function definirRecursoLocal(ficha: Ficha, chave: "pv" | "pm", valor: number): Ficha {
+  const recurso = ficha[chave];
+  const max = recurso.max ?? 0;
+  const limitado = Math.min(max, chave === "pm" ? Math.max(0, valor) : valor);
+  return { ...ficha, [chave]: { ...recurso, atual: limitado } };
+}
+
+function alternarEquipadoLocal(ficha: Ficha, itemId: string): Ficha {
+  return {
+    ...ficha,
+    inventario: ficha.inventario.map((grupo) => ({
+      ...grupo,
+      itens: grupo.itens.map((item) =>
+        item.id === itemId ? { ...item, equipado: !item.equipado } : item
+      )
+    }))
+  };
+}
 
 type FoundryContextValue = {
   status: Status;
@@ -93,15 +139,52 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setTrocandoPara(null);
   }, []);
 
-  const enviar = useCallback((mensagem: MensagemParaFoundry) => {
+  /**
+   * Repede o estado ao relay. Usado sempre que uma ação falha: em vez de
+   * tentar desfazer o palpite otimista na mão (e errar se um push legítimo
+   * chegou no meio), pedimos a verdade e sobrescrevemos.
+   */
+  const ressincronizar = useCallback(() => {
     fetch("/api/ficha/acao", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mensagem)
-    }).catch(() => {
-      setErroServidor("Não foi possível falar com o servidor.");
-    });
+      body: JSON.stringify({ tipo: "obterFicha" } satisfies MensagemParaFoundry)
+    }).catch(() => {});
   }, []);
+
+  const enviar = useCallback(
+    (mensagem: MensagemParaFoundry) => {
+      fetch("/api/ficha/acao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mensagem)
+      })
+        .then((resposta) => {
+          if (resposta.ok) return;
+          return resposta
+            .json()
+            .catch(() => null)
+            .then((dados) => {
+              setErroServidor(dados?.erro ?? "O Foundry recusou a ação.");
+              ressincronizar();
+            });
+        })
+        .catch(() => {
+          setErroServidor("Não foi possível falar com o servidor.");
+          ressincronizar();
+        });
+    },
+    [ressincronizar]
+  );
+
+  /** Ação que mexe na ficha: pinta a tela na hora e manda para o Foundry. */
+  const agir = useCallback(
+    (mensagem: MensagemParaFoundry, palpite: (ficha: Ficha) => Ficha) => {
+      setFicha((atual) => (atual ? palpite(atual) : atual));
+      enviar(mensagem);
+    },
+    [enviar]
+  );
 
   const carregarUsuariosELogin = useCallback(async () => {
     setStatus("loginNecessario");
@@ -143,6 +226,9 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       } else if (mensagem.tipo === "erro") {
         setErroServidor(mensagem.mensagem);
         encerrarTroca();
+        // A ação foi recusada (ficha de companheiro, permissão perdida): a
+        // tela pode estar mostrando um palpite que nunca vai acontecer.
+        ressincronizar();
       }
     };
 
@@ -163,7 +249,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         })
         .catch(() => setStatus("erroConexao"));
     };
-  }, [carregarUsuariosELogin, encerrarTroca, enviar]);
+  }, [carregarUsuariosELogin, encerrarTroca, enviar, ressincronizar]);
 
   useEffect(() => {
     (async () => {
@@ -250,13 +336,28 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     selecionarPersonagem,
     recarregarPersonagens: () => enviar({ tipo: "obterFicha" }),
     limparErro: () => setErroServidor(null),
-    ajustarPV: (delta) => enviar({ tipo: "ajustarPV", delta }),
-    ajustarPM: (delta) => enviar({ tipo: "ajustarPM", delta }),
-    definirAtual: (recurso, valor) => enviar({ tipo: "definirAtual", recurso, valor }),
-    definirTemporario: (recurso, valor) => enviar({ tipo: "definirTemporario", recurso, valor }),
-    alternarEquipado: (itemId) => enviar({ tipo: "alternarEquipado", itemId }),
-    ajustarDinheiro: (moeda, valor) => enviar({ tipo: "ajustarDinheiro", moeda, valor }),
-    descansar: (opcoes) => enviar({ tipo: "descansar", opcoes })
+    ajustarPV: (delta) => agir({ tipo: "ajustarPV", delta }, (f) => ajustarRecursoLocal(f, "pv", delta)),
+    ajustarPM: (delta) => agir({ tipo: "ajustarPM", delta }, (f) => ajustarRecursoLocal(f, "pm", delta)),
+    definirAtual: (recurso, valor) =>
+      agir({ tipo: "definirAtual", recurso, valor }, (f) => definirRecursoLocal(f, recurso, valor)),
+    definirTemporario: (recurso, valor) =>
+      agir({ tipo: "definirTemporario", recurso, valor }, (f) => ({
+        ...f,
+        [recurso]: { ...f[recurso], temp: Math.max(0, valor) }
+      })),
+    alternarEquipado: (itemId) =>
+      agir({ tipo: "alternarEquipado", itemId }, (f) => alternarEquipadoLocal(f, itemId)),
+    ajustarDinheiro: (moeda, valor) =>
+      agir({ tipo: "ajustarDinheiro", moeda, valor }, (f) => ({
+        ...f,
+        dinheiro: f.dinheiro.map((m) => (m.chave === moeda ? { ...m, valor: Math.max(0, valor) } : m))
+      })),
+    descansar: (opcoes) =>
+      agir({ tipo: "descansar", opcoes }, (f) => {
+        const ganho = calcularDescanso(f.nivel ?? 0, opcoes);
+        const comPV = definirRecursoLocal(f, "pv", (f.pv.atual ?? 0) + ganho.pv);
+        return definirRecursoLocal(comPV, "pm", (comPV.pm.atual ?? 0) + ganho.pm);
+      })
   };
 
   return <FoundryContext.Provider value={value}>{children}</FoundryContext.Provider>;

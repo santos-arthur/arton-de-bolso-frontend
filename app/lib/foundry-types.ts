@@ -135,6 +135,19 @@ export type ListaPersonagens = {
 
 export type UsuarioFoundry = { id: string; nome: string };
 
+/** Condição do descanso — define o multiplicador por nível (T20, p. 106). */
+export type CondicaoDescanso = "ruim" | "normal" | "confortavel" | "luxuoso";
+
+export type OpcoesDescanso = {
+  condicao: CondicaoDescanso;
+  pvExtraPorNivel: number;
+  pmExtraPorNivel: number;
+  /** Uso da perícia Cura: dobra os PV recuperados. */
+  cuidadosProlongados: boolean;
+  /** Dobra os PM recuperados. */
+  acompanhamentoMedico: boolean;
+};
+
 /** Mensagens que o front envia pro relay (`module.arton-de-bolso`). */
 export type MensagemParaFoundry =
   | { tipo: "obterFicha" }
@@ -145,15 +158,7 @@ export type MensagemParaFoundry =
   | { tipo: "definirTemporario"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "alternarEquipado"; itemId: string }
   | { tipo: "ajustarDinheiro"; moeda: string; valor: number }
-  | {
-      tipo: "descansar";
-      opcoes: {
-        pvExtraPorNivel?: number;
-        pmExtraPorNivel?: number;
-        cuidadosProlongados?: boolean;
-        acompanhamentoMedico?: boolean;
-      };
-    };
+  | { tipo: "descansar"; opcoes: OpcoesDescanso };
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =

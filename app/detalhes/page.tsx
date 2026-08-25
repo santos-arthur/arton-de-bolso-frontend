@@ -1,30 +1,25 @@
 "use client";
 
 import { type ReactNode } from "react";
-import CabecalhoPagina, { TituloSecao } from "../components/cabecalho-pagina";
+import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoComDetalhe from "../components/campo-com-detalhe";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
 
-function CampoComLegenda({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
-    <fieldset className="w-full rounded-lg border-2 border-red-900 px-3 pb-1">
-      <legend className="px-1 text-xs uppercase tracking-wide opacity-70">
-        <span className="font-bold">{rotulo}</span>
-      </legend>
-      <div className="text-xl">{children}</div>
-    </fieldset>
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2">
+      <span className="text-[11px] font-bold uppercase leading-none tracking-wider opacity-55">{rotulo}</span>
+      <div className="truncate text-sm font-semibold">{children}</div>
+    </div>
   );
 }
 
-function ListaDeTags({ itens, vazio = "Nenhum" }: { itens: string[]; vazio?: string }) {
-  if (itens.length === 0) {
-    return <span className="text-sm font-normal opacity-70">{vazio}</span>;
-  }
-
+function ListaDeTags({ itens, vazio }: { itens: string[]; vazio: string }) {
+  if (itens.length === 0) return <span className="text-sm opacity-50">{vazio}</span>;
   return (
-    <div className="flex flex-wrap gap-1.5 py-2 px-0.5">
+    <div className="flex flex-row flex-wrap gap-1.5">
       {itens.map((item) => (
         <Tag key={item}>{item}</Tag>
       ))}
@@ -32,92 +27,118 @@ function ListaDeTags({ itens, vazio = "Nenhum" }: { itens: string[]; vazio?: str
   );
 }
 
-function CampoAtributo({ sigla, mod, itens }: { sigla: string; mod: number | null; itens: { rotulo: string; valor: number }[] }) {
-  return (
-    <CampoComDetalhe
-      classeContainer="relative w-full max-w-26"
-      classeGatilho="flex aspect-square w-full max-h-24 flex-col items-center justify-center rounded-lg border-2 border-red-900 font-bold"
-      itens={itens}
-      total={mod ?? 0}
-    >
-      <legend className="mx-auto px-2 text-center text-lg">{sigla}</legend>
-      <div className="text-3xl pb-2">{mod !== null ? (mod >= 0 ? `+${mod}` : mod) : "—"}</div>
-    </CampoComDetalhe>
-  );
-}
-
 export default function Page() {
   const { ficha } = useFoundry();
-
   if (!ficha) return null;
 
-  const { atributos, tamanho, movimento, resistencias, imunidadesCondicoes, sentidos, profArmas, profArmaduras } = ficha;
-
-  const deslocamentoItens = [{ rotulo: `Base (${tamanho})`, valor: movimento.valor ?? 0 }];
+  const {
+    atributos,
+    tamanho,
+    movimento,
+    resistencias,
+    imunidadesCondicoes,
+    sentidos,
+    profArmas,
+    profArmaduras,
+    raca,
+    origem,
+    divindade,
+    classes,
+    xp
+  } = ficha;
 
   return (
     <PaginaFicha>
       <CabecalhoPagina titulo="Detalhes" />
 
+      {/* Atributos primeiro: é o que se consulta a cada teste. */}
       <TituloSecao>Atributos</TituloSecao>
-
-      <div className="grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-6">
+      {/* Quadrados com a borda marcada, como na primeira versão da ficha: é o
+          bloco que se olha a cada teste, e merece peso visual maior que o
+          resto da página. */}
+      <div className="grid grid-cols-3 justify-items-center gap-3 sm:grid-cols-6 sm:gap-4">
         {atributos.map((atributo) => (
-          <CampoAtributo key={atributo.chave} sigla={atributo.sigla} mod={atributo.mod} itens={atributo.itens} />
+          <CampoComDetalhe
+            key={atributo.chave}
+            titulo={atributo.nome}
+            classeContainer="relative w-full max-w-26"
+            classeGatilho="flex aspect-square max-h-24 w-full flex-col items-center rounded-xl border-2 border-acento bg-superficie-alta pt-1.5 font-bold transition-colors hover:bg-foreground/[0.03]"
+            itens={atributo.itens}
+            total={atributo.mod ?? 0}
+          >
+            <span className="font-display text-lg uppercase leading-none tracking-wide">{atributo.sigla}</span>
+            <span className="numero flex flex-1 items-center text-3xl leading-none">
+              {atributo.mod !== null ? (atributo.mod >= 0 ? `+${atributo.mod}` : atributo.mod) : "—"}
+            </span>
+          </CampoComDetalhe>
         ))}
       </div>
 
-      <hr className="border-red-900 border my-4" />
+      <TituloSecao>Identidade</TituloSecao>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Campo rotulo="Raça">{raca || "—"}</Campo>
+        <Campo rotulo="Origem">{origem || "—"}</Campo>
+        <Campo rotulo="Classe">{classes || "—"}</Campo>
+        <Campo rotulo="Divindade">{divindade || "—"}</Campo>
+      </div>
 
-      <TituloSecao>Características</TituloSecao>
-
-      <div className="grid w-full grid-cols-2 gap-3 md:gap-4">
-        <CampoComLegenda rotulo="Tamanho">{tamanho}</CampoComLegenda>
+      <TituloSecao>Corpo</TituloSecao>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+        <Campo rotulo="Tamanho">{tamanho || "—"}</Campo>
         <CampoComDetalhe
-          classeContainer="relative w-full"
-          classeGatilho="w-full rounded-lg border-2 border-red-900 px-3 pb-1 text-left"
-          itens={deslocamentoItens}
+          titulo="Deslocamento"
+          classeContainer="relative"
+          classeGatilho="flex h-full w-full flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left transition-colors hover:border-acento/60"
+          itens={[{ rotulo: `Base (${tamanho})`, valor: movimento.valor ?? 0 }]}
           total={movimento.valor ?? 0}
         >
-          <legend className="px-1 text-xs uppercase tracking-wide opacity-70">
-            <span className="font-bold">Deslocamento</span>
-          </legend>
-          <div className="text-xl">
+          <span className="text-[11px] font-bold uppercase leading-none tracking-wider opacity-55">Deslocamento</span>
+          <span className="numero truncate text-sm font-semibold">
             {movimento.valor ?? "—"}
-            {movimento.unidade ? ` ${movimento.unidade}` : ""}
-            {movimento.unidade == "Metros" && movimento.valor !== null ? ` (${(movimento.valor / 1.5).toFixed(0)} quadrados)` : ""}
-          </div>
+            {movimento.unidade ? ` ${movimento.unidade.toLowerCase()}` : ""}
+            {movimento.unidade === "Metros" && movimento.valor !== null
+              ? ` (${(movimento.valor / 1.5).toFixed(0)} quad.)`
+              : ""}
+          </span>
         </CampoComDetalhe>
+        {xp && (
+          <Campo rotulo="Experiência">
+            <span className="numero">
+              {xp.atual} / {xp.proximo}
+            </span>
+          </Campo>
+        )}
       </div>
 
-      <hr className="border-red-900 border my-4" />
-
-      <TituloSecao>Resistências, Imunidades e Sentidos</TituloSecao>
-
-      <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
-        <CampoComLegenda rotulo="Resistências">
-          <ListaDeTags itens={resistencias} />
-        </CampoComLegenda>
-        <CampoComLegenda rotulo="Imunidade a Condições">
-          <ListaDeTags itens={imunidadesCondicoes} />
-        </CampoComLegenda>
-        <CampoComLegenda rotulo="Sentidos">
-          <ListaDeTags itens={sentidos} />
-        </CampoComLegenda>
+      <TituloSecao>Resistências, imunidades e sentidos</TituloSecao>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold opacity-70">Resistências</span>
+          <ListaDeTags itens={resistencias} vazio="Nenhuma" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold opacity-70">Imunidade a condições</span>
+          <ListaDeTags itens={imunidadesCondicoes} vazio="Nenhuma" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold opacity-70">Sentidos</span>
+          <ListaDeTags itens={sentidos} vazio="Nenhum" />
+        </div>
       </div>
 
-      <hr className="border-red-900 border my-4" />
-
-      <TituloSecao>Proeficiências</TituloSecao>
-
-      <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-        <CampoComLegenda rotulo="Armas">
-          <ListaDeTags itens={profArmas} />
-        </CampoComLegenda>
-        <CampoComLegenda rotulo="Armaduras e Escudos">
-          <ListaDeTags itens={profArmaduras} />
-        </CampoComLegenda>
+      <TituloSecao>Proficiências</TituloSecao>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold opacity-70">Armas</span>
+          <ListaDeTags itens={profArmas} vazio="Nenhuma" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold opacity-70">Armaduras e escudos</span>
+          <ListaDeTags itens={profArmaduras} vazio="Nenhuma" />
+        </div>
       </div>
+
+      {atributos.length === 0 && <EstadoVazio>Sem dados de atributos.</EstadoVazio>}
     </PaginaFicha>
   );
 }

@@ -1,55 +1,82 @@
 "use client";
 
-import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
+import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
 import ModalFormulaPericia from "../components/modal-formula-pericia";
 import PaginaFicha from "../components/pagina-ficha";
 import { useFoundry } from "../lib/foundry-provider";
+import type { Pericia } from "../lib/foundry-types";
+
+/** Referência estável: `?? []` criaria um array novo a cada render e invalidaria o memo. */
+const SEM_PERICIAS: Pericia[] = [];
 
 export default function Page() {
   const { ficha } = useFoundry();
   const [chaveAberta, setChaveAberta] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [soTreinadas, setSoTreinadas] = useState(false);
+
+  const pericias = ficha?.pericias ?? SEM_PERICIAS;
+  const filtradas = useMemo(() => {
+    const alvo = normalizar(busca);
+    return pericias.filter(
+      (p) => (!soTreinadas || p.treinado) && (!alvo || normalizar(p.label).includes(alvo))
+    );
+  }, [pericias, busca, soTreinadas]);
 
   if (!ficha) return null;
 
-  const pericia = ficha.pericias.find((p) => p.chave === chaveAberta) ?? null;
-  const treinadas = ficha.pericias.filter((p) => p.treinado).length;
+  const treinadas = pericias.filter((p) => p.treinado).length;
+  const aberta = pericias.find((p) => p.chave === chaveAberta) ?? null;
 
   return (
     <PaginaFicha>
       <CabecalhoPagina titulo="Perícias">
-        <span className="text-sm opacity-70">{treinadas} treinadas</span>
+        {treinadas} de {pericias.length} treinadas
       </CabecalhoPagina>
 
-      {ficha.pericias.length === 0 && <EstadoVazio>Nenhuma perícia nesta ficha.</EstadoVazio>}
+      <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar perícia...">
+        <ChipFiltro ativo={soTreinadas} onClick={() => setSoTreinadas((v) => !v)}>
+          Só treinadas
+        </ChipFiltro>
+      </CampoBusca>
 
-      <ul className="flex flex-col gap-2">
-        {ficha.pericias.map((p) => (
-          <li key={p.chave}>
-            <button
-              type="button"
-              onClick={() => setChaveAberta(p.chave)}
-              className={`flex w-full items-center gap-3 rounded-lg border-2 px-3 py-2 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${
-                p.treinado ? "border-red-900" : "border-red-900/60"
-              }`}
-            >
-              <FontAwesomeIcon icon={p.treinado ? faCheck : faCircle} className={p.treinado ? "size-3.5! opacity-90" : "size-3! opacity-40"} />
-              <span className="flex-1">
-                {p.label}
-                {p.somenteTreinado && (
-                  <span className="ml-2 text-xs uppercase tracking-wide opacity-60">Somente treinado</span>
-                )}
-              </span>
-              <span className="font-bold">{p.valorFormatado}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {filtradas.length === 0 ? (
+        <EstadoVazio>Nenhuma perícia encontrada.</EstadoVazio>
+      ) : (
+        // Duas colunas a partir do tablet: são 20+ linhas curtas, e uma coluna
+        // só desperdiça metade da largura numa tela grande.
+        <ul className="grid grid-cols-1 gap-1.5 md:grid-cols-2 md:gap-2">
+          {filtradas.map((p) => (
+            <li key={p.chave}>
+              <button
+                type="button"
+                onClick={() => setChaveAberta(p.chave)}
+                className="flex min-h-12 w-full flex-row items-center gap-3 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left transition-colors hover:border-acento/60 hover:bg-foreground/[0.03]"
+              >
+                <FontAwesomeIcon
+                  icon={faCircleCheck}
+                  title={p.treinado ? "Treinada" : "Não treinada"}
+                  className={`size-3.5! shrink-0 ${p.treinado ? "text-acento" : "opacity-20"}`}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {p.label}
+                  {p.somenteTreinado && !p.treinado && (
+                    <span className="ml-2 text-[10px] uppercase tracking-wider opacity-50">só treinado</span>
+                  )}
+                </span>
+                <span className="numero shrink-0 text-base font-bold">{p.valorFormatado}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {chaveAberta && (
-        <ModalFormulaPericia formula={pericia?.formula ?? null} onFechar={() => setChaveAberta(null)} />
+        <ModalFormulaPericia formula={aberta?.formula ?? null} onFechar={() => setChaveAberta(null)} />
       )}
     </PaginaFicha>
   );

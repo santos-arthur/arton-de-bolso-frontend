@@ -9,18 +9,13 @@ import { eRotaDeFicha } from "./navegacao";
 import { useFoundry } from "../lib/foundry-provider";
 
 function Aviso({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center text-olive-800 dark:text-olive-400">
-      {children}
-    </div>
-  );
+  return <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20 text-center">{children}</div>;
 }
 
 /**
- * As rotas de ficha (/detalhes, /combate, ...) só fazem sentido com um
- * personagem aberto. Em vez de cada página repetir `if (!ficha) return null`
- * — que deixava a tela em branco sem explicar nada —, o gate mostra o estado
- * certo e um caminho de volta pra home.
+ * As seções da ficha só fazem sentido com um personagem aberto. Em vez de cada
+ * página devolver uma tela em branco, o gate mostra o estado certo e o caminho
+ * de volta para a home.
  */
 export default function GateFicha({ children }: { children: ReactNode }) {
   const { ficha, personagens, trocandoPara } = useFoundry();
@@ -31,8 +26,8 @@ export default function GateFicha({ children }: { children: ReactNode }) {
   if (trocandoPara || (!ficha && personagens === null)) {
     return (
       <Aviso>
-        <FontAwesomeIcon icon={faSpinner} className="size-6! animate-spin" />
-        <p className="text-sm opacity-70">Carregando ficha...</p>
+        <FontAwesomeIcon icon={faSpinner} className="size-5! animate-spin opacity-60" />
+        <p className="text-sm opacity-60">Carregando ficha...</p>
       </Aviso>
     );
   }
@@ -40,10 +35,10 @@ export default function GateFicha({ children }: { children: ReactNode }) {
   if (!ficha) {
     return (
       <Aviso>
-        <p className="max-w-sm">Nenhum personagem aberto.</p>
+        <p className="max-w-sm text-sm opacity-70">Nenhum personagem aberto.</p>
         <Link
           href="/"
-          className="rounded-full border-2 border-red-900 bg-red-900 px-4 py-2 text-sm font-semibold text-olive-50 transition-opacity hover:opacity-90"
+          className="min-h-11 rounded-xl bg-acento px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
         >
           Escolher personagem
         </Link>

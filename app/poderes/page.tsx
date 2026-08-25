@@ -1,58 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
+import CampoBusca, { normalizar } from "../components/campo-busca";
+import CartaoExpansivel from "../components/cartao-expansivel";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
+import type { Poder } from "../lib/foundry-types";
+
+/** Referência estável: `?? []` criaria um array novo a cada render e invalidaria o memo. */
+const SEM_PODERES: Poder[] = [];
 
 export default function Page() {
   const { ficha } = useFoundry();
-  const [expandidoId, setExpandidoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const poderes = ficha?.poderes ?? SEM_PODERES;
+  const filtrados = useMemo(() => {
+    const alvo = normalizar(busca);
+    if (!alvo) return poderes;
+    return poderes.filter((p) => normalizar(`${p.nome} ${p.tipo} ${p.subtipo}`).includes(alvo));
+  }, [poderes, busca]);
 
   if (!ficha) return null;
 
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Poderes">
-        <span className="text-sm opacity-70">{ficha.poderes.length}</span>
-      </CabecalhoPagina>
+      <CabecalhoPagina titulo="Poderes">{poderes.length}</CabecalhoPagina>
 
-      {ficha.poderes.length === 0 && <EstadoVazio>Nenhum poder nesta ficha.</EstadoVazio>}
+      {poderes.length > 6 && (
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar poder..." />
+      )}
 
-      <ul className="flex flex-col gap-2">
-        {ficha.poderes.map((poder) => {
-          const expandido = expandidoId === poder.id;
-          return (
-            <li key={poder.id} className="rounded-lg border-2 border-red-900 px-3 py-2">
-              <div className="flex items-center gap-3">
-                {poder.img && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={poder.img} alt="" className="size-8 rounded-md object-cover" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setExpandidoId(expandido ? null : poder.id)}
-                  className="flex-1 text-left font-bold"
-                >
-                  {poder.nome}
-                </button>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {poder.tipo && <Tag>{poder.tipo}</Tag>}
-                {poder.subtipo && <Tag>{poder.subtipo}</Tag>}
-                {poder.ativacao && <Tag>{poder.ativacao}</Tag>}
-              </div>
-              {expandido && poder.descricao && (
-                <div
-                  className="mt-2 border-t border-red-900/40 pt-2 text-sm [&_p]:mb-2 last:[&_p]:mb-0"
-                  dangerouslySetInnerHTML={{ __html: poder.descricao }}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      {filtrados.length === 0 ? (
+        <EstadoVazio>{poderes.length ? "Nenhum poder encontrado." : "Nenhum poder nesta ficha."}</EstadoVazio>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {filtrados.map((poder) => (
+            <CartaoExpansivel
+              key={poder.id}
+              nome={poder.nome}
+              img={poder.img}
+              descricao={poder.descricao}
+              etiquetas={
+                <>
+                  {poder.tipo && <Tag>{poder.tipo}</Tag>}
+                  {poder.subtipo && <Tag>{poder.subtipo}</Tag>}
+                  {poder.ativacao && <Tag>{poder.ativacao}</Tag>}
+                </>
+              }
+            />
+          ))}
+        </ul>
+      )}
     </PaginaFicha>
   );
 }

@@ -3,10 +3,10 @@
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import AvisoServidor from "./aviso-servidor";
-import BarraPrincipal from "./barra-principal";
-import BarraResumoCondicional from "./barra-resumo-condicional";
+import CabecalhoFicha from "./cabecalho-ficha";
 import GateFicha from "./gate-ficha";
-import Navegacao, { eRotaDeFicha } from "./navegacao";
+import MenuLateral from "./menu-lateral";
+import { eRotaDeFicha } from "./navegacao";
 import { useFoundry } from "../lib/foundry-provider";
 
 const TITULOS: Record<string, string> = {
@@ -23,38 +23,35 @@ const TITULOS: Record<string, string> = {
 const APP = "Arton de Bolso";
 
 /**
- * Casca da aplicação autenticada. É um client component porque duas decisões
- * dependem da rota e do estado: a reserva de espaço para o dock (que só
- * existe nas abas da ficha) e o título da janela.
+ * Casca da aplicação autenticada: uma coluna de navegação à esquerda e o
+ * conteúdo à direita. Não há barra superior — tudo que ela carregava (marca,
+ * troca de personagem, configurações, sair) mora no <MenuLateral />.
  */
 export default function MolduraApp({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { ficha } = useFoundry();
 
   const naFicha = eRotaDeFicha(pathname);
-  const comDock = naFicha && !!ficha;
   const nomeDaFicha = ficha?.nome ?? null;
 
-  // Com várias abas abertas — coisa comum em mesa — "Arton de Bolso" em todas
-  // não distingue nada; o nome do personagem e a seção sim.
+  // Com várias abas abertas — comum em mesa — "Arton de Bolso" em todas não
+  // distingue nada; o nome do personagem e a seção sim.
   useEffect(() => {
     const partes = [naFicha ? nomeDaFicha : null, TITULOS[pathname], APP].filter(Boolean);
     document.title = partes.join(" · ");
   }, [pathname, nomeDaFicha, naFicha]);
 
   return (
-    <div
-      className={`flex min-h-dvh w-full flex-col items-center bg-olive-300 dark:bg-olive-800 ${
-        comDock ? "pb-24" : "pb-8"
-      }`}
-    >
-      <BarraPrincipal />
-      <AvisoServidor />
-      <BarraResumoCondicional />
-      <Navegacao />
-      <div className="flex w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 min-[1313px]:px-0">
-        <GateFicha>{children}</GateFicha>
-      </div>
+    <div className="flex min-h-dvh w-full flex-row bg-background text-foreground">
+      <MenuLateral />
+
+      <main className="flex min-w-0 flex-1 flex-col">
+        <AvisoServidor />
+        <CabecalhoFicha />
+        <div className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 md:pb-12">
+          <GateFicha>{children}</GateFicha>
+        </div>
+      </main>
     </div>
   );
 }
