@@ -1,8 +1,9 @@
 "use client";
 
-import { faUser } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { type ReactNode } from "react";
+import type { Recurso } from "../lib/foundry-types";
 import BotaoDescanso from "./botao-descanso";
 import CampoComDetalhe from "./campo-com-detalhe";
 import { useFoundry } from "../lib/foundry-provider";
@@ -31,8 +32,68 @@ function CampoRecurso({ rotulo, atual, max }: { rotulo: string; atual: number; m
   );
 }
 
-export default function BarraResumo({ compacta = false, onAbrirModalRecurso }: { compacta?: boolean; onAbrirModalRecurso?: (recurso: "pv" | "pm") => void }) {
-  const { ficha } = useFoundry();
+/**
+ * PV e PM da barra. Numa ficha própria o campo abre o modal de edição no
+ * clique. Numa ficha de companheiro não há o que editar — então o campo passa
+ * a se comportar como a Defesa: hover (ou clique, que trava) revela de onde
+ * vem o máximo.
+ */
+function CampoRecursoPrincipal({
+  rotulo,
+  recurso,
+  somenteLeitura,
+  onAbrir
+}: {
+  rotulo: string;
+  recurso: Recurso;
+  somenteLeitura: boolean;
+  onAbrir?: () => void;
+}) {
+  const conteudo = (
+    <>
+      <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">{rotulo}</legend>
+      <span className="text-xl font-bold">
+        {recurso.atual}
+        {!!recurso.temp && <span className="text-sm font-normal opacity-60"> +{recurso.temp}</span>}
+        {` / ${recurso.max}`}
+      </span>
+    </>
+  );
+
+  if (somenteLeitura) {
+    return (
+      <CampoComDetalhe
+        classeContainer="relative h-full w-full min-w-0 flex-1 basis-0"
+        classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
+        itens={recurso.itensMax}
+        total={recurso.max ?? 0}
+        temporario={recurso.temp}
+      >
+        {conteudo}
+      </CampoComDetalhe>
+    );
+  }
+
+  return (
+    <fieldset
+      role="button"
+      tabIndex={0}
+      onClick={onAbrir}
+      onKeyDown={(evento) => {
+        if (evento.key === "Enter" || evento.key === " ") {
+          evento.preventDefault();
+          onAbrir?.();
+        }
+      }}
+      className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+    >
+      {conteudo}
+    </fieldset>
+  );
+}
+
+export default function BarraResumo({ onAbrirModalRecurso }: { onAbrirModalRecurso?: (recurso: "pv" | "pm") => void }) {
+  const { ficha, somenteLeitura } = useFoundry();
 
   if (!ficha) return null;
 
@@ -51,8 +112,8 @@ export default function BarraResumo({ compacta = false, onAbrirModalRecurso }: {
     recursosGenericos
   } = ficha;
 
-  const tamanhoFoto = compacta ? "size-20 md:size-24 lg:size-28" : "size-28 md:size-40 lg:size-48";
-  const tamanhoIconeFoto = compacta ? "size-8! md:size-10! lg:size-12!" : "size-12! md:size-16! lg:size-20!";
+  const tamanhoFoto = "size-28 md:size-40 lg:size-48";
+  const tamanhoIconeFoto = "size-12! md:size-16! lg:size-20!";
 
   return (
     <div className="flex flex-col items-center w-full shrink-0 dark:bg-olive-900 bg-olive-400 shadow-2xs dark:shadow-2xs-dark py-4">
@@ -78,7 +139,14 @@ export default function BarraResumo({ compacta = false, onAbrirModalRecurso }: {
           <div className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 w-full lg:gap-x-8">
             <div className="min-w-0 text-3xl font-bold md:text-4xl lg:text-4xl">{nome}</div>
             <div className="flex flex-wrap items-center gap-4">
-              <BotaoDescanso />
+              {somenteLeitura ? (
+                <span className="flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-red-900 px-3 py-0.5 text-sm font-semibold">
+                  <FontAwesomeIcon icon={faEye} className="size-3.5!" />
+                  Somente leitura
+                </span>
+              ) : (
+                <BotaoDescanso />
+              )}
               <span className="whitespace-nowrap text-xl font-bold">Nível: {nivel ?? "—"}</span>
             </div>
           </div>
@@ -109,51 +177,35 @@ export default function BarraResumo({ compacta = false, onAbrirModalRecurso }: {
             </div>
           )}
 
-          {!compacta && (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
-              <fieldset
-                role="button"
-                tabIndex={0}
-                onClick={() => onAbrirModalRecurso?.("pv")}
-                className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">PV</legend>
-                <span className="text-xl font-bold">
-                  {pv.atual}
-                  {!!pv.temp && <span className="text-sm font-normal opacity-60"> +{pv.temp}</span>}
-                  {` / ${pv.max}`}
-                </span>
-              </fieldset>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
+            <CampoRecursoPrincipal
+              rotulo="PV"
+              recurso={pv}
+              somenteLeitura={somenteLeitura}
+              onAbrir={() => onAbrirModalRecurso?.("pv")}
+            />
 
-              <fieldset
-                role="button"
-                tabIndex={0}
-                onClick={() => onAbrirModalRecurso?.("pm")}
-                className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">PM</legend>
-                <span className="text-xl font-bold">
-                  {pm.atual}
-                  {!!pm.temp && <span className="text-sm font-normal opacity-60"> +{pm.temp}</span>}
-                  {` / ${pm.max}`}
-                </span>
-              </fieldset>
+            <CampoRecursoPrincipal
+              rotulo="PM"
+              recurso={pm}
+              somenteLeitura={somenteLeitura}
+              onAbrir={() => onAbrirModalRecurso?.("pm")}
+            />
 
-              {recursosGenericos.map((recurso) => (
-                <CampoRecurso key={recurso.chave} rotulo={recurso.label} atual={recurso.atual} max={recurso.max} />
-              ))}
+            {recursosGenericos.map((recurso) => (
+              <CampoRecurso key={recurso.chave} rotulo={recurso.label} atual={recurso.atual} max={recurso.max} />
+            ))}
 
-              <CampoComDetalhe
-                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-                itens={defesa.itens}
-                total={defesa.total ?? 0}
-              >
-                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">Defesa</legend>
-                <span className="text-xl font-bold">{defesa.total}</span>
-              </CampoComDetalhe>
-            </div>
-          )}
+            <CampoComDetalhe
+              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
+              itens={defesa.itens}
+              total={defesa.total ?? 0}
+            >
+              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">Defesa</legend>
+              <span className="text-xl font-bold">{defesa.total}</span>
+            </CampoComDetalhe>
+          </div>
         </div>
       </div>
     </div>

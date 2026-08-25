@@ -76,49 +76,13 @@ function FormularioLogin() {
   );
 }
 
-function EscolherPersonagem() {
-  const { semPersonagem, selecionarPersonagem } = useFoundry();
-  const personagens = semPersonagem ?? [];
-
-  if (!personagens.length) {
-    return (
-      <TelaCentral>
-        <p className="max-w-xs">
-          Nenhum personagem seu foi encontrado. Peça ao mestre para configurar a posse (Ownership) do seu Actor.
-        </p>
-      </TelaCentral>
-    );
-  }
-
-  return (
-    <TelaCentral>
-      <div className="flex w-full max-w-xs flex-col gap-3">
-        <h1 className="text-xl font-bold">Escolha um personagem</h1>
-        {personagens.map((personagem) => (
-          <button
-            key={personagem.id}
-            type="button"
-            onClick={() => selecionarPersonagem(personagem.id)}
-            className="flex items-center gap-3 rounded-lg border-2 border-red-900 bg-olive-300 p-3 text-left transition-colors hover:bg-black/5 dark:bg-olive-900 dark:hover:bg-white/5"
-          >
-            {personagem.img && (
-              <div
-                role="img"
-                aria-label=""
-                className="size-10 shrink-0 rounded-full border border-red-900 bg-cover bg-center"
-                style={{ backgroundImage: `url(${personagem.img})` }}
-              />
-            )}
-            <span className="font-semibold">{personagem.nome}</span>
-          </button>
-        ))}
-      </div>
-    </TelaCentral>
-  );
-}
-
+/**
+ * Porteiro da *sessão*: decide entre login, erro de conexão e "já pode
+ * mostrar o app". Escolher/abrir personagem não é assunto daqui — quem cuida
+ * disso é a home (`app/page.tsx`) e o <GateFicha /> nas rotas de ficha.
+ */
 export default function FoundryGate({ children }: { children: ReactNode }) {
-  const { status, ficha, semPersonagem, erroServidor } = useFoundry();
+  const { status } = useFoundry();
 
   if (status === "conectando" || status === "autenticando") {
     return <TelaCentral><p>Conectando ao Foundry...</p></TelaCentral>;
@@ -143,22 +107,5 @@ export default function FoundryGate({ children }: { children: ReactNode }) {
     return <FormularioLogin />;
   }
 
-  if (semPersonagem) {
-    return <EscolherPersonagem />;
-  }
-
-  if (!ficha) {
-    return <TelaCentral><p>Carregando ficha...</p></TelaCentral>;
-  }
-
-  return (
-    <>
-      {erroServidor && (
-        <div className="w-full bg-red-900 px-4 py-1 text-center text-sm font-semibold text-olive-50">
-          {erroServidor}
-        </div>
-      )}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

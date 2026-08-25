@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { COOKIE_SESSAO, estadoAtual, inscrever, sessaoExiste } from "../../../lib/foundry-server";
+import { COOKIE_SESSAO, estadosAtuais, inscrever, sessaoExiste } from "../../../lib/foundry-server";
 import type { MensagemDoFoundry } from "../../../lib/foundry-types";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +39,9 @@ export async function GET() {
         // A sessão some do mapa quando o Foundry a invalida (mundo relançado,
         // expirou). Fechar o stream faz o navegador reagir e voltar pro login.
         if (!sessaoExiste(sessaoId)) return encerrar();
-        const estado = estadoAtual(sessaoId!);
-        if (estado) controller.enqueue(codificador.encode(linhaSSE(estado)));
+        for (const estado of estadosAtuais(sessaoId!)) {
+          controller.enqueue(codificador.encode(linhaSSE(estado)));
+        }
       };
 
       enviarEstado();

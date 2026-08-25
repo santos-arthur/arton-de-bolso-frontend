@@ -4,9 +4,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRouter } from "next/navigation";
 import type {
   Ficha,
+  ListaPersonagens,
   MensagemDoFoundry,
   MensagemParaFoundry,
-  PersonagemDisponivel,
   UsuarioFoundry
 } from "./foundry-types";
 
@@ -19,16 +19,28 @@ type Status = "conectando" | "loginNecessario" | "autenticando" | "autenticado" 
 
 type DescansoOpcoes = Extract<MensagemParaFoundry, { tipo: "descansar" }>["opcoes"];
 
+/** Trava de segurança: se o relay não responder a uma troca de personagem, a tela não fica presa em "carregando" pra sempre. */
+const LIMITE_TROCA_MS = 10000;
+
+const LISTAS_VAZIAS: ListaPersonagens = { meus: [], companheiros: [] };
+
 type FoundryContextValue = {
   status: Status;
   usuarios: UsuarioFoundry[];
   erroLogin: string | null;
   erroServidor: string | null;
   ficha: Ficha | null;
-  semPersonagem: PersonagemDisponivel[] | null;
+  /** Null enquanto o relay ainda não respondeu — a home mostra "carregando" nesse intervalo. */
+  personagens: ListaPersonagens | null;
+  /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
+  trocandoPara: string | null;
+  /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
+  somenteLeitura: boolean;
   login: (userId: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
   selecionarPersonagem: (actorId: string) => void;
+  /** Repede as listas ao relay — usado quando a home fica esperando tempo demais. */
+  recarregarPersonagens: () => void;
   ajustarPV: (delta: number) => void;
   ajustarPM: (delta: number) => void;
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
@@ -63,9 +75,31 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [erroLogin, setErroLogin] = useState<string | null>(null);
   const [erroServidor, setErroServidor] = useState<string | null>(null);
   const [ficha, setFicha] = useState<Ficha | null>(null);
-  const [semPersonagem, setSemPersonagem] = useState<PersonagemDisponivel[] | null>(null);
+  const [personagens, setPersonagens] = useState<ListaPersonagens | null>(null);
+  const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Espelho do estado: o handler do EventSource é criado uma vez só e leria
+  // sempre o `trocandoPara` do primeiro render se dependesse do state.
+  const trocandoParaRef = useRef<string | null>(null);
   const router = useRouter();
+
+  const encerrarTroca = useCallback(() => {
+    if (trocaTimeoutRef.current) clearTimeout(trocaTimeoutRef.current);
+    trocaTimeoutRef.current = null;
+    trocandoParaRef.current = null;
+    setTrocandoPara(null);
+  }, []);
+
+  const enviar = useCallback((mensagem: MensagemParaFoundry) => {
+    fetch("/api/ficha/acao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mensagem)
+    }).catch(() => {
+      setErroServidor("Não foi possível falar com o servidor.");
+    });
+  }, []);
 
   const carregarUsuariosELogin = useCallback(async () => {
     setStatus("loginNecessario");
@@ -77,7 +111,14 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     const stream = new EventSource("/api/ficha/eventos");
     eventSourceRef.current = stream;
 
-    stream.onopen = () => setStatus("autenticado");
+    stream.onopen = () => {
+      setStatus("autenticado");
+      // O servidor só guarda o que o relay já mandou. Numa reconexão (ou num
+      // F5 sobre uma sessão que nasceu antes de o mestre abrir o Foundry) esse
+      // cache pode estar vazio, e aí ninguém pediria nada — a tela ficaria
+      // carregando pra sempre. Pedir de novo é barato e idempotente.
+      enviar({ tipo: "obterFicha" });
+    };
 
     stream.onmessage = (evento) => {
       let mensagem: MensagemDoFoundry;
@@ -88,13 +129,18 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       }
       if (mensagem.tipo === "ficha") {
         setFicha(mensagem.ficha);
-        setSemPersonagem(null);
         setErroServidor(null);
-      } else if (mensagem.tipo === "semPersonagem") {
-        setSemPersonagem(mensagem.personagens);
+        // Só encerra a espera quando chega a ficha que foi pedida — um push
+        // de atualização do personagem antigo pode chegar no meio da troca.
+        if (trocandoParaRef.current === mensagem.ficha.id) encerrarTroca();
+      } else if (mensagem.tipo === "semFicha") {
         setFicha(null);
+        encerrarTroca();
+      } else if (mensagem.tipo === "personagens") {
+        setPersonagens({ meus: mensagem.meus, companheiros: mensagem.companheiros });
       } else if (mensagem.tipo === "erro") {
         setErroServidor(mensagem.mensagem);
+        encerrarTroca();
       }
     };
 
@@ -108,13 +154,14 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
           if (autenticado) setStatus("erroConexao");
           else {
             setFicha(null);
-            setSemPersonagem(null);
+            setPersonagens(null);
+            encerrarTroca();
             carregarUsuariosELogin();
           }
         })
         .catch(() => setStatus("erroConexao"));
     };
-  }, [carregarUsuariosELogin]);
+  }, [carregarUsuariosELogin, encerrarTroca, enviar]);
 
   useEffect(() => {
     (async () => {
@@ -128,6 +175,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
 
     return () => {
       eventSourceRef.current?.close();
+      if (trocaTimeoutRef.current) clearTimeout(trocaTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -148,8 +196,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
           setStatus("loginNecessario");
           return;
         }
-        // Login sempre começa na tela principal, nunca na rota em que o
-        // navegador estava antes de deslogar.
+        // Login sempre começa na home, nunca na rota em que o navegador
+        // estava antes de deslogar.
         router.replace("/");
         abrirStream();
       } catch {
@@ -164,21 +212,27 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     eventSourceRef.current?.close();
     await fetch("/api/logout", { method: "POST" }).catch(() => {});
     setFicha(null);
-    setSemPersonagem(null);
+    setPersonagens(null);
+    encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
     await carregarUsuariosELogin();
-  }, [carregarUsuariosELogin]);
+  }, [carregarUsuariosELogin, encerrarTroca]);
 
-  const enviar = useCallback((mensagem: MensagemParaFoundry) => {
-    fetch("/api/ficha/acao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mensagem)
-    }).catch(() => {
-      setErroServidor("Não foi possível falar com o servidor.");
-    });
-  }, []);
+  const selecionarPersonagem = useCallback(
+    (actorId: string) => {
+      if (trocaTimeoutRef.current) clearTimeout(trocaTimeoutRef.current);
+      trocandoParaRef.current = actorId;
+      setTrocandoPara(actorId);
+      trocaTimeoutRef.current = setTimeout(() => {
+        trocandoParaRef.current = null;
+        setTrocandoPara(null);
+        setErroServidor("O Foundry não respondeu a tempo. O mestre está com o jogo aberto?");
+      }, LIMITE_TROCA_MS);
+      enviar({ tipo: "selecionarPersonagem", actorId });
+    },
+    [enviar]
+  );
 
   const value: FoundryContextValue = {
     status,
@@ -186,10 +240,13 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     erroLogin,
     erroServidor,
     ficha,
-    semPersonagem,
+    personagens,
+    trocandoPara,
+    somenteLeitura: !!ficha?.somenteLeitura,
     login,
     logout,
-    selecionarPersonagem: (actorId) => enviar({ tipo: "selecionarPersonagem", actorId }),
+    selecionarPersonagem,
+    recarregarPersonagens: () => enviar({ tipo: "obterFicha" }),
     ajustarPV: (delta) => enviar({ tipo: "ajustarPV", delta }),
     ajustarPM: (delta) => enviar({ tipo: "ajustarPM", delta }),
     definirAtual: (recurso, valor) => enviar({ tipo: "definirAtual", recurso, valor }),
@@ -206,4 +263,10 @@ export function useFoundry() {
   const contexto = useContext(FoundryContext);
   if (!contexto) throw new Error("useFoundry deve ser usado dentro de <FoundryProvider>");
   return contexto;
+}
+
+/** Listas já normalizadas — evita `?? { meus: [], companheiros: [] }` espalhado pela home. */
+export function usePersonagens(): { listas: ListaPersonagens; carregando: boolean } {
+  const { personagens } = useFoundry();
+  return { listas: personagens ?? LISTAS_VAZIAS, carregando: personagens === null };
 }

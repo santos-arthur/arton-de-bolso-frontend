@@ -87,6 +87,8 @@ export type Magia = {
 
 export type Ficha = {
   id: string;
+  /** Marcado pelo relay quando o usuário só tem OBSERVER no Actor (um "companheiro"): o front esconde todo controle de escrita. */
+  somenteLeitura: boolean;
   nome: string;
   img: string;
   nivel: number | null;
@@ -114,13 +116,28 @@ export type Ficha = {
   magias: Magia[];
 };
 
-export type PersonagemDisponivel = { id: string; nome: string; img: string };
+/** Resumo de um Actor para os cards da home — não é a ficha inteira. */
+export type PersonagemDisponivel = {
+  id: string;
+  nome: string;
+  img: string;
+  nivel: number | null;
+  raca: string;
+  classes: string;
+};
+
+/** As duas listas da home: "meus" = sou OWNER (leio e escrevo); "companheiros" = sou só OBSERVER. */
+export type ListaPersonagens = {
+  meus: PersonagemDisponivel[];
+  companheiros: PersonagemDisponivel[];
+};
 
 export type UsuarioFoundry = { id: string; nome: string };
 
 /** Mensagens que o front envia pro relay (`module.arton-de-bolso`). */
 export type MensagemParaFoundry =
   | { tipo: "obterFicha" }
+  | { tipo: "obterPersonagens" }
   | { tipo: "selecionarPersonagem"; actorId: string }
   | { tipo: "ajustarPV" | "ajustarPM"; delta: number }
   | { tipo: "definirAtual"; recurso: "pv" | "pm"; valor: number }
@@ -140,5 +157,6 @@ export type MensagemParaFoundry =
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =
   | { tipo: "ficha"; ficha: Ficha }
-  | { tipo: "semPersonagem"; personagens: PersonagemDisponivel[] }
+  | ({ tipo: "personagens" } & ListaPersonagens)
+  | { tipo: "semFicha" }
   | { tipo: "erro"; mensagem: string };

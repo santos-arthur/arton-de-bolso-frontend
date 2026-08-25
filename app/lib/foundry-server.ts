@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { io, type Socket } from "socket.io-client";
 import type {
   Ficha,
+  ListaPersonagens,
   MensagemDoFoundry,
   MensagemParaFoundry,
   PersonagemDisponivel,
@@ -28,7 +29,8 @@ type SessaoServidor = {
   foundryUserId: string;
   socket: Socket;
   ficha: Ficha | null;
-  semPersonagem: PersonagemDisponivel[] | null;
+  /** Null enquanto o relay ainda não respondeu nada — é o que distingue "sem personagem" de "ainda não sei". */
+  personagens: ListaPersonagens | null;
   erro: string | null;
   ouvintes: Set<() => void>;
 };
@@ -77,6 +79,13 @@ function absolutizarImagensDaFicha(ficha: Ficha): Ficha {
 
 function absolutizarImagensDosPersonagens(personagens: PersonagemDisponivel[]): PersonagemDisponivel[] {
   return personagens.map((personagem) => ({ ...personagem, img: absolutizarImagem(personagem.img) }));
+}
+
+function absolutizarImagensDasListas(listas: ListaPersonagens): ListaPersonagens {
+  return {
+    meus: absolutizarImagensDosPersonagens(listas.meus),
+    companheiros: absolutizarImagensDosPersonagens(listas.companheiros)
+  };
 }
 
 function extrairValorCookie(cookies: string[], nome: string): string | null {
@@ -201,7 +210,7 @@ export async function autenticar(
     foundryUserId: sessaoFoundry.userId,
     socket,
     ficha: null,
-    semPersonagem: null,
+    personagens: null,
     erro: null,
     ouvintes: new Set()
   };
@@ -210,11 +219,11 @@ export async function autenticar(
   socket.on(MODULE_EVENTO, (mensagem: MensagemDoFoundry) => {
     if (mensagem.tipo === "ficha") {
       sessao.ficha = absolutizarImagensDaFicha(mensagem.ficha);
-      sessao.semPersonagem = null;
       sessao.erro = null;
-    } else if (mensagem.tipo === "semPersonagem") {
-      sessao.semPersonagem = absolutizarImagensDosPersonagens(mensagem.personagens);
+    } else if (mensagem.tipo === "semFicha") {
       sessao.ficha = null;
+    } else if (mensagem.tipo === "personagens") {
+      sessao.personagens = absolutizarImagensDasListas(mensagem);
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -278,14 +287,24 @@ export async function sessaoAtiva(sessaoId: string | undefined | null): Promise<
   return true;
 }
 
-/** Estado já conhecido da sessão — usado pra mandar o primeiro evento assim que o SSE conecta, sem esperar o próximo push. */
-export function estadoAtual(sessaoId: string): MensagemDoFoundry | null {
+/**
+ * Estado já conhecido da sessão — usado pra remontar a tela inteira assim que
+ * o SSE conecta (ou reconecta), sem esperar o próximo push do Foundry. São
+ * várias mensagens porque listas e ficha são estados independentes: a home
+ * precisa das listas mesmo quando nenhuma ficha está aberta.
+ */
+export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   const sessao = sessoes.get(sessaoId);
-  if (!sessao) return null;
-  if (sessao.ficha) return { tipo: "ficha", ficha: sessao.ficha };
-  if (sessao.semPersonagem) return { tipo: "semPersonagem", personagens: sessao.semPersonagem };
-  if (sessao.erro) return { tipo: "erro", mensagem: sessao.erro };
-  return null;
+  if (!sessao) return [];
+
+  const mensagens: MensagemDoFoundry[] = [];
+  if (sessao.personagens) mensagens.push({ tipo: "personagens", ...sessao.personagens });
+  // Só afirma "sem ficha" depois que o relay respondeu ao menos uma vez —
+  // antes disso a tela segue em "carregando" em vez de piscar a home vazia.
+  if (sessao.ficha) mensagens.push({ tipo: "ficha", ficha: sessao.ficha });
+  else if (sessao.personagens) mensagens.push({ tipo: "semFicha" });
+  if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
+  return mensagens;
 }
 
 export function inscrever(sessaoId: string, notificar: () => void): () => void {

@@ -5,16 +5,23 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useFoundry } from "../lib/foundry-provider";
 
-const ITENS_NAV = [
-  { rotulo: "Detalhes", href: "/" },
+// Só abas *da ficha* — navegar entre telas do app (home, configurações,
+// sair) é papel da <BarraPrincipal /> no topo.
+export const ITENS_NAV = [
+  { rotulo: "Detalhes", href: "/detalhes" },
   { rotulo: "Combate", href: "/combate" },
   { rotulo: "Perícias", href: "/pericias" },
   { rotulo: "Poderes", href: "/poderes" },
   { rotulo: "Inventário", href: "/inventario" },
   { rotulo: "Magias", href: "/magias" },
-  { rotulo: "Configurações", href: "/configuracoes" },
 ];
+
+/** Rotas em que o dock faz sentido — fora delas (home, configurações) ele some. */
+export function eRotaDeFicha(pathname: string) {
+  return ITENS_NAV.some((item) => item.href === pathname);
+}
 
 type Retangulo = { top: number; left: number; width: number; height: number };
 
@@ -55,6 +62,7 @@ function useIndicadorAtivo(
 
 export default function Navegacao() {
   const pathname = usePathname();
+  const { ficha } = useFoundry();
   const [menuAberto, setMenuAberto] = useState(false);
 
   const dockRef = useRef<HTMLDivElement>(null);
@@ -75,6 +83,10 @@ export default function Navegacao() {
     document.addEventListener("keydown", aoTeclar);
     return () => document.removeEventListener("keydown", aoTeclar);
   }, [menuAberto]);
+
+  // Depois de todos os hooks: o dock navega dentro de uma ficha, então fora
+  // das rotas de ficha (ou sem ficha aberta) ele não tem o que fazer.
+  if (!ficha || !eRotaDeFicha(pathname)) return null;
 
   return (
     <>

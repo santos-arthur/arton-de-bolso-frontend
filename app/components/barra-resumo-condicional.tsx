@@ -4,19 +4,19 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import BarraResumo from "./barra-resumo";
 import ModalRecursoFicha from "./modal-recurso-ficha";
-
-const ROTAS_SEM_BARRA = ["/configuracoes"];
-const ROTAS_BARRA_COMPACTA = ["/combate"];
+import { eRotaDeFicha } from "./navegacao";
 
 export default function BarraResumoCondicional() {
   const pathname = usePathname();
   const [recursoAberto, setRecursoAberto] = useState<"pv" | "pm" | null>(null);
 
-  if (ROTAS_SEM_BARRA.includes(pathname)) return null;
+  // A barra é o cabeçalho da ficha: home e configurações não têm ficha
+  // nenhuma em foco, então ela não aparece lá.
+  if (!eRotaDeFicha(pathname)) return null;
 
   return (
     <>
-      <BarraResumo compacta={ROTAS_BARRA_COMPACTA.includes(pathname)} onAbrirModalRecurso={setRecursoAberto} />
+      <BarraResumo onAbrirModalRecurso={setRecursoAberto} />
       {recursoAberto && <ModalRecursoFicha recurso={recursoAberto} onFechar={() => setRecursoAberto(null)} />}
     </>
   );
