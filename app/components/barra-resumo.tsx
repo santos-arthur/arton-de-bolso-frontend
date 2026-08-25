@@ -102,7 +102,7 @@ function BarraXp({ atual, proximo }: { atual: number; proximo: number }) {
   );
 }
 
-export default function BarraResumo() {
+export default function BarraResumo({ compacta = false }: { compacta?: boolean }) {
   const {
     nome,
     nivel,
@@ -140,6 +140,13 @@ export default function BarraResumo() {
   ];
   const defesaTotal = defesaItens.reduce((soma, item) => soma + item.valor, 0);
 
+  const tamanhoFoto = compacta
+    ? "size-20 md:size-24 lg:size-28"
+    : "size-28 md:size-40 lg:size-48";
+  const tamanhoIconeFoto = compacta
+    ? "size-8! md:size-10! lg:size-12!"
+    : "size-12! md:size-16! lg:size-20!";
+
   return (
     <div className="flex flex-col items-center w-full shrink-0 dark:bg-olive-900 bg-olive-400 shadow-2xs dark:shadow-2xs-dark py-4">
       <div className="grid-cabecalho gap-x-4 gap-y-2 md:gap-x-6 lg:gap-x-8 w-full max-w-7xl px-4 min-[1313px]:px-0">
@@ -148,11 +155,13 @@ export default function BarraResumo() {
             <img
               src={personagem.imagem}
               alt="Imagem do personagem"
-              className="size-28 shrink-0 object-center object-cover rounded-xl border-2 border-red-900 md:size-40 lg:size-48"
+              className={`shrink-0 object-center object-cover rounded-xl border-2 border-red-900 ${tamanhoFoto}`}
             />
           ) : (
-            <div className="flex flex-row shrink-0 items-center justify-center gap-2 size-28 border-2 rounded-xl border-red-900 text-olive-800 dark:text-olive-400 md:size-40 lg:size-48">
-              <FontAwesomeIcon icon={faUser} className="size-12! md:size-16! lg:size-20!" />
+            <div
+              className={`flex flex-row shrink-0 items-center justify-center gap-2 border-2 rounded-xl border-red-900 text-olive-800 dark:text-olive-400 ${tamanhoFoto}`}
+            >
+              <FontAwesomeIcon icon={faUser} className={tamanhoIconeFoto} />
             </div>
           )}
         </div>
@@ -189,57 +198,61 @@ export default function BarraResumo() {
 
           {/* Linha de PV/PM/Bênçãos/Defesa: isolada das linhas acima. No celular
               vira grid 2x2, no tablet grid de 4 colunas e no desktop (lg) volta
-              a ser exatamente como antes: flex sem quebra, 1/4 cada, h-16. */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
-            <CampoComDetalhe
-              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-              itens={pvItens}
-              total={pvMaximo}
-              temporario={pv.temporario}
-            >
-              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                PV
-              </legend>
-              <span className="text-xl font-bold">
-                {pv.atual}
-                {pv.temporario > 0 && (
-                  <span className="text-sm font-normal opacity-60"> +{pv.temporario}</span>
-                )}
-                {` / ${pvMaximo}`}
-              </span>
-            </CampoComDetalhe>
-            <CampoComDetalhe
-              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-              itens={pmItens}
-              total={pmMaximo}
-              temporario={pm.temporario}
-            >
-              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                PM
-              </legend>
-              <span className="text-xl font-bold">
-                {pm.atual}
-                {pm.temporario > 0 && (
-                  <span className="text-sm font-normal opacity-60"> +{pm.temporario}</span>
-                )}
-                {` / ${pmMaximo}`}
-              </span>
-            </CampoComDetalhe>
-            <CampoRecurso rotulo="Bênçãos" atual={bencaosDosDeuses} />
-            <CampoComDetalhe
-              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
-              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
-              itens={defesaItens}
-              total={defesaTotal}
-            >
-              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-                Defesa
-              </legend>
-              <span className="text-xl font-bold">{defesaTotal}</span>
-            </CampoComDetalhe>
-          </div>
+              a ser exatamente como antes: flex sem quebra, 1/4 cada, h-16.
+              Some na tela de Combate, onde esses itens saem da barra e passam
+              a viver na própria tela. */}
+          {!compacta && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
+              <CampoComDetalhe
+                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
+                itens={pvItens}
+                total={pvMaximo}
+                temporario={pv.temporario}
+              >
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                  PV
+                </legend>
+                <span className="text-xl font-bold">
+                  {pv.atual}
+                  {pv.temporario > 0 && (
+                    <span className="text-sm font-normal opacity-60"> +{pv.temporario}</span>
+                  )}
+                  {` / ${pvMaximo}`}
+                </span>
+              </CampoComDetalhe>
+              <CampoComDetalhe
+                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
+                itens={pmItens}
+                total={pmMaximo}
+                temporario={pm.temporario}
+              >
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                  PM
+                </legend>
+                <span className="text-xl font-bold">
+                  {pm.atual}
+                  {pm.temporario > 0 && (
+                    <span className="text-sm font-normal opacity-60"> +{pm.temporario}</span>
+                  )}
+                  {` / ${pmMaximo}`}
+                </span>
+              </CampoComDetalhe>
+              <CampoRecurso rotulo="Bênçãos" atual={bencaosDosDeuses} />
+              <CampoComDetalhe
+                classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+                classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
+                itens={defesaItens}
+                total={defesaTotal}
+              >
+                <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                  Defesa
+                </legend>
+                <span className="text-xl font-bold">{defesaTotal}</span>
+              </CampoComDetalhe>
+            </div>
+          )}
         </div>
       </div>
     </div>

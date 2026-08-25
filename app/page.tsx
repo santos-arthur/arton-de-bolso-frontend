@@ -41,7 +41,7 @@ function ListaDeTags({ itens, vazio = "Nenhum" }: { itens: string[]; vazio?: str
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5 py-0.5">
+    <div className="flex flex-wrap gap-1.5 py-2 px-0.5">
       {itens.map((item) => (
         <Tag key={item}>{item}</Tag>
       ))}
@@ -95,7 +95,7 @@ function CampoAtributo({ sigla, itens, temporario }: { sigla: string; itens: Ite
   return (
     <CampoComDetalhe
       classeContainer="relative w-full max-w-26"
-      classeGatilho="flex aspect-square w-full max-h-24 flex-col items-center justify-center rounded-lg border-2 border-red-900 font-bold text-red-900 dark:text-red-700"
+      classeGatilho="flex aspect-square w-full max-h-24 flex-col items-center justify-center rounded-lg border-2 border-red-900 font-bold"
       itens={itens}
       total={total}
       temporario={temporario}
@@ -119,6 +119,11 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
+
+      <div className="text-lg font-bold uppercase tracking-wide opacity-70">
+        Atributos
+      </div>
+
       <div className="grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-6">
         {ATRIBUTOS.map((atributo) => (
           <CampoAtributo
@@ -128,6 +133,12 @@ export default function Home() {
             temporario={atributo.temporario}
           />
         ))}
+      </div>
+
+      <hr className="border-red-900 border my-4" />
+
+      <div className="text-lg font-bold uppercase tracking-wide opacity-70">
+        Características
       </div>
 
       <div className="grid w-full grid-cols-2 gap-3 md:gap-4">
@@ -145,6 +156,13 @@ export default function Home() {
         </CampoComDetalhe>
       </div>
 
+      
+      <hr className="border-red-900 border my-4" />
+
+      <div className="text-lg font-bold uppercase tracking-wide opacity-70">
+        Resistências, Imunidades e Sentidos
+      </div>
+
       <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
         <CampoComLegenda rotulo="Resistências">
           <ListaDeTags itens={PERSONAGEM.resistencias} />
@@ -155,6 +173,13 @@ export default function Home() {
         <CampoComLegenda rotulo="Sentidos">
           <ListaDeTags itens={PERSONAGEM.sentidos} />
         </CampoComLegenda>
+      </div>
+      
+      
+      <hr className="border-red-900 border my-4" />
+
+      <div className="text-lg font-bold uppercase tracking-wide opacity-70">
+        Proeficiências
       </div>
 
       <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
