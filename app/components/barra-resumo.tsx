@@ -2,8 +2,9 @@
 
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import BotaoDescanso from "./botao-descanso";
+import CampoComDetalhe, { formatarBonus, type ItemDetalhe } from "./campo-com-detalhe";
 
 const personagem = {
   nome: 'Milo "Bulette" Barrilmonte',
@@ -77,144 +78,6 @@ function CampoRecurso({
       </span>
       {temTemporario && <span className="text-sm opacity-70">+{temporario} temp.</span>}
     </fieldset>
-  );
-}
-
-type ItemDetalhe = { rotulo: string; valor: number };
-
-function formatarBonus(valor: number) {
-  return valor >= 0 ? `+${valor}` : `${valor}`;
-}
-
-function CampoComDetalhe({
-  rotulo,
-  valorExibido,
-  itens,
-  total,
-  temporario,
-}: {
-  rotulo: string;
-  valorExibido: ReactNode;
-  itens: ItemDetalhe[];
-  total: number;
-  temporario?: number;
-}) {
-  const [travado, setTravado] = useState(false);
-  const [emHover, setEmHover] = useState(false);
-  const aberto = travado || emHover;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const detalheRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!travado) return;
-
-    function aoClicarFora(evento: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(evento.target as Node)) {
-        setTravado(false);
-      }
-    }
-
-    document.addEventListener("mousedown", aoClicarFora);
-    return () => document.removeEventListener("mousedown", aoClicarFora);
-  }, [travado]);
-
-  // Mantém o detalhamento sempre 100% visível: calcula a posição absoluta (em
-  // px, relativa ao gatilho) que abre a caixa exatamente abaixo, centralizada,
-  // e só desloca (nos dois eixos) o suficiente para caber com 16px de margem
-  // da borda da tela. useLayoutEffect evita flash antes do ajuste.
-  useLayoutEffect(() => {
-    const popover = detalheRef.current;
-    const gatilho = containerRef.current;
-    if (!aberto || !popover || !gatilho) return;
-
-    const margem = 16;
-    const espacamento = 8; // equivalente ao "mt-2" usado antes
-    const gatilhoRect = gatilho.getBoundingClientRect();
-    const largura = popover.offsetWidth;
-    const altura = popover.offsetHeight;
-    // window.innerWidth/innerHeight não são confiáveis em navegadores mobile
-    // (podem refletir o viewport "de layout", maior que a tela visível).
-    // document.documentElement.clientWidth/clientHeight refletem a área real.
-    const larguraTela = document.documentElement.clientWidth;
-    const alturaTela = document.documentElement.clientHeight;
-
-    // Horizontal: centralizado sob o gatilho, por padrão.
-    let esquerda = gatilhoRect.width / 2 - largura / 2;
-    const esquerdaAbsoluta = gatilhoRect.left + esquerda;
-
-    if (esquerdaAbsoluta < margem) {
-      esquerda += margem - esquerdaAbsoluta;
-    } else if (esquerdaAbsoluta + largura > larguraTela - margem) {
-      esquerda -= esquerdaAbsoluta + largura - (larguraTela - margem);
-    }
-
-    // Vertical: sempre abaixo do gatilho, por padrão; só sobe o necessário
-    // para caber quando a tela é baixa demais (ex.: celular em paisagem).
-    let topo = gatilhoRect.height + espacamento;
-    const topoAbsoluto = gatilhoRect.top + topo;
-
-    if (topoAbsoluto + altura > alturaTela - margem) {
-      topo -= topoAbsoluto + altura - (alturaTela - margem);
-    }
-
-    popover.style.left = `${esquerda}px`;
-    popover.style.top = `${topo}px`;
-  }, [aberto]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative flex-1 basis-0 min-w-0 h-full"
-      onMouseEnter={() => setEmHover(true)}
-      onMouseLeave={() => setEmHover(false)}
-    >
-      <fieldset
-        role="button"
-        tabIndex={0}
-        onClick={() => setTravado((valor) => !valor)}
-        onKeyDown={(evento) => {
-          if (evento.key === "Enter" || evento.key === " ") {
-            evento.preventDefault();
-            setTravado((valor) => !valor);
-          }
-        }}
-        className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none"
-      >
-        <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
-          {rotulo}
-        </legend>
-        <span className="text-xl font-bold">{valorExibido}</span>
-      </fieldset>
-
-      {/* Detalhamento: aparece no hover ou ao clicar (fica travado, fechando só
-          ao clicar fora). Sempre no topo (z-50) e reposicionado via JS para
-          nunca vazar para fora da tela. */}
-      {aberto && (
-        <div
-          ref={detalheRef}
-          className="absolute z-50 flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-lg border-2 border-red-900 bg-olive-300 p-3 text-sm text-olive-800 shadow-lg dark:bg-olive-800 dark:text-olive-400"
-        >
-        {itens.map((item, indice) => (
-          <div key={item.rotulo} className="flex flex-row items-center justify-between gap-4">
-            <span>{item.rotulo}</span>
-            <span className="font-semibold">
-              {indice === 0 ? item.valor : formatarBonus(item.valor)}
-            </span>
-          </div>
-        ))}
-        <div className="mt-1 flex flex-row items-center justify-between gap-4 border-t border-red-900/40 pt-1 font-bold">
-          <span>Total</span>
-          <span>{total}</span>
-        </div>
-        {!!temporario && temporario > 0 && (
-          <div className="flex flex-row items-center justify-between gap-4 text-olive-800/70 dark:text-olive-400/70">
-            <span>Temporários</span>
-            <span className="font-semibold">+{temporario}</span>
-          </div>
-        )}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -329,42 +192,53 @@ export default function BarraResumo() {
               a ser exatamente como antes: flex sem quebra, 1/4 cada, h-16. */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:flex lg:h-16 lg:flex-row lg:items-start lg:gap-x-16 w-full">
             <CampoComDetalhe
-              rotulo="PV"
-              valorExibido={
-                <>
-                  {pv.atual}
-                  {pv.temporario > 0 && (
-                    <span className="text-sm font-normal opacity-60"> +{pv.temporario}</span>
-                  )}
-                  {` / ${pvMaximo}`}
-                </>
-              }
+              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
               itens={pvItens}
               total={pvMaximo}
               temporario={pv.temporario}
-            />
+            >
+              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                PV
+              </legend>
+              <span className="text-xl font-bold">
+                {pv.atual}
+                {pv.temporario > 0 && (
+                  <span className="text-sm font-normal opacity-60"> +{pv.temporario}</span>
+                )}
+                {` / ${pvMaximo}`}
+              </span>
+            </CampoComDetalhe>
             <CampoComDetalhe
-              rotulo="PM"
-              valorExibido={
-                <>
-                  {pm.atual}
-                  {pm.temporario > 0 && (
-                    <span className="text-sm font-normal opacity-60"> +{pm.temporario}</span>
-                  )}
-                  {` / ${pmMaximo}`}
-                </>
-              }
+              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
               itens={pmItens}
               total={pmMaximo}
               temporario={pm.temporario}
-            />
+            >
+              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                PM
+              </legend>
+              <span className="text-xl font-bold">
+                {pm.atual}
+                {pm.temporario > 0 && (
+                  <span className="text-sm font-normal opacity-60"> +{pm.temporario}</span>
+                )}
+                {` / ${pmMaximo}`}
+              </span>
+            </CampoComDetalhe>
             <CampoRecurso rotulo="Bênçãos" atual={bencaosDosDeuses} />
             <CampoComDetalhe
-              rotulo="Defesa"
-              valorExibido={defesaTotal}
+              classeContainer="relative flex-1 basis-0 min-w-0 h-full"
+              classeGatilho="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center"
               itens={defesaItens}
               total={defesaTotal}
-            />
+            >
+              <legend className="px-1 text-left text-xs font-semibold uppercase tracking-wide opacity-70">
+                Defesa
+              </legend>
+              <span className="text-xl font-bold">{defesaTotal}</span>
+            </CampoComDetalhe>
           </div>
         </div>
       </div>
