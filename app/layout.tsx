@@ -6,6 +6,7 @@ import { InlineScript } from "./components/inline-script";
 import { ThemeProvider } from "./theme-provider";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
+import BarraResumoCondicional from "./components/barra-resumo-condicional";
 import Navegacao from "./components/navegacao";
 
 // Evita que o Font Awesome injete o CSS via JS em runtime (o que causaria um
@@ -80,8 +81,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <ThemeProvider>
           <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300 pb-24">
+            <BarraResumoCondicional />
             <Navegacao />
-            <div className="flex-1 flex flex-col w-full overflow-hidden">
+            <div className="flex-1 flex flex-col w-full max-w-7xl px-4 min-[1313px]:px-0 overflow-hidden">
               {children}
             </div>
           </div>

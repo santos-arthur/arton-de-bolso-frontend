@@ -1,6 +1,6 @@
 export default function PaginaPlaceholder({ titulo }: { titulo: string }) {
   return (
-    <div className="flex flex-col gap-4 p-6 text-olive-800 dark:text-olive-400">
+    <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
       <h1 className="text-3xl font-bold">{titulo}</h1>
       <p>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod

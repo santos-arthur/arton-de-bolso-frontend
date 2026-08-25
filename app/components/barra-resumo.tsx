@@ -39,20 +39,14 @@ function valorAtributo(sigla: string) {
 function CampoComLegenda({
   rotulo,
   children,
-  crescer = false,
 }: {
   rotulo: string;
   children: ReactNode;
-  crescer?: boolean;
 }) {
   return (
-    <fieldset
-      className={`rounded-lg border-2 border-red-900 px-3 pb-1 ${
-        crescer ? "flex-1 basis-32" : "min-w-32"
-      }`}
-    >
-      <legend className="px-1 text-xs font-semibold uppercase tracking-wide opacity-70">
-        {rotulo}
+    <fieldset className="w-full rounded-lg border-2 border-red-900 px-3 pb-1">
+      <legend className="px-1 text-xs uppercase tracking-wide opacity-70">
+        <span className="font-bold">{rotulo}</span>
       </legend>
       <span className="text-xl">{children}</span>
     </fieldset>
@@ -284,8 +278,8 @@ export default function BarraResumo() {
   const defesaTotal = defesaItens.reduce((soma, item) => soma + item.valor, 0);
 
   return (
-    <div className="flex flex-col items-center w-full shrink-0 dark:bg-olive-900 bg-olive-400 shadow-2xs dark:shadow-2xs-dark py-4 px-4 min-[1313px]:px-0">
-      <div className="grid-cabecalho gap-x-4 gap-y-2 md:gap-x-6 lg:gap-x-8 w-full max-w-7xl">
+    <div className="flex flex-col items-center w-full shrink-0 dark:bg-olive-900 bg-olive-400 shadow-2xs dark:shadow-2xs-dark py-4">
+      <div className="grid-cabecalho gap-x-4 gap-y-2 md:gap-x-6 lg:gap-x-8 w-full max-w-7xl px-4 min-[1313px]:px-0">
         <div className="area-foto">
           {personagem.imagem ? (
             <img
@@ -313,20 +307,22 @@ export default function BarraResumo() {
         </div>
 
         <div className="area-resto flex flex-col justify-center gap-2 min-w-0 text-olive-800 dark:text-olive-400">
-          {/* Linha de detalhes: isolada da linha de cima, com seus próprios tamanhos.
-              Sem XP, o botão de descanso já fica junto ao nível (acima), então
-              esses 4 campos crescem e dividem 100% do espaço entre eles. */}
-          <div className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 w-full lg:gap-x-8">
-            <CampoComLegenda rotulo="Raça" crescer={!xp}>{raca}</CampoComLegenda>
-            <CampoComLegenda rotulo="Origem" crescer={!xp}>{origem}</CampoComLegenda>
-            <CampoComLegenda rotulo="Classe" crescer={!xp}>{classes}</CampoComLegenda>
-            <CampoComLegenda rotulo="Divindade" crescer={!xp}>{divindade}</CampoComLegenda>
-            {xp && (
-              <div className="flex w-32 shrink-0 justify-end">
-                <BarraXp atual={xp.atual} proximo={xp.proximo} />
-              </div>
-            )}
+          {/* Linha de detalhes: isolada da linha de cima. Grid fixo (2x2 ou
+              1x4) em vez de flex-wrap, pra nunca sobrar um item sozinho numa
+              linha maior embaixo. XP (quando existir) ganha a própria linha,
+              sempre 100% da largura. */}
+          <div className="grid w-full grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <CampoComLegenda rotulo="Raça">{raca}</CampoComLegenda>
+            <CampoComLegenda rotulo="Origem">{origem}</CampoComLegenda>
+            <CampoComLegenda rotulo="Classe">{classes}</CampoComLegenda>
+            <CampoComLegenda rotulo="Divindade">{divindade}</CampoComLegenda>
           </div>
+
+          {xp && (
+            <div className="w-full">
+              <BarraXp atual={xp.atual} proximo={xp.proximo} />
+            </div>
+          )}
 
           {/* Linha de PV/PM/Bênçãos/Defesa: isolada das linhas acima. No celular
               vira grid 2x2, no tablet grid de 4 colunas e no desktop (lg) volta
