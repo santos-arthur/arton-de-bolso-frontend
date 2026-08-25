@@ -58,7 +58,7 @@ body {
       "resto resto";
   }
 
-  @media (min-width: 40rem) {
+  @media (min-width: 48rem) {
     .grid-cabecalho {
       grid-template-areas:
         "foto nome"

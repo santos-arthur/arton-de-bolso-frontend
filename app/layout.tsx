@@ -6,7 +6,7 @@ import { InlineScript } from "./components/inline-script";
 import { ThemeProvider } from "./theme-provider";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
-import BarraResumo from "./components/barra-resumo";
+import Navegacao from "./components/navegacao";
 
 // Evita que o Font Awesome injete o CSS via JS em runtime (o que causaria um
 // flash de ícones sem estilo no SSR); o styles.css importado acima já cobre.
@@ -79,9 +79,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ThemeProvider>
-          <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300">
-            <BarraResumo />
-            <div className="flex-1 flex flex-col w-4/5 shadow-2xs dark:shadow-2xs-dark overflow-hidden">
+          <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300 pb-24">
+            <Navegacao />
+            <div className="flex-1 flex flex-col w-full overflow-hidden">
               {children}
             </div>
           </div>

@@ -169,9 +169,9 @@ export default function BotaoDescanso() {
         type="button"
         title="Descansar"
         onClick={() => setAberto(true)}
-        className="flex items-center gap-2 whitespace-nowrap rounded-full border-2 border-red-900 p-2 text-sm font-semibold transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+        className="flex items-center gap-2 whitespace-nowrap rounded-full border-2 border-red-900 p-1.5 text-sm font-semibold transition-colors hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <FontAwesomeIcon icon={faBed} className="size-5!" />
+        <FontAwesomeIcon icon={faBed} className="size-4.5!" />
       </button>
 
       {aberto && <ModalDescanso onFechar={() => setAberto(false)} />}
