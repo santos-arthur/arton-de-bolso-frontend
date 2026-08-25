@@ -4,6 +4,7 @@ import { faEye, faSpinner, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { EstadoVazio } from "./components/cabecalho-pagina";
 import { useFoundry, usePersonagens } from "./lib/foundry-provider";
 import type { PersonagemDisponivel } from "./lib/foundry-types";
 
@@ -19,23 +20,17 @@ function Secao({ titulo, descricao, children }: { titulo: string; descricao: str
   );
 }
 
-function Vazio({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-lg border-2 border-dashed border-red-900/50 px-4 py-6 text-center text-sm opacity-70">
-      {children}
-    </div>
-  );
-}
-
 function CardPersonagem({
   personagem,
   somenteLeitura,
   carregando,
+  aberto,
   aoAbrir
 }: {
   personagem: PersonagemDisponivel;
   somenteLeitura: boolean;
   carregando: boolean;
+  aberto: boolean;
   aoAbrir: () => void;
 }) {
   const subtitulo = [personagem.raca, personagem.classes].filter(Boolean).join(" • ");
@@ -45,7 +40,12 @@ function CardPersonagem({
       type="button"
       onClick={aoAbrir}
       disabled={carregando}
-      className="flex flex-row items-center gap-3 rounded-xl border-2 border-red-900 bg-olive-400/60 p-3 text-left transition-colors hover:bg-black/5 disabled:opacity-60 dark:bg-olive-900/60 dark:hover:bg-white/5"
+      aria-current={aberto ? "true" : undefined}
+      className={`flex flex-row items-center gap-3 rounded-xl border-2 border-red-900 p-3 text-left transition-colors disabled:opacity-60 ${
+        aberto
+          ? "bg-red-900/10 ring-2 ring-red-900 ring-offset-2 ring-offset-olive-300 dark:bg-red-900/25 dark:ring-offset-olive-800"
+          : "bg-olive-400/60 hover:bg-black/5 dark:bg-olive-900/60 dark:hover:bg-white/5"
+      }`}
     >
       {personagem.img ? (
         <div
@@ -68,7 +68,10 @@ function CardPersonagem({
           )}
         </div>
         {subtitulo && <span className="truncate text-sm opacity-70">{subtitulo}</span>}
-        {personagem.nivel !== null && <span className="text-sm font-semibold opacity-70">Nível {personagem.nivel}</span>}
+        <div className="flex flex-row flex-wrap items-center gap-x-3 text-sm font-semibold opacity-70">
+          {personagem.nivel !== null && <span>Nível {personagem.nivel}</span>}
+          {aberto && <span className="text-red-900 dark:text-red-400">Aberto agora</span>}
+        </div>
       </div>
 
       {carregando && <FontAwesomeIcon icon={faSpinner} className="size-5! shrink-0 animate-spin" />}
@@ -143,9 +146,9 @@ export default function Home() {
     <div className="flex flex-col gap-8 py-6 text-olive-800 dark:text-olive-400">
       <Secao titulo="Meus Personagens" descricao="Fichas que você controla — pode alterar PV, PM, itens e dinheiro.">
         {listas.meus.length === 0 ? (
-          <Vazio>
+          <EstadoVazio>
             Nenhum personagem seu foi encontrado. Peça ao mestre para configurar a posse (Ownership) do seu Actor.
-          </Vazio>
+          </EstadoVazio>
         ) : (
           <Grade>
             {listas.meus.map((personagem) => (
@@ -154,6 +157,7 @@ export default function Home() {
                 personagem={personagem}
                 somenteLeitura={false}
                 carregando={trocandoPara === personagem.id}
+                aberto={ficha?.id === personagem.id}
                 aoAbrir={() => abrir(personagem.id)}
               />
             ))}
@@ -163,9 +167,9 @@ export default function Home() {
 
       <Secao titulo="Companheiros" descricao="Fichas do grupo que você pode consultar, mas não alterar.">
         {listas.companheiros.length === 0 ? (
-          <Vazio>
+          <EstadoVazio>
             Nenhum companheiro por aqui. O mestre precisa dar permissão de Observador nos Actors do grupo.
-          </Vazio>
+          </EstadoVazio>
         ) : (
           <Grade>
             {listas.companheiros.map((personagem) => (
@@ -174,6 +178,7 @@ export default function Home() {
                 personagem={personagem}
                 somenteLeitura
                 carregando={trocandoPara === personagem.id}
+                aberto={ficha?.id === personagem.id}
                 aoAbrir={() => abrir(personagem.id)}
               />
             ))}

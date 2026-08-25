@@ -6,11 +6,7 @@ import { InlineScript } from "./components/inline-script";
 import { ThemeProvider } from "./theme-provider";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
-import AvisoServidor from "./components/aviso-servidor";
-import BarraPrincipal from "./components/barra-principal";
-import BarraResumoCondicional from "./components/barra-resumo-condicional";
-import GateFicha from "./components/gate-ficha";
-import Navegacao from "./components/navegacao";
+import MolduraApp from "./components/moldura-app";
 import { FoundryProvider } from "./lib/foundry-provider";
 import FoundryGate from "./components/foundry-gate";
 
@@ -87,15 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <FoundryProvider>
             <FoundryGate>
-              <div className="flex flex-col items-center w-full min-h-dvh dark:bg-olive-800 bg-olive-300 pb-24">
-                <BarraPrincipal />
-                <AvisoServidor />
-                <BarraResumoCondicional />
-                <Navegacao />
-                <div className="flex-1 flex flex-col w-full max-w-7xl px-4 min-[1313px]:px-0 overflow-hidden">
-                  <GateFicha>{children}</GateFicha>
-                </div>
-              </div>
+              <MolduraApp>{children}</MolduraApp>
             </FoundryGate>
           </FoundryProvider>
         </ThemeProvider>

@@ -1,15 +1,33 @@
 "use client";
 
+import { faTriangleExclamation, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useFoundry } from "../lib/foundry-provider";
 
-/** Faixa de erro vinda do Foundry (permissão negada, relay fora do ar, etc.). */
+/**
+ * Faixa de erro vinda do Foundry (permissão negada, relay fora do ar...).
+ * É dispensável de propósito: a maioria desses erros é pontual, e sem o botão
+ * a faixa ficaria ocupando o topo da tela até a próxima ficha chegar.
+ */
 export default function AvisoServidor() {
-  const { erroServidor } = useFoundry();
+  const { erroServidor, limparErro } = useFoundry();
   if (!erroServidor) return null;
 
   return (
-    <div role="alert" className="w-full bg-red-900 px-4 py-1 text-center text-sm font-semibold text-olive-50">
-      {erroServidor}
+    <div
+      role="alert"
+      className="flex w-full flex-row items-center justify-center gap-3 bg-red-900 px-4 py-1.5 text-sm font-semibold text-olive-50"
+    >
+      <FontAwesomeIcon icon={faTriangleExclamation} className="size-4! shrink-0" />
+      <span className="min-w-0">{erroServidor}</span>
+      <button
+        type="button"
+        onClick={limparErro}
+        aria-label="Dispensar aviso"
+        className="shrink-0 rounded-full p-1 transition-colors hover:bg-white/15"
+      >
+        <FontAwesomeIcon icon={faXmark} className="size-4!" />
+      </button>
     </div>
   );
 }

@@ -49,7 +49,8 @@ export type Pericia = {
   formula: FormulaPericia;
 };
 
-export type Moeda = { chave: string; label: string; valor: number };
+/** `emTibar` é quanto uma unidade desta moeda vale em T$ (a unidade base): TO = 10, T$ = 1. */
+export type Moeda = { chave: string; sigla: string; label: string; valor: number; emTibar: number };
 
 export type ItemInventario = {
   id: string;

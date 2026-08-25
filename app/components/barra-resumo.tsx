@@ -85,7 +85,7 @@ function CampoRecursoPrincipal({
           onAbrir?.();
         }
       }}
-      className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+      className="flex h-full w-full flex-1 basis-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-900 px-2 pb-2 text-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-900 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
     >
       {conteudo}
     </fieldset>

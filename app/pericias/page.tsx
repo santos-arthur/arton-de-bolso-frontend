@@ -3,7 +3,9 @@
 import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
+import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
 import ModalFormulaPericia from "../components/modal-formula-pericia";
+import PaginaFicha from "../components/pagina-ficha";
 import { useFoundry } from "../lib/foundry-provider";
 
 export default function Page() {
@@ -13,10 +15,15 @@ export default function Page() {
   if (!ficha) return null;
 
   const pericia = ficha.pericias.find((p) => p.chave === chaveAberta) ?? null;
+  const treinadas = ficha.pericias.filter((p) => p.treinado).length;
 
   return (
-    <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
-      <h1 className="text-3xl font-bold">Perícias</h1>
+    <PaginaFicha>
+      <CabecalhoPagina titulo="Perícias">
+        <span className="text-sm opacity-70">{treinadas} treinadas</span>
+      </CabecalhoPagina>
+
+      {ficha.pericias.length === 0 && <EstadoVazio>Nenhuma perícia nesta ficha.</EstadoVazio>}
 
       <ul className="flex flex-col gap-2">
         {ficha.pericias.map((p) => (
@@ -44,6 +51,6 @@ export default function Page() {
       {chaveAberta && (
         <ModalFormulaPericia formula={pericia?.formula ?? null} onFechar={() => setChaveAberta(null)} />
       )}
-    </div>
+    </PaginaFicha>
   );
 }

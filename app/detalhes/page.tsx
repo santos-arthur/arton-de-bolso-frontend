@@ -1,7 +1,10 @@
 "use client";
 
 import { type ReactNode } from "react";
+import CabecalhoPagina, { TituloSecao } from "../components/cabecalho-pagina";
 import CampoComDetalhe from "../components/campo-com-detalhe";
+import PaginaFicha from "../components/pagina-ficha";
+import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
 
 function CampoComLegenda({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -12,12 +15,6 @@ function CampoComLegenda({ rotulo, children }: { rotulo: string; children: React
       </legend>
       <div className="text-xl">{children}</div>
     </fieldset>
-  );
-}
-
-function Tag({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-full border-2 border-red-900 px-2.5 py-0.5 text-sm font-semibold">{children}</span>
   );
 }
 
@@ -59,8 +56,10 @@ export default function Page() {
   const deslocamentoItens = [{ rotulo: `Base (${tamanho})`, valor: movimento.valor ?? 0 }];
 
   return (
-    <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
-      <div className="text-lg font-bold uppercase tracking-wide opacity-70">Atributos</div>
+    <PaginaFicha>
+      <CabecalhoPagina titulo="Detalhes" />
+
+      <TituloSecao>Atributos</TituloSecao>
 
       <div className="grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-6">
         {atributos.map((atributo) => (
@@ -70,7 +69,7 @@ export default function Page() {
 
       <hr className="border-red-900 border my-4" />
 
-      <div className="text-lg font-bold uppercase tracking-wide opacity-70">Características</div>
+      <TituloSecao>Características</TituloSecao>
 
       <div className="grid w-full grid-cols-2 gap-3 md:gap-4">
         <CampoComLegenda rotulo="Tamanho">{tamanho}</CampoComLegenda>
@@ -93,7 +92,7 @@ export default function Page() {
 
       <hr className="border-red-900 border my-4" />
 
-      <div className="text-lg font-bold uppercase tracking-wide opacity-70">Resistências, Imunidades e Sentidos</div>
+      <TituloSecao>Resistências, Imunidades e Sentidos</TituloSecao>
 
       <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
         <CampoComLegenda rotulo="Resistências">
@@ -109,7 +108,7 @@ export default function Page() {
 
       <hr className="border-red-900 border my-4" />
 
-      <div className="text-lg font-bold uppercase tracking-wide opacity-70">Proeficiências</div>
+      <TituloSecao>Proeficiências</TituloSecao>
 
       <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
         <CampoComLegenda rotulo="Armas">
@@ -119,6 +118,6 @@ export default function Page() {
           <ListaDeTags itens={profArmaduras} />
         </CampoComLegenda>
       </div>
-    </div>
+    </PaginaFicha>
   );
 }

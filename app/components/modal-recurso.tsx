@@ -84,7 +84,7 @@ export default function ModalRecurso({
                 if (Number.isNaN(bruto)) return;
                 onAlterarAtual(Math.min(maximo, Math.max(0, bruto)));
               }}
-              className="input-numero-sem-setas w-20 bg-transparent text-center text-3xl font-bold outline-none"
+              className="input-numero-sem-setas w-20 bg-transparent text-center text-3xl font-bold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-900"
             />
           </fieldset>
           <span className="text-3xl font-bold opacity-50">/</span>
@@ -116,7 +116,7 @@ export default function ModalRecurso({
                 if (Number.isNaN(bruto)) return;
                 onAlterarTemporario(Math.max(0, bruto));
               }}
-              className="input-numero-sem-setas w-20 bg-transparent text-center text-xl font-bold outline-none"
+              className="input-numero-sem-setas w-20 bg-transparent text-center text-xl font-bold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-900"
             />
           </fieldset>
         ) : (

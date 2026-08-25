@@ -41,6 +41,8 @@ type FoundryContextValue = {
   selecionarPersonagem: (actorId: string) => void;
   /** Repede as listas ao relay — usado quando a home fica esperando tempo demais. */
   recarregarPersonagens: () => void;
+  /** Dispensa a faixa de erro. Sem isso um erro pontual (permissão negada) ficaria na tela até a próxima ficha chegar. */
+  limparErro: () => void;
   ajustarPV: (delta: number) => void;
   ajustarPM: (delta: number) => void;
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
@@ -247,6 +249,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     logout,
     selecionarPersonagem,
     recarregarPersonagens: () => enviar({ tipo: "obterFicha" }),
+    limparErro: () => setErroServidor(null),
     ajustarPV: (delta) => enviar({ tipo: "ajustarPV", delta }),
     ajustarPM: (delta) => enviar({ tipo: "ajustarPM", delta }),
     definirAtual: (recurso, valor) => enviar({ tipo: "definirAtual", recurso, valor }),

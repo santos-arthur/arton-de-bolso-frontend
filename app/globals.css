@@ -33,6 +33,17 @@ body {
 /* Checkboxes nativos ignoram background-color na maioria dos navegadores
    (renderizam como widget do SO); appearance:none + estilos manuais dão
    controle total sobre fundo e marca de seleção. */
+@layer base {
+  /* Navegação por teclado precisa de um foco visível — e o reset do Tailwind
+     tira o anel nativo. Definido uma vez aqui, em vez de repetido em cada
+     botão; os poucos componentes que desligam o outline (fieldsets clicáveis)
+     reaplicam com focus-visible:outline-*. */
+  :where(a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--color-red-900);
+    outline-offset: 2px;
+  }
+}
+
 @layer utilities {
   .checkbox-personalizado {
     appearance: none;

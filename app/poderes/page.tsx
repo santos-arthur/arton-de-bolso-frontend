@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
+import PaginaFicha from "../components/pagina-ficha";
+import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
-
-function Tag({ children }: { children: string }) {
-  return <span className="rounded-full border-2 border-red-900 px-2.5 py-0.5 text-xs font-semibold">{children}</span>;
-}
 
 export default function Page() {
   const { ficha } = useFoundry();
@@ -14,10 +13,12 @@ export default function Page() {
   if (!ficha) return null;
 
   return (
-    <div className="flex flex-col gap-4 py-6 text-olive-800 dark:text-olive-400">
-      <h1 className="text-3xl font-bold">Poderes</h1>
+    <PaginaFicha>
+      <CabecalhoPagina titulo="Poderes">
+        <span className="text-sm opacity-70">{ficha.poderes.length}</span>
+      </CabecalhoPagina>
 
-      {ficha.poderes.length === 0 && <p className="opacity-70">Nenhum poder.</p>}
+      {ficha.poderes.length === 0 && <EstadoVazio>Nenhum poder nesta ficha.</EstadoVazio>}
 
       <ul className="flex flex-col gap-2">
         {ficha.poderes.map((poder) => {
@@ -52,6 +53,6 @@ export default function Page() {
           );
         })}
       </ul>
-    </div>
+    </PaginaFicha>
   );
 }

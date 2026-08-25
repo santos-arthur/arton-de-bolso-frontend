@@ -113,7 +113,7 @@ export default function CampoComDetalhe({
             setTravado((valor) => !valor);
           }
         }}
-        className={`cursor-pointer outline-none ${classeGatilho}`}
+        className={`cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-900 ${classeGatilho}`}
       >
         {children}
       </fieldset>
