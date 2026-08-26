@@ -6,6 +6,7 @@ import { useState } from "react";
 import AjusteRecurso from "./ajuste-recurso";
 import CampoComDetalhe from "./campo-com-detalhe";
 import BotaoDescanso from "./botao-descanso";
+import FolhaModal from "./folha-modal";
 import { eRotaDeFicha } from "./navegacao";
 import { CAIXA_NUMERO, ParAtualMaximo, RotuloCampo } from "./visor-numero";
 import { useFoundry } from "../lib/foundry-provider";
@@ -110,6 +111,7 @@ export default function CabecalhoFicha() {
   const { ficha, somenteLeitura } = useFoundry();
   const pathname = usePathname();
   const [recursoAberto, setRecursoAberto] = useState<"pv" | "pm" | null>(null);
+  const [retratoAberto, setRetratoAberto] = useState(false);
 
   if (!ficha || !eRotaDeFicha(pathname)) return null;
 
@@ -122,10 +124,11 @@ export default function CabecalhoFicha() {
         {/* Identidade: rola junto com a página. É consulta ocasional. */}
         <div className="mx-auto flex w-full max-w-5xl flex-row items-center gap-3 px-4 pb-3 pt-3 sm:gap-4">
           {img ? (
-            <div
-              role="img"
-              aria-label={`Retrato de ${nome}`}
-              className="size-14 shrink-0 rounded-xl border border-borda bg-cover bg-center sm:size-16"
+            <button
+              type="button"
+              onClick={() => setRetratoAberto(true)}
+              aria-label={`Ver o retrato de ${nome}`}
+              className="size-14 shrink-0 rounded-xl border border-borda bg-cover bg-center transition-colors hover:border-acento sm:size-16"
               style={{ backgroundImage: `url(${img})` }}
             />
           ) : (
@@ -210,6 +213,17 @@ export default function CabecalhoFicha() {
       </header>
 
       {recursoAberto && <AjusteRecurso recurso={recursoAberto} onFechar={() => setRecursoAberto(null)} />}
+
+      {retratoAberto && img && (
+        <FolhaModal titulo={nome} onFechar={() => setRetratoAberto(false)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={img}
+            alt={`Retrato de ${nome}`}
+            className="mx-auto max-h-[70vh] w-auto max-w-full rounded-xl object-contain"
+          />
+        </FolhaModal>
+      )}
     </>
   );
 }
