@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
+import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoBusca, { normalizar } from "../components/campo-busca";
 import CartaoExpansivel from "../components/cartao-expansivel";
 import PaginaFicha from "../components/pagina-ficha";
@@ -23,6 +23,19 @@ export default function Page() {
     return poderes.filter((p) => normalizar(`${p.nome} ${p.tipo} ${p.subtipo}`).includes(alvo));
   }, [poderes, busca]);
 
+  // Agrupa preservando a ordem de chegada: quem decide a sequência (nível,
+  // depois tipo, depois nome) é o relay — repetir essa regra aqui seria ter
+  // duas fontes da verdade para a mesma ordem.
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, Poder[]>();
+    for (const poder of filtrados) {
+      const lista = mapa.get(poder.grupo);
+      if (lista) lista.push(poder);
+      else mapa.set(poder.grupo, [poder]);
+    }
+    return [...mapa];
+  }, [filtrados]);
+
   if (!ficha) return null;
 
   return (
@@ -36,23 +49,28 @@ export default function Page() {
       {filtrados.length === 0 ? (
         <EstadoVazio>{poderes.length ? "Nenhum poder encontrado." : "Nenhum poder nesta ficha."}</EstadoVazio>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {filtrados.map((poder) => (
-            <CartaoExpansivel
-              key={poder.id}
-              nome={poder.nome}
-              img={poder.img}
-              descricao={poder.descricao}
-              etiquetas={
-                <>
-                  {poder.tipo && <Tag>{poder.tipo}</Tag>}
-                  {poder.subtipo && <Tag>{poder.subtipo}</Tag>}
-                  {poder.ativacao && <Tag>{poder.ativacao}</Tag>}
-                </>
-              }
-            />
-          ))}
-        </ul>
+        grupos.map(([grupo, doGrupo]) => (
+          <section key={grupo} className="flex flex-col gap-2">
+            <TituloSecao>{grupo}</TituloSecao>
+            <ul className="flex flex-col gap-2">
+              {doGrupo.map((poder) => (
+                <CartaoExpansivel
+                  key={poder.id}
+                  nome={poder.nome}
+                  img={poder.img}
+                  descricao={poder.descricao}
+                  etiquetas={
+                    <>
+                      {poder.tipo && <Tag>{poder.tipo}</Tag>}
+                      {poder.subtipo && <Tag>{poder.subtipo}</Tag>}
+                      {poder.ativacao && <Tag>{poder.ativacao}</Tag>}
+                    </>
+                  }
+                />
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </PaginaFicha>
   );

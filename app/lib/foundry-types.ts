@@ -196,6 +196,10 @@ export type Poder = {
   tipo: string;
   subtipo: string;
   ativacao: string;
+  /** Nível em que o poder foi ganho; 0 é poder de base (raça, origem, divindade). */
+  nivel: number;
+  /** Título da seção: "Base" ou "Nível 3". A lista já chega na ordem certa. */
+  grupo: string;
   descricao: string;
 };
 
