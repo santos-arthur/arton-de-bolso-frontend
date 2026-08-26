@@ -71,8 +71,24 @@ export const metadata: Metadata = {
  * desde o iOS 10) — quem barra é o listener de `gesture*` lá embaixo.
  */
 export const viewport: Viewport = {
+  // Cor que o navegador usa na barra dele (e na status bar quando o app está
+  // na tela inicial do iPhone): a mesma `--superficie` do fundo, senão o
+  // sistema pinta o topo de branco e a faixa clara volta por outro caminho.
+  // Hexadecimal porque aqui não há CSS pra ler variável — o par abaixo cobre
+  // o tema do sistema, e o ThemeProvider corrige quando a escolha é manual.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#abab9c" },
+    { media: "(prefers-color-scheme: dark)", color: "#1d1d16" }
+  ],
   width: "device-width",
   initialScale: 1,
+  // Deixa a página ocupar a tela inteira do aparelho, recorte de câmera
+  // incluído — é o que faz `env(safe-area-inset-*)` valer alguma coisa (sem
+  // isto o valor é sempre zero, e o navegador reserva as bordas por conta
+  // própria, pintadas com o fundo da página). Quem cuida do respiro passa a
+  // ser o CSS: `.area-segura-topo` aqui em cima e `.area-segura-baixo` na
+  // barra de abas e nas folhas.
+  viewportFit: "cover",
   maximumScale: 1,
   userScalable: false
 };
@@ -96,7 +112,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           html={`(function(){["gesturestart","gesturechange","gestureend"].forEach(function(e){document.addEventListener(e,function(evento){evento.preventDefault()},{passive:false})})})()`}
         />
       </head>
-      <body className="min-h-full bg-background text-foreground">
+      <body className="min-h-full bg-superficie text-foreground">
         <ThemeProvider>
           <FoundryProvider>
             <FoundryGate>

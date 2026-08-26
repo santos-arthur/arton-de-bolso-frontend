@@ -42,10 +42,13 @@ export default function MolduraApp({ children }: { children: ReactNode }) {
   }, [pathname, nomeDaFicha, naFicha]);
 
   return (
-    <div className="flex min-h-dvh w-full flex-row bg-background text-foreground">
+    // Sem cor própria: quem pinta é o <body>, com o tom das barras. Se este
+    // envelope tivesse fundo, ele cobriria a área do recorte da câmera (a
+    // altura é `dvh`, que inclui a faixa segura) e a tira clara voltaria.
+    <div className="flex min-h-dvh w-full flex-row text-foreground">
       <MenuLateral />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="area-segura-topo flex min-w-0 flex-1 flex-col bg-background">
         <AvisoServidor />
         <CabecalhoFicha />
         <div className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 md:pb-12">

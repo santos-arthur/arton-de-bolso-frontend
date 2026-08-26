@@ -7,7 +7,7 @@ import { useFoundry } from "../lib/foundry-provider";
 
 function TelaCentral({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center gap-4 bg-background px-4 text-center text-foreground">
+    <div className="area-segura-topo flex min-h-dvh w-full flex-col items-center justify-center gap-4 bg-background px-4 text-center text-foreground">
       {children}
     </div>
   );

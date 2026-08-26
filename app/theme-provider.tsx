@@ -84,6 +84,20 @@ function getServerSystemThemeSnapshot(): ResolvedTheme {
 
 function applyTheme(resolved: ResolvedTheme) {
   document.documentElement.setAttribute("data-theme", resolved);
+
+  // O `themeColor` declarado no layout segue o tema do *sistema*; quando a
+  // escolha aqui é manual (claro num aparelho escuro, ou o contrário), as
+  // duas divergem e o topo da tela destoa do app. A cor sai do próprio CSS
+  // pra não existir um segundo lugar guardando o valor de `--superficie`.
+  const cor = getComputedStyle(document.documentElement).getPropertyValue("--superficie").trim();
+  if (!cor) return;
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = cor;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

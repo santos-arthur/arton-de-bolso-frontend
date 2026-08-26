@@ -42,8 +42,13 @@
 /* Iowan é uma serifa de texto: linda em nomes e títulos, cansativa em
    rótulos e números de interface. Por isso o corpo passou a ser a sans, e a
    serifa virou a fonte de display (ver .fonte-titulo / font-display). */
+/* O fundo geral é a cor das barras (--superficie), não a do conteúdo. É ele
+   que aparece atrás do recorte da câmera e da barra de gestos do iPhone, e
+   também no repique do overscroll: sendo igual ao cabeçalho, a faixa lá em
+   cima vira continuação dele em vez de uma tira clara solta. A cor clara do
+   conteúdo entra no <main> (ver MolduraApp). */
 body {
-  background: var(--background);
+  background: var(--superficie);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -98,6 +103,22 @@ body {
 
   /* A barra de abas do celular fica sobre a área do gesto de home do iOS;
      sem isso os alvos de toque ficam embaixo da barrinha do sistema. */
+  .area-segura-baixo {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Faixa da área segura do topo — o recorte da câmera, ou a status bar
+     quando o app está na tela inicial. O padding afasta o conteúdo dela, e o
+     gradiente pinta exatamente essa altura com o tom das barras: assim ela
+     vira continuação do cabeçalho em vez de uma tira clara, sem depender de
+     qual é o primeiro elemento da página. Onde não há área segura (desktop,
+     Android sem recorte) a faixa tem altura zero e nada muda. */
+  .area-segura-topo {
+    padding-top: env(safe-area-inset-top, 0px);
+    background-image: linear-gradient(var(--superficie), var(--superficie));
+    background-repeat: no-repeat;
+    background-size: 100% env(safe-area-inset-top, 0px);
+  }
   .area-segura-baixo {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
