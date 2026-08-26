@@ -39,11 +39,11 @@ function CardPersonagem({
         <div
           role="img"
           aria-hidden="true"
-          className="size-14 shrink-0 rounded-xl bg-cover bg-center border border-borda "
+          className="size-16 shrink-0 rounded-xl bg-cover bg-center border border-borda "
           style={{ backgroundImage: `url(${personagem.img})` }}
         />
       ) : (
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-borda">
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-borda">
           <FaUser aria-hidden="true" className="size-5!" />
         </div>
       )}
