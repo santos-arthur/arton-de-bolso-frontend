@@ -1,7 +1,6 @@
 "use client";
 
-import { faHandFist } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaHandFist } from "react-icons/fa6";
 import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
 import ModalSlots from "./modal-slots";
@@ -36,7 +35,7 @@ export default function LinhaItem({
           somenteLeitura ? (
             item.equipado ? (
               <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-acento px-2.5 py-1 text-[11px] font-bold text-acento">
-                <FontAwesomeIcon icon={faHandFist} className="size-2.5!" />
+                <FaHandFist aria-hidden="true" className="size-2.5!" />
                 Equipado
               </span>
             ) : undefined
@@ -51,7 +50,7 @@ export default function LinhaItem({
                   : "border-borda hover:bg-foreground/5"
               }`}
             >
-              <FontAwesomeIcon icon={faHandFist} className="size-2.5!" />
+              <FaHandFist aria-hidden="true" className="size-2.5!" />
               {item.equipado ? "Equipado" : "Equipar"}
             </button>
           )

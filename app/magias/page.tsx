@@ -1,7 +1,6 @@
 "use client";
 
-import { faStar } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaStar } from "react-icons/fa6";
 import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
@@ -90,7 +89,7 @@ export default function Page() {
                   }
                   acessorio={
                     magia.preparada ? (
-                      <FontAwesomeIcon icon={faStar} title="Preparada" className="size-3.5! shrink-0 text-acento" />
+                      <FaStar role="img" title="Preparada" className="size-3.5! shrink-0 text-acento" />
                     ) : undefined
                   }
                 />

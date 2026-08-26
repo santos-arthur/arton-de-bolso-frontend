@@ -62,6 +62,14 @@ body {
   h1, h2, h3 {
     font-family: var(--font-iowan), Georgia, serif;
   }
+
+  /* Ícone acompanha o texto ao lado: sem isso um SVG inline senta na linha de
+     base e fica alto demais junto de uma palavra. Era o que o CSS do Font
+     Awesome fazia por conta própria; com react-icons o SVG vem cru. */
+  svg {
+    display: inline-block;
+    vertical-align: -0.125em;
+  }
 }
 
 @layer utilities {

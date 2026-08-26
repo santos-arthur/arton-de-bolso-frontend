@@ -1,7 +1,6 @@
 "use client";
 
-import { faEye, faSpinner, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaEye, FaSpinner, FaUser } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { EstadoVazio } from "./components/cabecalho-pagina";
@@ -45,14 +44,14 @@ function CardPersonagem({
         />
       ) : (
         <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-borda">
-          <FontAwesomeIcon icon={faUser} className="size-5!" />
+          <FaUser aria-hidden="true" className="size-5!" />
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-row items-center gap-2">
           <span className="min-w-0 truncate font-display text-lg font-bold">{personagem.nome}</span>
-          {somenteLeitura && <FontAwesomeIcon icon={faEye} className="size-3! shrink-0 opacity-40" title="Somente leitura" />}
+          {somenteLeitura && <FaEye role="img" className="size-3! shrink-0 opacity-40" title="Somente leitura" />}
         </span>
         {subtitulo && <span className="truncate text-xs opacity-60">{subtitulo}</span>}
         <span className="numero flex flex-row items-center gap-2 text-xs font-semibold opacity-60">
@@ -61,7 +60,7 @@ function CardPersonagem({
         </span>
       </div>
 
-      {carregando && <FontAwesomeIcon icon={faSpinner} className="size-4! shrink-0 animate-spin" />}
+      {carregando && <FaSpinner aria-hidden="true" className="size-4! shrink-0 animate-spin" />}
     </button>
   );
 }
@@ -105,7 +104,7 @@ export default function Home() {
   if (carregando) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20 text-center">
-        <FontAwesomeIcon icon={faSpinner} className="size-5! animate-spin opacity-60" />
+        <FaSpinner aria-hidden="true" className="size-5! animate-spin opacity-60" />
         <p className="text-sm opacity-60">Carregando seus personagens...</p>
         {demorou && (
           <>

@@ -1,7 +1,6 @@
 "use client";
 
-import { faTriangleExclamation, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaTriangleExclamation, FaXmark } from "react-icons/fa6";
 import { useFoundry } from "../lib/foundry-provider";
 
 /**
@@ -18,7 +17,7 @@ export default function AvisoServidor() {
       role="alert"
       className="flex w-full shrink-0 flex-row items-center justify-center gap-3 bg-red-800 px-4 py-2 text-sm font-semibold text-white"
     >
-      <FontAwesomeIcon icon={faTriangleExclamation} className="size-3.5! shrink-0" />
+      <FaTriangleExclamation aria-hidden="true" className="size-3.5! shrink-0" />
       <span className="min-w-0">{erroServidor}</span>
       <button
         type="button"
@@ -26,7 +25,7 @@ export default function AvisoServidor() {
         aria-label="Dispensar aviso"
         className="shrink-0 rounded-full p-1.5 transition-colors hover:bg-white/15"
       >
-        <FontAwesomeIcon icon={faXmark} className="size-3.5!" />
+        <FaXmark aria-hidden="true" className="size-3.5!" />
       </button>
     </div>
   );

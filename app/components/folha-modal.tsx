@@ -1,7 +1,6 @@
 "use client";
 
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaXmark } from "react-icons/fa6";
 import {
   createContext,
   useContext,
@@ -171,7 +170,7 @@ export default function FolhaModal({
                 aria-label="Fechar"
                 className="rounded-full p-2 transition-colors hover:bg-foreground/5"
               >
-                <FontAwesomeIcon icon={faXmark} className="size-4!" />
+                <FaXmark aria-hidden="true" className="size-4!" />
               </button>
             </div>
           </div>

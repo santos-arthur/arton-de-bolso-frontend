@@ -1,7 +1,6 @@
 "use client";
 
-import { faCheck, faChevronDown, faCoins, faEye, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaCheck, FaChevronDown, FaCoins, FaEye, FaMinus, FaPlus } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
 import { bonusDe, formulasDe, multiplicarFormula } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
@@ -109,7 +108,7 @@ function Contador({
         aria-label="Aplicar mais uma vez"
         className={botao}
       >
-        <FontAwesomeIcon icon={faPlus} className="size-2.5!" />
+        <FaPlus aria-hidden="true" className="size-2.5!" />
       </button>
       <span className="numero text-sm font-bold leading-none">{quantidade}×</span>
       <button
@@ -119,7 +118,7 @@ function Contador({
         aria-label="Aplicar menos uma vez"
         className={botao}
       >
-        <FontAwesomeIcon icon={faMinus} className="size-2.5!" />
+        <FaMinus aria-hidden="true" className="size-2.5!" />
       </button>
     </span>
   );
@@ -172,8 +171,8 @@ function Linha({
             aria-label={aberto ? "Ocultar a regra" : "Ver a regra"}
             className="-mr-1 -mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg border border-borda transition-colors hover:bg-foreground/5"
           >
-            <FontAwesomeIcon
-              icon={faChevronDown}
+            <FaChevronDown
+              aria-hidden="true"
               className={`size-3.5! opacity-60 transition-transform ${aberto ? "rotate-180" : ""}`}
             />
           </button>
@@ -260,7 +259,7 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
   if (uso.somenteLeitura) {
     return (
       <p className="flex min-h-12 flex-row items-center justify-center gap-2 text-sm font-semibold opacity-60">
-        <FontAwesomeIcon icon={faEye} className="size-3.5!" />
+        <FaEye aria-hidden="true" className="size-3.5!" />
         <span className="numero">Custaria {uso.custoTotal} PM</span>
       </p>
     );
@@ -279,7 +278,7 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
             : "bg-acento text-white hover:opacity-90"
       }`}
     >
-      <FontAwesomeIcon icon={uso.pago ? faCheck : faCoins} className="size-4!" />
+      {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCoins aria-hidden="true" className="size-4!" />}
       {uso.pago
         ? `${uso.custoTotal} PM gastos`
         : uso.semPM

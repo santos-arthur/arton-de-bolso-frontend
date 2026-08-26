@@ -1,7 +1,6 @@
 "use client";
 
-import { faDiceD20 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaDiceD20 } from "react-icons/fa6";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useFoundry } from "../lib/foundry-provider";
 
@@ -40,7 +39,7 @@ function FormularioLogin() {
         className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-borda bg-superficie p-6 text-left shadow-xl"
       >
         <div className="flex flex-col items-center gap-2 pb-1">
-          <FontAwesomeIcon icon={faDiceD20} className="size-8! text-acento" />
+          <FaDiceD20 aria-hidden="true" className="size-8! text-acento" />
           <h1 className="font-display text-2xl font-bold">Arton de Bolso</h1>
         </div>
 
@@ -97,7 +96,7 @@ export default function FoundryGate({ children }: { children: ReactNode }) {
   if (status === "conectando" || status === "autenticando") {
     return (
       <TelaCentral>
-        <FontAwesomeIcon icon={faDiceD20} className="size-7! animate-pulse text-acento" />
+        <FaDiceD20 aria-hidden="true" className="size-7! animate-pulse text-acento" />
         <p className="text-sm opacity-70">Conectando ao Foundry...</p>
       </TelaCentral>
     );

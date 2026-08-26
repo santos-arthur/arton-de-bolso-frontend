@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
-import { config as fontAwesomeConfig } from "@fortawesome/fontawesome-svg-core";
 import { InlineScript } from "./components/inline-script";
 import { ThemeProvider } from "./theme-provider";
-import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
 import MolduraApp from "./components/moldura-app";
 import { FoundryProvider } from "./lib/foundry-provider";
 import FoundryGate from "./components/foundry-gate";
-
-// Evita que o Font Awesome injete o CSS via JS em runtime (o que causaria um
-// flash de ícones sem estilo no SSR); o styles.css importado acima já cobre.
-fontAwesomeConfig.autoAddCss = false;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

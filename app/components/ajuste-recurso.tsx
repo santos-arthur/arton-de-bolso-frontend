@@ -1,7 +1,6 @@
 "use client";
 
-import { faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaMinus, FaPlus } from "react-icons/fa6";
 import { useState } from "react";
 import CampoComDetalhe from "./campo-com-detalhe";
 import FolhaModal from "./folha-modal";
@@ -89,7 +88,7 @@ export default function AjusteRecurso({
               aria-label={`Diminuir ${passo}`}
               className="numero flex min-h-14 flex-row items-center justify-center gap-1.5 rounded-xl border border-borda bg-superficie-alta text-lg font-bold transition-colors hover:border-red-700 hover:bg-red-700/10 hover:text-red-700 dark:hover:border-red-500 dark:hover:text-red-400"
             >
-              <FontAwesomeIcon icon={faMinus} className="size-3!" />
+              <FaMinus aria-hidden="true" className="size-3!" />
               {passo}
             </button>
           ))}
@@ -101,7 +100,7 @@ export default function AjusteRecurso({
               aria-label={`Aumentar ${passo}`}
               className="numero flex min-h-14 flex-row items-center justify-center gap-1.5 rounded-xl border border-borda bg-superficie-alta text-lg font-bold transition-colors hover:border-emerald-700 hover:bg-emerald-700/10 hover:text-emerald-700 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
             >
-              <FontAwesomeIcon icon={faPlus} className="size-3!" />
+              <FaPlus aria-hidden="true" className="size-3!" />
               {passo}
             </button>
           ))}
@@ -125,7 +124,7 @@ export default function AjusteRecurso({
           onClick={() => setMostrarTemporario(true)}
           className="mx-auto flex min-h-11 flex-row items-center gap-2 rounded-xl border border-borda px-4 text-sm font-semibold transition-colors hover:bg-foreground/5"
         >
-          <FontAwesomeIcon icon={faPlus} className="size-2.5!" />
+          <FaPlus aria-hidden="true" className="size-2.5!" />
           Pontos temporários
         </button>
       )}

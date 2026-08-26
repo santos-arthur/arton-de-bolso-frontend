@@ -1,17 +1,16 @@
 "use client";
 
 import {
-  faBars,
-  faDiceD20,
-  faEye,
-  faGear,
-  faHouse,
-  faRightFromBracket,
-  faUser,
-  faXmark
-} from "@fortawesome/free-solid-svg-icons";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  FaBars,
+  FaDiceD20,
+  FaEye,
+  FaGear,
+  FaHouse,
+  FaRightFromBracket,
+  FaUser,
+  FaXmark
+} from "react-icons/fa6";
+import type { IconType } from "react-icons";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -60,13 +59,13 @@ function LinhaPersonagem({
         />
       ) : (
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-borda">
-          <FontAwesomeIcon icon={faUser} className="size-3.5!" />
+          <FaUser aria-hidden="true" className="size-3.5!" />
         </span>
       )}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex flex-row items-center gap-1.5">
           <span className="min-w-0 truncate text-sm font-bold">{personagem.nome}</span>
-          {somenteLeitura && <FontAwesomeIcon icon={faEye} className="size-2.5! shrink-0 opacity-40" />}
+          {somenteLeitura && <FaEye aria-hidden="true" className="size-2.5! shrink-0 opacity-40" />}
         </span>
         {personagem.nivel !== null && (
           <span className="numero text-[11px] opacity-55">Nível {personagem.nivel}</span>
@@ -86,13 +85,15 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
 }
 
 function AcaoPainel({
-  icone,
+  Icone,
   rotulo,
   href,
   onClick,
   ativo = false
 }: {
-  icone: IconDefinition;
+  // Maiúsculo porque um nome solto e minúsculo em JSX vira tag HTML —
+  // `item.icone` escapa disso por ser acesso a propriedade.
+  Icone: IconType;
   rotulo: string;
   href?: string;
   onClick?: () => void;
@@ -103,7 +104,7 @@ function AcaoPainel({
   }`;
   const conteudo = (
     <>
-      <FontAwesomeIcon icon={icone} className="size-4! shrink-0 opacity-70" />
+      <Icone aria-hidden="true" className="size-4! shrink-0 opacity-70" />
       <span className="truncate">{rotulo}</span>
     </>
   );
@@ -172,7 +173,7 @@ export default function MenuLateral() {
                       ativo ? "bg-acento/15" : ""
                     }`}
                   >
-                    <FontAwesomeIcon icon={item.icone} className="size-4!" />
+                    <item.icone aria-hidden="true" className="size-4!" />
                   </span>
                   <span className="w-full truncate text-center">{item.curto}</span>
                 </Link>
@@ -190,7 +191,7 @@ export default function MenuLateral() {
                   pathname === "/" ? "text-acento" : "text-foreground/55"
                 }`}
               >
-                <FontAwesomeIcon icon={faHouse} className="size-4!" />
+                <FaHouse aria-hidden="true" className="size-4!" />
                 Início
               </Link>
             </li>
@@ -204,7 +205,7 @@ export default function MenuLateral() {
               className="flex h-full w-full flex-col items-center justify-center gap-1 text-[9px] font-bold text-foreground/55"
             >
               <span className="flex h-8 w-full max-w-10 items-center justify-center">
-                <FontAwesomeIcon icon={faBars} className="size-4!" />
+                <FaBars aria-hidden="true" className="size-4!" />
               </span>
               <span className="w-full truncate text-center">Menu</span>
             </button>
@@ -222,7 +223,7 @@ export default function MenuLateral() {
           title="Arton de Bolso"
           className="flex min-h-11 flex-row items-center justify-center gap-2 rounded-xl px-2 transition-colors hover:bg-foreground/5 xl:justify-start"
         >
-          <FontAwesomeIcon icon={faDiceD20} className="size-5! shrink-0 text-acento" />
+          <FaDiceD20 aria-hidden="true" className="size-5! shrink-0 text-acento" />
           <span className="hidden truncate font-display text-base font-bold xl:inline">Arton de Bolso</span>
         </Link>
 
@@ -242,7 +243,7 @@ export default function MenuLateral() {
             />
           ) : (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-borda">
-              <FontAwesomeIcon icon={ficha ? faUser : faBars} className="size-3.5!" />
+              {ficha ? <FaUser aria-hidden="true" className="size-3.5!" /> : <FaBars aria-hidden="true" className="size-3.5!" />}
             </span>
           )}
           <span className="hidden min-w-0 flex-1 flex-col items-start xl:flex">
@@ -265,7 +266,7 @@ export default function MenuLateral() {
                     ativo ? "bg-acento text-white" : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
-                  <FontAwesomeIcon icon={item.icone} className="size-4! shrink-0" />
+                  <item.icone aria-hidden="true" className="size-4! shrink-0" />
                   <span className="hidden truncate xl:inline">{item.rotulo}</span>
                 </Link>
               );
@@ -275,8 +276,8 @@ export default function MenuLateral() {
 
         <div className="mt-auto flex flex-col gap-1 border-t border-borda pt-2">
           {[
-            { icone: faHouse, rotulo: "Início", href: "/" },
-            { icone: faGear, rotulo: "Configurações", href: "/configuracoes" }
+            { icone: FaHouse, rotulo: "Início", href: "/" },
+            { icone: FaGear, rotulo: "Configurações", href: "/configuracoes" }
           ].map((item) => (
             <Link
               key={item.href}
@@ -289,7 +290,7 @@ export default function MenuLateral() {
                   : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
               }`}
             >
-              <FontAwesomeIcon icon={item.icone} className="size-4! shrink-0" />
+              <item.icone aria-hidden="true" className="size-4! shrink-0" />
               <span className="hidden truncate xl:inline">{item.rotulo}</span>
             </Link>
           ))}
@@ -299,7 +300,7 @@ export default function MenuLateral() {
             title="Sair"
             className="flex min-h-11 w-full flex-row items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-foreground xl:justify-start"
           >
-            <FontAwesomeIcon icon={faRightFromBracket} className="size-4! shrink-0" />
+            <FaRightFromBracket aria-hidden="true" className="size-4! shrink-0" />
             <span className="hidden truncate xl:inline">Sair</span>
           </button>
         </div>
@@ -331,7 +332,7 @@ export default function MenuLateral() {
                 aria-label="Fechar"
                 className="rounded-full p-2 transition-colors hover:bg-foreground/5"
               >
-                <FontAwesomeIcon icon={faXmark} className="size-4!" />
+                <FaXmark aria-hidden="true" className="size-4!" />
               </button>
             </div>
 
@@ -373,21 +374,21 @@ export default function MenuLateral() {
             {/* No celular estas ações não estão em lugar nenhum além daqui. */}
             <div className="mt-auto flex flex-col gap-1 border-t border-borda pt-2">
               <AcaoPainel
-                icone={faHouse}
+                Icone={FaHouse}
                 rotulo="Início"
                 href="/"
                 ativo={pathname === "/"}
                 onClick={() => setPainelAberto(false)}
               />
               <AcaoPainel
-                icone={faGear}
+                Icone={FaGear}
                 rotulo="Configurações"
                 href="/configuracoes"
                 ativo={pathname === "/configuracoes"}
                 onClick={() => setPainelAberto(false)}
               />
               <AcaoPainel
-                icone={faRightFromBracket}
+                Icone={FaRightFromBracket}
                 rotulo="Sair"
                 onClick={() => {
                   setPainelAberto(false);

@@ -1,7 +1,6 @@
 "use client";
 
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaSpinner } from "react-icons/fa6";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode } from "react";
@@ -26,7 +25,7 @@ export default function GateFicha({ children }: { children: ReactNode }) {
   if (trocandoPara || (!ficha && personagens === null)) {
     return (
       <Aviso>
-        <FontAwesomeIcon icon={faSpinner} className="size-5! animate-spin opacity-60" />
+        <FaSpinner aria-hidden="true" className="size-5! animate-spin opacity-60" />
         <p className="text-sm opacity-60">Carregando ficha...</p>
       </Aviso>
     );

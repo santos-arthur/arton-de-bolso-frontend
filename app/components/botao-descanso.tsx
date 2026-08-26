@@ -1,7 +1,6 @@
 "use client";
 
-import { faBed } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaBed } from "react-icons/fa6";
 import { useState } from "react";
 import FolhaModal from "./folha-modal";
 import { CONDICOES, DESCANSO_PADRAO, calcularDescanso, condicaoDe } from "../lib/descanso";
@@ -179,7 +178,7 @@ export default function BotaoDescanso() {
         onClick={() => setAberto(true)}
         className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-borda transition-colors hover:bg-foreground/5"
       >
-        <FontAwesomeIcon icon={faBed} className="size-4!" />
+        <FaBed aria-hidden="true" className="size-4!" />
       </button>
 
       {aberto && <ModalDescanso onFechar={() => setAberto(false)} />}

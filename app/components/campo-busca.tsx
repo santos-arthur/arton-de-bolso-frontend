@@ -1,7 +1,6 @@
 "use client";
 
-import { faMagnifyingGlass, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 
 /**
  * Busca das listas longas (perícias, poderes, magias, itens). Numa mesa,
@@ -23,8 +22,8 @@ export default function CampoBusca({
   return (
     <div className="sticky top-[4.25rem] z-20 -mx-4 flex flex-col gap-2 bg-background/95 px-4 py-2 backdrop-blur-md">
       <div className="relative flex flex-row items-center">
-        <FontAwesomeIcon
-          icon={faMagnifyingGlass}
+        <FaMagnifyingGlass
+          aria-hidden="true"
           className="pointer-events-none absolute left-3 size-3.5! opacity-40"
         />
         <input
@@ -41,7 +40,7 @@ export default function CampoBusca({
             aria-label="Limpar busca"
             className="absolute right-2 rounded-full p-1.5 transition-colors hover:bg-foreground/5"
           >
-            <FontAwesomeIcon icon={faXmark} className="size-3.5!" />
+            <FaXmark aria-hidden="true" className="size-3.5!" />
           </button>
         )}
       </div>

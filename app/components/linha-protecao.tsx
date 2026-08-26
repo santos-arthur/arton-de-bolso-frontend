@@ -1,7 +1,6 @@
 "use client";
 
-import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaShieldHalved } from "react-icons/fa6";
 import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
 import ModalSlots from "./modal-slots";
@@ -52,7 +51,7 @@ export default function LinhaProtecao({ protecao }: { protecao: Protecao }) {
                 protecao.equipado ? "border-acento text-acento" : "border-borda hover:bg-foreground/5"
               }`}
             >
-              <FontAwesomeIcon icon={faShieldHalved} className="size-2.5!" />
+              <FaShieldHalved aria-hidden="true" className="size-2.5!" />
               {ondeEsta ?? (protecao.equipado ? "Tirar" : "Vestir")}
             </button>
           )

@@ -1,7 +1,6 @@
 "use client";
 
-import { faHandFist, faKhanda } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaHandFist, FaKhanda } from "react-icons/fa6";
 import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
 import ModalAtaque from "./modal-ataque";
@@ -47,7 +46,7 @@ export default function LinhaArma({ arma }: { arma: Arma }) {
                 onClick={() => setAtacando(true)}
                 className="flex min-h-9 items-center gap-1.5 rounded-full bg-acento px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
               >
-                <FontAwesomeIcon icon={faKhanda} className="size-3!" />
+                <FaKhanda aria-hidden="true" className="size-3!" />
                 Atacar
               </button>
             )}
@@ -60,7 +59,7 @@ export default function LinhaArma({ arma }: { arma: Arma }) {
                   arma.equipado ? "border-acento text-acento" : "border-borda hover:bg-foreground/5"
                 }`}
               >
-                <FontAwesomeIcon icon={faHandFist} className="size-2.5!" />
+                <FaHandFist aria-hidden="true" className="size-2.5!" />
                 {arma.slot
                   ? arma.slot.duasMaos
                     ? "Duas mãos"

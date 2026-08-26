@@ -1,7 +1,6 @@
 "use client";
 
-import { faUser } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaUser } from "react-icons/fa6";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import AjusteRecurso from "./ajuste-recurso";
@@ -131,7 +130,7 @@ export default function CabecalhoFicha() {
             />
           ) : (
             <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-borda sm:size-16">
-              <FontAwesomeIcon icon={faUser} className="size-6!" />
+              <FaUser aria-hidden="true" className="size-6!" />
             </div>
           )}
 

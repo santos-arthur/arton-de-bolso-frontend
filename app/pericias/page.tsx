@@ -1,7 +1,6 @@
 "use client";
 
-import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaCircleCheck } from "react-icons/fa6";
 import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio } from "../components/cabecalho-pagina";
 import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
@@ -72,8 +71,8 @@ export default function Page() {
                 onClick={() => setChaveAberta(p.chave)}
                 className="flex min-h-12 w-full flex-row items-center gap-3 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left transition-colors hover:border-acento/60 hover:bg-foreground/[0.03]"
               >
-                <FontAwesomeIcon
-                  icon={faCircleCheck}
+                <FaCircleCheck
+                  role="img"
                   title={p.treinado ? "Treinada" : "Não treinada"}
                   className={`size-3.5! shrink-0 ${p.treinado ? "text-acento" : "opacity-20"}`}
                 />

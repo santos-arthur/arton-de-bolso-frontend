@@ -1,7 +1,7 @@
 "use client";
 
-import { faHandBackFist, faShirt } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconType } from "react-icons";
+import { FaHandBackFist, FaShirt } from "react-icons/fa6";
 import FolhaModal from "./folha-modal";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Arma, ItemInventario, SlotEquipado } from "../lib/foundry-types";
@@ -24,13 +24,15 @@ function ocupantes(armas: Arma[], inventario: ItemInventario[]) {
 
 function Slot({
   rotulo,
-  icone,
+  Icone,
   ocupante,
   ehOItem,
   onClick
 }: {
   rotulo: string;
-  icone: typeof faHandBackFist;
+  // Maiúsculo porque um nome solto e minúsculo em JSX vira tag HTML —
+  // `item.icone` escapa disso por ser acesso a propriedade.
+  Icone: IconType;
   ocupante?: Equipavel;
   ehOItem: boolean;
   onClick: () => void;
@@ -49,7 +51,7 @@ function Slot({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={ocupante.img} alt="" className="size-8 rounded-lg object-cover" />
       ) : (
-        <FontAwesomeIcon icon={icone} className={`size-5! ${ocupante ? "" : "opacity-30"}`} />
+        <Icone aria-hidden="true" className={`size-5! ${ocupante ? "" : "opacity-30"}`} />
       )}
       <span className="w-full truncate text-[11px] font-bold uppercase tracking-wider opacity-55">{rotulo}</span>
       {/* title dá o nome inteiro de volta quando o texto é cortado. */}
@@ -96,7 +98,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
                   <Slot
                     key={indice}
                     rotulo={`Mão ${indice}`}
-                    icone={faHandBackFist}
+                    Icone={FaHandBackFist}
                     ocupante={ocupante}
                     ehOItem={ocupante?.id === item.id}
                     onClick={() => escolher("hand", indice)}
@@ -106,7 +108,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
             <div className="col-span-2">
               <Slot
                 rotulo="Duas mãos"
-                icone={faHandBackFist}
+                Icone={FaHandBackFist}
                 ocupante={mapa.get("mao-12")}
                 ehOItem={mapa.get("mao-12")?.id === item.id}
                 onClick={() => escolher("hand", 12)}
@@ -127,7 +129,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
                 <Slot
                   key={indice}
                   rotulo={`Espaço ${indice}`}
-                  icone={faShirt}
+                  Icone={FaShirt}
                   ocupante={ocupante}
                   ehOItem={ocupante?.id === item.id}
                   onClick={() => escolher("body", indice)}

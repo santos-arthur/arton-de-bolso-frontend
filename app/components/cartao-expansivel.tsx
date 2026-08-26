@@ -1,7 +1,6 @@
 "use client";
 
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FaChevronDown } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
 
 /**
@@ -49,8 +48,8 @@ export default function CartaoExpansivel({
           <span className="flex w-full min-w-0 flex-row items-center gap-2">
             <span className="min-w-0 truncate text-sm font-bold">{nome}</span>
             {temDescricao && (
-              <FontAwesomeIcon
-                icon={faChevronDown}
+              <FaChevronDown
+                aria-hidden="true"
                 className={`size-2.5! shrink-0 opacity-40 transition-transform ${aberto ? "rotate-180" : ""}`}
               />
             )}
