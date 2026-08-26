@@ -1,6 +1,6 @@
 "use client";
 
-import { faCoins } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCoins, faEye } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useMemo, useState } from "react";
 import FolhaModal from "./folha-modal";
@@ -20,10 +20,12 @@ function formatar(valor: number) {
 function LinhaAprimoramento({
   item,
   marcado,
+  travado,
   aoAlternar
 }: {
   item: Aprimoramento;
   marcado: boolean;
+  travado: boolean;
   aoAlternar: () => void;
 }) {
   const efeito = resumoDoEfeito(item, "roll");
@@ -31,15 +33,18 @@ function LinhaAprimoramento({
 
   return (
     <label
-      className={`flex cursor-pointer flex-row items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+      className={`flex flex-row items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+        travado ? "cursor-default" : "cursor-pointer"
+      } ${
         marcado ? "border-acento bg-acento/10" : "border-borda bg-superficie-alta hover:bg-foreground/[0.03]"
-      }`}
+      } ${travado ? "opacity-70" : ""}`}
     >
       <input
         type="checkbox"
         checked={marcado}
         onChange={aoAlternar}
-        className="checkbox-personalizado mt-0.5 size-5 shrink-0 cursor-pointer rounded border border-borda"
+        disabled={travado}
+        className="checkbox-personalizado mt-0.5 size-5 shrink-0 cursor-pointer rounded border border-borda disabled:cursor-default"
       />
 
       {item.img && (
@@ -73,10 +78,10 @@ export default function ModalFormulaPericia({
   formula: FormulaPericia;
   onFechar: () => void;
 }) {
-  const { ficha, ajustarPM } = useFoundry();
+  const { ficha, somenteLeitura, ajustarPM } = useFoundry();
   const [marcados, setMarcados] = useState<string[]>([]);
-  /** Quanto de PM já foi cobrado nesta abertura, para não cobrar duas vezes. */
-  const [jaPago, setJaPago] = useState(0);
+  /** O PM já saiu da ficha: a escolha do que custa PM fica fechada. */
+  const [pago, setPago] = useState(false);
 
   const todos = ficha?.aprimoramentos;
   const rotulo = formula?.label;
@@ -90,16 +95,22 @@ export default function ModalFormulaPericia({
 
   const bonusAplicado = escolhidos.reduce((soma, a) => soma + (bonusDe(a, "roll") ?? 0), 0);
   const custoTotal = escolhidos.reduce((soma, a) => soma + Math.max(0, a.custo), 0);
-  const aPagar = Math.max(0, custoTotal - jaPago);
-  const semPM = aPagar > pmAtual;
+  const semPM = custoTotal > pmAtual;
 
-  function alternar(id: string) {
-    setMarcados((atual) => (atual.includes(id) ? atual.filter((i) => i !== id) : [...atual, id]));
+  /** Depois de pagar, só o que é de graça continua em aberto. */
+  const estaTravado = (item: Aprimoramento) => pago && item.custo > 0;
+
+  function alternar(item: Aprimoramento) {
+    if (estaTravado(item)) return;
+    setMarcados((atual) =>
+      atual.includes(item.id) ? atual.filter((i) => i !== item.id) : [...atual, item.id]
+    );
   }
 
   function gastar() {
-    ajustarPM(-aPagar);
-    setJaPago(custoTotal);
+    if (somenteLeitura || pago || semPM || custoTotal === 0) return;
+    ajustarPM(-custoTotal);
+    setPago(true);
   }
 
   return (
@@ -107,23 +118,31 @@ export default function ModalFormulaPericia({
       titulo={rotulo ?? "Perícia"}
       onFechar={onFechar}
       rodape={
-        custoTotal > 0 ? (
+        custoTotal === 0 ? undefined : somenteLeitura ? (
+          // Ficha de companheiro: dá para simular o teste e ver o total, mas
+          // gastar o PM de outra pessoa não é nosso — o relay recusaria de
+          // qualquer forma.
+          <p className="flex min-h-12 flex-row items-center justify-center gap-2 text-sm font-semibold opacity-60">
+            <FontAwesomeIcon icon={faEye} className="size-3.5!" />
+            <span className="numero">Custaria {custoTotal} PM</span>
+          </p>
+        ) : (
           <button
             type="button"
             onClick={gastar}
-            disabled={aPagar === 0 || semPM}
+            disabled={pago || semPM}
             className={`flex min-h-12 w-full flex-row items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-opacity ${
-              aPagar === 0
+              pago
                 ? "border border-borda opacity-60"
                 : semPM
                   ? "border border-borda opacity-50"
                   : "bg-acento text-white hover:opacity-90"
             }`}
           >
-            <FontAwesomeIcon icon={faCoins} className="size-4!" />
-            {aPagar === 0 ? `${custoTotal} PM gastos` : semPM ? "Sem PM suficiente" : `Gastar ${aPagar} PM`}
+            <FontAwesomeIcon icon={pago ? faCheck : faCoins} className="size-4!" />
+            {pago ? `${custoTotal} PM gastos` : semPM ? "Sem PM suficiente" : `Gastar ${custoTotal} PM`}
           </button>
-        ) : undefined
+        )
       }
     >
       {formula ? (
@@ -165,14 +184,16 @@ export default function ModalFormulaPericia({
           {aplicaveis.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">
-                Marque o que vai usar neste teste · {pmAtual} PM disponíveis
+                {somenteLeitura ? "Pode usar neste teste" : "Marque o que vai usar neste teste"} ·{" "}
+                {pmAtual} PM disponíveis
               </span>
               {aplicaveis.map((item) => (
                 <LinhaAprimoramento
                   key={item.id}
                   item={item}
                   marcado={marcados.includes(item.id)}
-                  aoAlternar={() => alternar(item.id)}
+                  travado={estaTravado(item)}
+                  aoAlternar={() => alternar(item)}
                 />
               ))}
             </div>
