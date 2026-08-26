@@ -40,7 +40,7 @@ function CardPersonagem({
         <div
           role="img"
           aria-hidden="true"
-          className="size-14 shrink-0 rounded-xl bg-cover bg-center"
+          className="size-14 shrink-0 rounded-xl bg-cover bg-center border border-borda "
           style={{ backgroundImage: `url(${personagem.img})` }}
         />
       ) : (

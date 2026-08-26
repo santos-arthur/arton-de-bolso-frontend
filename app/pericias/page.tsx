@@ -13,19 +13,32 @@ import type { Pericia } from "../lib/foundry-types";
 /** Referência estável: `?? []` criaria um array novo a cada render e invalidaria o memo. */
 const SEM_PERICIAS: Pericia[] = [];
 
+type Filtro = "todas" | "treinadas" | "disponiveis";
+
+/**
+ * "Disponíveis" é o filtro do jogo: mostra o que o personagem pode de fato
+ * testar agora — as treinadas mais as que qualquer um pode tentar. Fora dele
+ * ficam só as perícias marcadas "apenas treinado" em que ele não tem treino.
+ */
+const FILTROS: Record<Filtro, { rotulo: string; aceita: (p: Pericia) => boolean }> = {
+  todas: { rotulo: "Todas", aceita: () => true },
+  treinadas: { rotulo: "Treinadas", aceita: (p) => p.treinado },
+  disponiveis: { rotulo: "Disponíveis", aceita: (p) => p.treinado || !p.somenteTreinado }
+};
+
 export default function Page() {
   const { ficha } = useFoundry();
   const [chaveAberta, setChaveAberta] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [soTreinadas, setSoTreinadas] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>("todas");
 
   const pericias = ficha?.pericias ?? SEM_PERICIAS;
   const filtradas = useMemo(() => {
     const alvo = normalizar(busca);
     return pericias.filter(
-      (p) => (!soTreinadas || p.treinado) && (!alvo || normalizar(p.label).includes(alvo))
+      (p) => FILTROS[filtro].aceita(p) && (!alvo || normalizar(p.label).includes(alvo))
     );
-  }, [pericias, busca, soTreinadas]);
+  }, [pericias, busca, filtro]);
 
   if (!ficha) return null;
 
@@ -39,9 +52,11 @@ export default function Page() {
       </CabecalhoPagina>
 
       <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar perícia...">
-        <ChipFiltro ativo={soTreinadas} onClick={() => setSoTreinadas((v) => !v)}>
-          Só treinadas
-        </ChipFiltro>
+        {(Object.keys(FILTROS) as Filtro[]).map((chave) => (
+          <ChipFiltro key={chave} ativo={filtro === chave} onClick={() => setFiltro(chave)}>
+            {FILTROS[chave].rotulo}
+          </ChipFiltro>
+        ))}
       </CampoBusca>
 
       {filtradas.length === 0 ? (

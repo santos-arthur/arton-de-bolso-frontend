@@ -50,6 +50,46 @@ export type Pericia = {
 };
 
 /** `emTibar` é quanto uma unidade desta moeda vale em T$ (a unidade base): TO = 10, T$ = 1. */
+/** Escopos de uso de um aprimoramento, como o sistema os nomeia. */
+export type EscopoAprimoramento =
+  | "skill"
+  | "attack"
+  | "ability"
+  | "spell"
+  | "power"
+  | "equipment"
+  | "consumable"
+  | "self";
+
+export type ModificadorAprimoramento = {
+  /** Chave do change: "roll" (teste), "ataque", "dano", "criticoM"... */
+  chave: string;
+  /** Valor já resolvido, quando a fórmula dá um número. */
+  valor: number | null;
+  /** A fórmula crua ("@int", "1d8"), para exibir quando não resolve. */
+  formula: string;
+};
+
+/**
+ * Active Effect "de uso" (`onuse`) do sistema: o que o personagem pode ativar
+ * durante um uso, pagando PM. `restritoA` vazio significa "qualquer um do
+ * escopo"; preenchido, limita aos nomes listados (ex.: o Escriba só vale em
+ * Conhecimento, Misticismo, Nobreza e Religião).
+ */
+export type Aprimoramento = {
+  id: string;
+  nome: string;
+  img: string;
+  descricao: string;
+  /** Em PM. Negativo reduz o custo do que está sendo usado (ex.: −1 numa magia). */
+  custo: number;
+  escopos: EscopoAprimoramento[];
+  restritoA: string[];
+  modificadores: ModificadorAprimoramento[];
+  /** Repetível: pode ser aplicado mais de uma vez, pagando de novo. */
+  aumenta: boolean;
+};
+
 export type Moeda = { chave: string; sigla: string; label: string; valor: number; emTibar: number };
 
 export type ItemInventario = {
@@ -115,6 +155,7 @@ export type Ficha = {
   inventario: GrupoInventario[];
   poderes: Poder[];
   magias: Magia[];
+  aprimoramentos: Aprimoramento[];
 };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */

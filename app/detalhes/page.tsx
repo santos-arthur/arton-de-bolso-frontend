@@ -49,7 +49,7 @@ export default function Page() {
 
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Detalhes" />
+      <CabecalhoPagina titulo="" />
 
       {/* Atributos primeiro: é o que se consulta a cada teste. */}
       <TituloSecao>Atributos</TituloSecao>

@@ -79,7 +79,7 @@ export default function FolhaModal({
           aria-label={titulo}
           onClick={(evento) => evento.stopPropagation()}
           style={{ "--altura-folha": `${ALTURA_BASE - nivel * DEGRAU}px` } as CSSProperties}
-          className="area-segura-baixo flex h-[var(--altura-folha)] max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-borda bg-superficie shadow-2xl sm:h-auto sm:max-w-md sm:rounded-2xl"
+          className="area-segura-baixo flex h-[var(--altura-folha)] max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-borda bg-superficie shadow-2xl sm:h-auto sm:max-w-xl sm:rounded-2xl"
         >
         {/* Puxador: no celular sinaliza que o painel veio de baixo. */}
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-foreground/20 sm:hidden" />
