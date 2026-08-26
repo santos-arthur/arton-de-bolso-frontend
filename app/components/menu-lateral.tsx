@@ -2,7 +2,6 @@
 
 import {
   FaBars,
-  FaDiceD20,
   FaEye,
   FaGear,
   FaHouse,
@@ -14,6 +13,7 @@ import type { IconType } from "react-icons";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import Logo from "./logo";
 import { ITENS_NAV } from "./navegacao";
 import { useFoundry, usePersonagens } from "../lib/foundry-provider";
 import type { PersonagemDisponivel } from "../lib/foundry-types";
@@ -223,7 +223,7 @@ export default function MenuLateral() {
           title="Arton de Bolso"
           className="flex min-h-11 flex-row items-center justify-center gap-2 rounded-xl px-2 transition-colors hover:bg-foreground/5 xl:justify-start"
         >
-          <FaDiceD20 aria-hidden="true" className="size-5! shrink-0 text-acento" />
+          <Logo className="size-6 shrink-0 text-acento" />
           <span className="hidden truncate font-display text-base font-bold xl:inline">Arton de Bolso</span>
         </Link>
 

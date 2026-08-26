@@ -72,6 +72,19 @@ body {
   }
 }
 
+@layer components {
+  /* Marca do app (public/logo.svg). O arquivo é uma silhueta chapada em
+     preto, então ele entra como *máscara*: o desenho recorta a cor, que vem
+     do `text-*` de quem usa (hoje sempre `text-acento`). Um <img> ficaria
+     preto fixo e sumiria no tema escuro. */
+  .logo-marca {
+    display: inline-block;
+    background-color: currentColor;
+    -webkit-mask: url("/logo.svg") center / contain no-repeat;
+    mask: url("/logo.svg") center / contain no-repeat;
+  }
+}
+
 @layer utilities {
   /* Números de largura fixa: sem isso um PV indo de 9 para 10 empurra o
      layout, e uma coluna de valores de perícia fica serrilhada. */

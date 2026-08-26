@@ -1,7 +1,7 @@
 "use client";
 
-import { FaDiceD20 } from "react-icons/fa6";
 import { useState, type FormEvent, type ReactNode } from "react";
+import Logo from "./logo";
 import { useFoundry } from "../lib/foundry-provider";
 
 function TelaCentral({ children }: { children: ReactNode }) {
@@ -39,7 +39,7 @@ function FormularioLogin() {
         className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-borda bg-superficie p-6 text-left shadow-xl"
       >
         <div className="flex flex-col items-center gap-2 pb-1">
-          <FaDiceD20 aria-hidden="true" className="size-8! text-acento" />
+          <Logo className="size-10 text-acento" />
           <h1 className="font-display text-2xl font-bold">Arton de Bolso</h1>
         </div>
 
@@ -96,7 +96,7 @@ export default function FoundryGate({ children }: { children: ReactNode }) {
   if (status === "conectando" || status === "autenticando") {
     return (
       <TelaCentral>
-        <FaDiceD20 aria-hidden="true" className="size-7! animate-pulse text-acento" />
+        <Logo className="size-9 animate-pulse text-acento" />
         <p className="text-sm opacity-70">Conectando ao Foundry...</p>
       </TelaCentral>
     );

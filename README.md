@@ -57,6 +57,34 @@ npm run dev     # desenvolvimento
 npm run build && npm run start   # produção — processo Node normal, sem passo de export
 ```
 
+## Testando fora da máquina (túnel Cloudflare)
+
+Para abrir o app no celular ou fora da rede local **sem fazer deploy**, há um
+túnel do Cloudflare publicando o `next dev` local em
+`https://dev.arthursantos.com.br`:
+
+```bash
+npm run dev                                                              # terminal 1
+cloudflared tunnel --config ~/.cloudflared/config-arton-dev.yml run arton-dev   # terminal 2
+```
+
+O túnel se chama `arton-dev` e vive só nesses dois processos — fechou o
+terminal, o domínio para de responder (o CNAME continua apontando pra ele, e
+volta a funcionar no próximo `run`). Ele não encosta no `config.yml` dos
+outros túneis: a configuração é o arquivo próprio `config-arton-dev.yml`.
+
+Duas coisas que isso implica:
+
+- `allowedDevOrigins` no `next.config.ts` precisa listar o domínio — em
+  desenvolvimento o Next recusa requisições vindas de outro host, e sem isso
+  os assets de dev e o hot reload quebram.
+- **Enquanto o túnel está de pé, a tela de login fica pública na internet.**
+  Quem tiver o endereço vê o formulário; o que protege as fichas é a senha do
+  usuário no Foundry. Se algum usuário do mundo estiver sem senha, esse é o
+  buraco — e a resposta certa é pôr senha nele, ou deixar o túnel no ar só
+  durante o teste. O Foundry em si não fica exposto: quem fala com ele é o
+  processo Node, não o navegador.
+
 ## Pendências conhecidas
 
 - **Sem persistência de sessão**: tudo em memória do processo. Reiniciar o
