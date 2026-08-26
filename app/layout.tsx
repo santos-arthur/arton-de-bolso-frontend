@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { InlineScript } from "./components/inline-script";
@@ -60,6 +60,23 @@ export const metadata: Metadata = {
   description: "Ficha simplificada de Tormenta20 para jogos presenciais e híbridos — conecta por WebSocket no módulo Foundry arton-de-bolso.",
 };
 
+/**
+ * O app é uma ficha de mesa consultada no celular durante a partida — zoom
+ * ali é sempre acidente (o dedo escorrega, a tela fica torta no meio de um
+ * combate). Daí `maximum-scale` e `user-scalable`, que no iOS também matam o
+ * zoom automático ao focar um campo: o Safari amplia sozinho quando o campo
+ * tem fonte menor que 16px, e os nossos têm 14px.
+ *
+ * O pinch em si o Safari deixa passar mesmo assim (ignora `user-scalable=no`
+ * desde o iOS 10) — quem barra é o listener de `gesture*` lá embaixo.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -71,6 +88,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <InlineScript
           html={`(function(){try{var t=localStorage.getItem("theme")||"system";var resolved=t==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;document.documentElement.setAttribute("data-theme",resolved)}catch(e){}})()`}
+        />
+        {/* Pinch de dois dedos no Safari iOS: só para com preventDefault —
+            a meta viewport não basta. Eventos "gesture*" são do WebKit, os
+            outros navegadores simplesmente nunca os disparam. */}
+        <InlineScript
+          html={`(function(){["gesturestart","gesturechange","gestureend"].forEach(function(e){document.addEventListener(e,function(evento){evento.preventDefault()},{passive:false})})})()`}
         />
       </head>
       <body className="min-h-full bg-background text-foreground">

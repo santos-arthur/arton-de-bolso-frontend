@@ -47,6 +47,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* Mata o zoom por toque duplo (e, de brinde, o atraso de 300ms que os
+     navegadores móveis esperam para saber se o toque vira toque duplo). */
+  touch-action: manipulation;
 }
 
 @layer base {
