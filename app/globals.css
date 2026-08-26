@@ -104,7 +104,7 @@ body {
   /* A barra de abas do celular fica sobre a área do gesto de home do iOS;
      sem isso os alvos de toque ficam embaixo da barrinha do sistema. */
   .area-segura-baixo {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) - 1.5rem);
   }
 
   /* Faixa da área segura do topo — o recorte da câmera, ou a status bar
@@ -118,9 +118,6 @@ body {
     background-image: linear-gradient(var(--superficie), var(--superficie));
     background-repeat: no-repeat;
     background-size: 100% env(safe-area-inset-top, 0px);
-  }
-  .area-segura-baixo {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .altura-barra-abas {
