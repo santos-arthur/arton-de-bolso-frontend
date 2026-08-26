@@ -22,7 +22,12 @@ export async function POST(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7 // 7 dias — a sessão do Foundry em si dura menos (24h), o cookie só guarda a referência
+    // O valor do cookie É o id da sessão no Foundry (httpOnly, nunca chega ao
+    // JavaScript da página). É isso que deixa o app voltar logado depois de
+    // fechado — ou depois de o nosso processo reiniciar —, já que a sessão de
+    // verdade mora lá. Os 7 dias são só o limite do lado de cá: quando as 24h
+    // do Foundry vencem, a restauração falha e o cookie é apagado.
+    maxAge: 60 * 60 * 24 * 7
   });
 
   return NextResponse.json({ sucesso: true });

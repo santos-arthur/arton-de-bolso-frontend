@@ -5,7 +5,6 @@
 //
 // Nunca importar este arquivo de um componente "use client".
 
-import { randomUUID } from "node:crypto";
 import { io, type Socket } from "socket.io-client";
 import type {
   Ficha,
@@ -33,8 +32,8 @@ type SessaoServidor = {
   personagens: ListaPersonagens | null;
   erro: string | null;
   ouvintes: Set<() => void>;
-  /** Momento em que o último SSE se desligou (null = tem alguém com a tela aberta agora). */
-  ociosaDesde: number | null;
+  /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
+  ultimoAlive: number;
 };
 
 // Em memória, dura enquanto o processo Node estiver de pé — reinício do
@@ -51,13 +50,23 @@ const sessoes = new Map<string, SessaoServidor>();
 const loginsEmAndamento = new Set<string>();
 
 /**
- * Uma sessão sem nenhuma tela aberta por tanto tempo é dada como abandonada.
- * Existe por causa da exclusividade de login: sem isso, fechar o navegador
- * (ou trocar de aparelho) deixaria o usuário "em uso" até o servidor
- * reiniciar, sem ninguém do outro lado para deslogar. Quem está com o app
- * aberto mantém o SSE ligado e nunca é atingido.
+ * Silêncio que caracteriza app fechado. O navegador bate um "ainda estou
+ * aqui" a cada 30s (ver o provider); três batidas perdidas e a sessão é dada
+ * como abandonada — o socket cai, o Foundry deixa de contar o usuário como
+ * ativo e o login volta pra lista.
+ *
+ * O número é um meio-termo deliberado: curto o bastante pra liberar o usuário
+ * ainda na mesma partida, longo o bastante pra atravessar um tranco de rede,
+ * uma troca de app no celular ou a tela bloqueada por um minuto. E mesmo
+ * depois de expirar, voltar não custa senha nenhuma — ver `restaurarSessao`.
  */
-const TEMPO_SESSAO_OCIOSA_MS = 15 * 60 * 1000;
+const TEMPO_SEM_ALIVE_MS = 3 * 60 * 1000;
+
+/**
+ * Varredura das sessões abandonadas. Sem ela, uma sessão só seria notada
+ * quando alguém tentasse entrar — e até lá o usuário seguiria "em uso".
+ */
+const INTERVALO_VARREDURA_MS = 60 * 1000;
 
 const ERRO_USUARIO_EM_USO =
   "Este usuário já está conectado. Saia da outra sessão antes de entrar por aqui.";
@@ -235,15 +244,17 @@ async function lerDadosDeEntrada(sessionId?: string): Promise<DadosDeEntrada> {
  *     redundante);
  *   - logins em andamento — a janela entre a checagem e o registro da sessão.
  *
- * De quebra faz a faxina do mapa: sessão cujo socket caiu não segura mais o
- * usuário — mesma política do `sessaoAtiva`, que já derruba nesse caso.
+ * De quebra faz a faxina do mapa: sessão que parou de dar sinal de vida não
+ * segura mais o usuário (ver `TEMPO_SEM_ALIVE_MS`).
  */
 function usuariosOcupados(ativosNoFoundry: string[] = []): Set<string> {
   const ocupados = new Set(ativosNoFoundry);
   const agora = Date.now();
   for (const [id, sessao] of sessoes) {
-    const abandonada = sessao.ociosaDesde !== null && agora - sessao.ociosaDesde > TEMPO_SESSAO_OCIOSA_MS;
-    if (!sessao.socket.connected || abandonada) {
+    // Socket desconectado não conta mais como sessão morta: o socket.io
+    // reconecta sozinho, e derrubar por isso deslogava gente por soluço de
+    // rede. Quem manda aqui é o silêncio do navegador.
+    if (agora - sessao.ultimoAlive > TEMPO_SEM_ALIVE_MS) {
       encerrarSessao(id);
       continue;
     }
@@ -280,8 +291,14 @@ function lerDadosDeEntradaComCache(): Promise<DadosDeEntrada> {
   return leituraEmVoo;
 }
 
-export async function listarUsuariosFoundry(): Promise<UsuarioFoundry[]> {
-  const dados = await lerDadosDeEntradaComCache();
+/**
+ * `fresco` pula a janela de cache. É o que a tela de login usa quando o
+ * jogador abre a lista: ali ele está prestes a escolher um nome, e quatro
+ * segundos de atraso são a diferença entre escolher um usuário livre e
+ * levar um "já está conectado" na cara.
+ */
+export async function listarUsuariosFoundry(fresco = false): Promise<UsuarioFoundry[]> {
+  const dados = fresco ? await lerDadosDeEntrada() : await lerDadosDeEntradaComCache();
   const ocupados = usuariosOcupados(dados.activeUsers);
   return (dados.users ?? [])
     .map((u) => {
@@ -364,16 +381,28 @@ async function concluirLogin(
     return { sucesso: false, erro: "O Foundry aceitou o login mas não confirmou o usuário na nova conexão." };
   }
 
-  const sessaoId = randomUUID();
+  return { sucesso: true, sessaoId: criarSessaoLocal(sessionId, sessaoFoundry.userId, socket).id };
+}
+
+/**
+ * Monta a sessão em memória em volta de um socket já autenticado — o mesmo
+ * fim de linha do login e da restauração.
+ *
+ * O id da sessão **é** o id da sessão do Foundry, de propósito: é ele que vai
+ * no cookie, e é o que permite reconstruir tudo depois de o processo Node
+ * reiniciar (em desenvolvimento, a cada recompilação) sem pedir senha de novo.
+ * Ele nunca chega ao JavaScript da página — o cookie é httpOnly.
+ */
+function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socket): SessaoServidor {
   const sessao: SessaoServidor = {
     id: sessaoId,
-    foundryUserId: sessaoFoundry.userId,
+    foundryUserId,
     socket,
     ficha: null,
     personagens: null,
     erro: null,
     ouvintes: new Set(),
-    ociosaDesde: Date.now()
+    ultimoAlive: Date.now()
   };
   sessoes.set(sessaoId, sessao);
 
@@ -404,47 +433,110 @@ async function concluirLogin(
 
   socket.emit(MODULE_EVENTO, { tipo: "obterFicha" } satisfies MensagemParaFoundry);
 
-  return { sucesso: true, sessaoId };
+  return sessao;
 }
+
+/**
+ * Reconstrói a sessão a partir do cookie, sem senha. É o que faz "fechar o
+ * app e voltar" continuar logado: a sessão do Foundry vale 24h e vive lá, não
+ * aqui — o que se perde num reinício do nosso processo (ou numa recompilação
+ * do `next dev`) é só o socket e o cache de ficha, e os dois se refazem.
+ *
+ * Devolve null quando o Foundry não reconhece mais a sessão (mundo relançado,
+ * 24h vencidas) ou quando o usuário foi tomado por outra sessão enquanto esta
+ * estava fora — aí é login de novo, como manda a exclusividade.
+ */
+async function restaurarSessao(sessaoId: string): Promise<SessaoServidor | null> {
+  const socket = conectarSocket(sessaoId);
+  let info: { userId: string | null } | null;
+  try {
+    info = await aguardarSessao(socket);
+  } catch {
+    socket.disconnect();
+    return null;
+  }
+
+  if (!info?.userId) {
+    socket.disconnect();
+    return null;
+  }
+
+  // `usuariosOcupados()` sem argumento de propósito: o `activeUsers` do
+  // Foundry ainda conta este usuário (a sessão dele segue viva lá), então
+  // olhar pra ele faria a sessão barrar a si mesma. O que importa é se *outra*
+  // sessão nossa pegou o usuário enquanto esta estava fora.
+  if (usuariosOcupados().has(info.userId)) {
+    socket.disconnect();
+    return null;
+  }
+
+  return criarSessaoLocal(sessaoId, info.userId, socket);
+}
+
+/**
+ * A sessão desta requisição, restaurando-a se o processo tiver perdido o
+ * mapa. Todo caminho que precisa de sessão passa por aqui.
+ */
+/**
+ * Restaurações em andamento, por sessão. Depois de o processo reiniciar, a
+ * página volta pedindo tudo de uma vez (o stream, a ficha, uma dúzia de
+ * imagens): sem isto cada requisição abriria seu próprio socket com o
+ * Foundry, e todas menos a última vazariam ao se sobrescreverem no mapa.
+ */
+const restauracoesEmVoo = new Map<string, Promise<SessaoServidor | null>>();
+
+export async function obterSessao(sessaoId: string | undefined | null): Promise<SessaoServidor | null> {
+  if (!sessaoId) return null;
+  const sessao = sessoes.get(sessaoId);
+  if (sessao) return sessao;
+
+  const emVoo = restauracoesEmVoo.get(sessaoId);
+  if (emVoo) return emVoo;
+
+  const restauracao = restaurarSessao(sessaoId).finally(() => restauracoesEmVoo.delete(sessaoId));
+  restauracoesEmVoo.set(sessaoId, restauracao);
+  return restauracao;
+}
+
+/** O navegador dizendo "ainda estou aqui" — ver `TEMPO_SEM_ALIVE_MS`. */
+export function registrarAlive(sessaoId: string | undefined | null) {
+  const sessao = sessaoId ? sessoes.get(sessaoId) : null;
+  if (sessao) sessao.ultimoAlive = Date.now();
+}
+
+/** Derruba quem parou de dar sinal — é o que devolve o usuário à lista de login. */
+function expirarSessoesAbandonadas() {
+  const agora = Date.now();
+  for (const [id, sessao] of sessoes) {
+    if (agora - sessao.ultimoAlive > TEMPO_SEM_ALIVE_MS) encerrarSessao(id);
+  }
+}
+
+// `unref` para o timer não segurar o processo vivo sozinho (encerrar o
+// servidor com Ctrl+C continua imediato).
+setInterval(expirarSessoesAbandonadas, INTERVALO_VARREDURA_MS).unref?.();
 
 export function sessaoExiste(sessaoId: string | undefined | null): boolean {
   return !!sessaoId && sessoes.has(sessaoId);
 }
 
 /**
- * Checagem de verdade: pergunta ao próprio Foundry se esta sessão ainda está
- * logada, em vez de confiar só no `Map` em memória. Um socket ainda no mapa
- * não garante nada — o Foundry pode ter reiniciado, o mundo pode ter sido
- * relançado, ou a sessão (24h) pode ter expirado, e nesses casos a conexão
- * volta como anônima. `getJoinData` devolve o `userId` da sessão (null se
- * não logada), que é exatamente o que precisamos comparar.
+ * "Este navegador ainda está logado?" — perguntado a cada carregamento de
+ * tela e a cada volta do app ao primeiro plano.
  *
- * Se não estiver mais válida, a sessão local é descartada aqui mesmo — o
- * chamador só precisa tratar o `false`.
+ * Deliberadamente tolerante. A versão anterior derrubava a sessão se o socket
+ * estivesse desconectado *naquele instante* ou se o Foundry demorasse a
+ * responder, e isso deslogava jogador por soluço de rede: o socket.io
+ * reconecta sozinho, e um tranco de dois segundos não é motivo pra mandar
+ * alguém digitar senha no meio de um combate. Quem de fato invalida a sessão
+ * é o Foundry, pelo evento "session" tratado em `criarSessaoLocal` — e, se o
+ * mapa tiver se perdido, `obterSessao` reconstrói a partir do cookie.
  */
 export async function sessaoAtiva(sessaoId: string | undefined | null): Promise<boolean> {
-  if (!sessaoId) return false;
-  const sessao = sessoes.get(sessaoId);
+  const sessao = await obterSessao(sessaoId);
   if (!sessao) return false;
-
-  if (!sessao.socket.connected) {
-    encerrarSessao(sessaoId);
-    return false;
-  }
-
-  const dados = await new Promise<{ userId?: string | null } | null>((resolve) => {
-    const tempoLimite = setTimeout(() => resolve(null), TEMPO_LIMITE_MS);
-    sessao.socket.emit("getJoinData", (resposta: { userId?: string | null }) => {
-      clearTimeout(tempoLimite);
-      resolve(resposta);
-    });
-  });
-
-  if (dados?.userId !== sessao.foundryUserId) {
-    encerrarSessao(sessaoId);
-    return false;
-  }
-
+  // Chegar aqui já é sinal de vida: a tela acabou de carregar.
+  sessao.ultimoAlive = Date.now();
   return true;
 }
 
@@ -472,12 +564,11 @@ export function inscrever(sessaoId: string, notificar: () => void): () => void {
   const sessao = sessoes.get(sessaoId);
   if (!sessao) return () => {};
   sessao.ouvintes.add(notificar);
-  sessao.ociosaDesde = null;
-  return () => {
-    sessao.ouvintes.delete(notificar);
-    // Nenhuma tela aberta a partir de agora — começa a contar o abandono.
-    if (!sessao.ouvintes.size) sessao.ociosaDesde = Date.now();
-  };
+  // Abrir o stream é sinal de vida; a partir daí quem sustenta a sessão é o
+  // alive do navegador, que atravessa uma aba congelada pelo iOS sem fechar
+  // o stream — coisa que o simples "tem ouvinte?" não distinguia.
+  sessao.ultimoAlive = Date.now();
+  return () => sessao.ouvintes.delete(notificar);
 }
 
 export function enviarMensagem(sessaoId: string, mensagem: MensagemParaFoundry) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { COOKIE_SESSAO, buscarImagemDoFoundry, sessaoExiste } from "../../lib/foundry-server";
+import { COOKIE_SESSAO, buscarImagemDoFoundry, obterSessao } from "../../lib/foundry-server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ const CACHE_S = 1800;
  */
 export async function GET(request: Request) {
   const cookieStore = await cookies();
-  if (!sessaoExiste(cookieStore.get(COOKIE_SESSAO)?.value)) {
+  if (!(await obterSessao(cookieStore.get(COOKIE_SESSAO)?.value))) {
     return new NextResponse(null, { status: 401 });
   }
 

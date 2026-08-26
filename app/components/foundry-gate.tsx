@@ -14,7 +14,7 @@ function TelaCentral({ children }: { children: ReactNode }) {
 }
 
 function FormularioLogin() {
-  const { usuarios, erroLogin, login } = useFoundry();
+  const { usuarios, erroLogin, login, recarregarUsuarios } = useFoundry();
   const [usuarioId, setUsuarioId] = useState("");
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -49,6 +49,11 @@ function FormularioLogin() {
           <CampoSelect
             value={escolhido}
             onChange={(evento) => setUsuarioId(evento.target.value)}
+            // Abrir a lista relê quem está livre: entre carregar a tela e
+            // escolher um nome pode ter entrado gente. `onPointerDown` chega
+            // antes de a lista abrir; `onFocus` cobre quem chega pelo teclado.
+            onPointerDown={recarregarUsuarios}
+            onFocus={recarregarUsuarios}
             required
           >
             <option value="" disabled>

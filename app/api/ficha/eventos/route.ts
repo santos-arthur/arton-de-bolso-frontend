@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { COOKIE_SESSAO, estadosAtuais, inscrever, sessaoExiste } from "../../../lib/foundry-server";
+import { COOKIE_SESSAO, estadosAtuais, inscrever, obterSessao, sessaoExiste } from "../../../lib/foundry-server";
 import type { MensagemDoFoundry } from "../../../lib/foundry-types";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,9 @@ export async function GET() {
   const cookieStore = await cookies();
   const sessaoId = cookieStore.get(COOKIE_SESSAO)?.value;
 
-  if (!sessaoExiste(sessaoId)) {
+  // Restaura antes de recusar: o stream reconecta sozinho depois de o
+  // processo reiniciar, e sem isto o navegador cairia no login à toa.
+  if (!(await obterSessao(sessaoId))) {
     return new Response(null, { status: 401 });
   }
 

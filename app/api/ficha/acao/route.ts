@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { COOKIE_SESSAO, enviarMensagem } from "../../../lib/foundry-server";
+import { COOKIE_SESSAO, enviarMensagem, obterSessao } from "../../../lib/foundry-server";
 import type { MensagemParaFoundry } from "../../../lib/foundry-types";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const sessaoId = cookieStore.get(COOKIE_SESSAO)?.value;
-  if (!sessaoId) {
+  const sessao = await obterSessao(cookieStore.get(COOKIE_SESSAO)?.value);
+  if (!sessao) {
     return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
   }
 
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    enviarMensagem(sessaoId, mensagem);
+    enviarMensagem(sessao.id, mensagem);
     return NextResponse.json({ ok: true });
   } catch (erro) {
     return NextResponse.json({ erro: (erro as Error).message }, { status: 409 });

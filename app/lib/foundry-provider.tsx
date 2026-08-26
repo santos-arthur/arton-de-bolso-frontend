@@ -31,6 +31,18 @@ const LIMITE_TROCA_MS = 10000;
  */
 const INTERVALO_USUARIOS_MS = 10000;
 
+/**
+ * Batida de "ainda estou aqui" enquanto o app está aberto e visível. É o que
+ * segura a sessão do lado do servidor: parou de bater por alguns minutos, a
+ * sessão é encerrada e o usuário volta a ficar disponível na tela de login
+ * (ver TEMPO_SEM_ALIVE_MS em foundry-server.ts).
+ *
+ * Não é o SSE que cumpre esse papel porque o iOS congela a aba em segundo
+ * plano sem fechar o stream: do lado do servidor a conexão continuaria de pé,
+ * parecendo um jogador presente que na verdade guardou o celular no bolso.
+ */
+const INTERVALO_ALIVE_MS = 30000;
+
 const LISTAS_VAZIAS: ListaPersonagens = { meus: [], companheiros: [] };
 
 /**
@@ -95,6 +107,8 @@ type FoundryContextValue = {
   selecionarPersonagem: (actorId: string) => void;
   /** Repede as listas ao relay — usado quando a home fica esperando tempo demais. */
   recarregarPersonagens: () => void;
+  /** Relê quem está livre, sem passar pelo cache — a tela de login chama ao abrir a lista. */
+  recarregarUsuarios: () => void;
   /** Dispensa a faixa de erro. Sem isso um erro pontual (permissão negada) ficaria na tela até a próxima ficha chegar. */
   limparErro: () => void;
   ajustarPV: (delta: number) => void;
@@ -110,9 +124,9 @@ type FoundryContextValue = {
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
 
-async function buscarUsuarios(): Promise<UsuarioFoundry[]> {
+async function buscarUsuarios(fresco = false): Promise<UsuarioFoundry[]> {
   try {
-    const resposta = await fetch("/api/usuarios", { cache: "no-store" });
+    const resposta = await fetch(`/api/usuarios${fresco ? "?fresco=1" : ""}`, { cache: "no-store" });
     const dados = await resposta.json();
     return dados.usuarios ?? [];
   } catch {
@@ -196,6 +210,13 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     [enviar]
   );
 
+  const recarregarUsuarios = useCallback(async () => {
+    const lista = await buscarUsuarios(true);
+    // Lista vazia é quase sempre falha de rede; manter os nomes antigos é
+    // melhor do que esvaziar o campo debaixo do dedo de quem ia escolher.
+    if (lista.length) setUsuarios(lista);
+  }, []);
+
   const carregarUsuariosELogin = useCallback(async () => {
     setStatus("loginNecessario");
     setUsuarios(await buscarUsuarios());
@@ -277,6 +298,40 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const avisarQueEstouAqui = useCallback(() => {
+    fetch("/api/sessao", { method: "POST", cache: "no-store", keepalive: true }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (status !== "autenticado") return;
+    avisarQueEstouAqui();
+    const id = setInterval(avisarQueEstouAqui, INTERVALO_ALIVE_MS);
+
+    // Voltar do segundo plano é o momento crítico: o intervalo não rodou
+    // enquanto a aba estava congelada, e a sessão pode ter expirado. Bate na
+    // hora e confere — se caducou mesmo, a tela vai pro login em vez de ficar
+    // tentando agir sobre uma sessão que não existe mais.
+    const aoVoltar = () => {
+      if (document.visibilityState !== "visible") return;
+      // Só a checagem: ela já conta como sinal de vida do lado do servidor, e
+      // é ela que reconstrói a sessão se o processo tiver reiniciado.
+      conferirSessao()
+        .then((autenticado) => {
+          if (!autenticado) {
+            setFicha(null);
+            setPersonagens(null);
+            carregarUsuariosELogin();
+          }
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
+  }, [avisarQueEstouAqui, carregarUsuariosELogin, status]);
 
   // Enquanto ninguém está logado, mantém a lista de usuários fresca — é ela
   // que diz quem está "em uso".
@@ -361,6 +416,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     logout,
     selecionarPersonagem,
     recarregarPersonagens: () => enviar({ tipo: "obterFicha" }),
+    recarregarUsuarios,
     limparErro: () => setErroServidor(null),
     ajustarPV: (delta) => agir({ tipo: "ajustarPV", delta }, (f) => ajustarRecursoLocal(f, "pv", delta)),
     ajustarPM: (delta) => agir({ tipo: "ajustarPM", delta }, (f) => ajustarRecursoLocal(f, "pm", delta)),
