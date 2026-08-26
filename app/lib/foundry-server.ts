@@ -75,7 +75,8 @@ function absolutizarImagensDaFicha(ficha: Ficha): Ficha {
     poderes: ficha.poderes.map((poder) => ({ ...poder, img: absolutizarImagem(poder.img) })),
     magias: ficha.magias.map((magia) => ({ ...magia, img: absolutizarImagem(magia.img) })),
     aprimoramentos: ficha.aprimoramentos.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),
-    armas: ficha.armas.map((a) => ({ ...a, img: absolutizarImagem(a.img) }))
+    armas: ficha.armas.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),
+    protecoes: ficha.protecoes.map((p) => ({ ...p, img: absolutizarImagem(p.img) }))
   };
 }
 

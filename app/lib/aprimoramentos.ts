@@ -12,11 +12,16 @@ import type { Aprimoramento, EscopoAprimoramento } from "./foundry-types";
 export function aprimoramentosDe(
   todos: Aprimoramento[],
   escopo: EscopoAprimoramento,
-  nomeDoAlvo?: string
+  nomeDoAlvo?: string,
+  /** Id do item em uso — habilita os efeitos de escopo "self" dele. */
+  idDoAlvo?: string
 ): Aprimoramento[] {
   const alvo = nomeDoAlvo ? normalizar(nomeDoAlvo) : null;
   return todos.filter((a) => {
-    if (!a.escopos.includes(escopo)) return false;
+    // "self" é um upgrade do próprio item (a "Maciça" numa arma): vale só
+    // para ela, e não para todas as armas do personagem.
+    const doProprioItem = a.escopos.includes("self") && idDoAlvo && a.origemId === idDoAlvo;
+    if (!a.escopos.includes(escopo) && !doProprioItem) return false;
     if (!a.restritoA.length) return true;
     if (!alvo) return true;
     return a.restritoA.some((nome) => normalizar(nome) === alvo);
@@ -38,4 +43,72 @@ export function resumoDoEfeito(aprimoramento: Aprimoramento, chave: string): str
   if (numerico !== null) return `${numerico >= 0 ? "+" : ""}${numerico} no teste`;
   const formulas = aprimoramento.modificadores.filter((m) => m.chave.toLowerCase() === chave);
   return formulas.length ? formulas.map((m) => m.formula).join(" e ") : null;
+}
+
+/**
+ * Multiplica uma fórmula pelo número de aplicações, como o sistema faz ao
+ * repetir um aprimoramento: cresce a **quantidade de dados**, nunca as faces
+ * ("1d8" três vezes é "3d8", não "1d24"), e os valores fixos acompanham.
+ * Ver `applyRollChanges` em tormenta20.mjs.
+ *
+ * Dados e números soltos são tratados na mesma varredura, e não em duas: com
+ * dois `replace` encadeados, o segundo reencontrava o número já multiplicado
+ * ("10d8" voltava a casar como o "1" de "10") e multiplicava de novo.
+ */
+export function multiplicarFormula(formula: string, vezes: number): string {
+  if (vezes <= 1 || !formula) return formula;
+  return formula.replace(
+    /(\d*)d(\d+)|(\d+)/gi,
+    (_todo, quantidade: string | undefined, faces: string | undefined, numero: string | undefined) =>
+      faces === undefined
+        ? String(Number(numero) * vezes)
+        : `${(Number(quantidade) || 1) * vezes}d${faces}`
+  );
+}
+
+
+/** As fórmulas de uma chave que não resolvem para número (dados, por exemplo). */
+export function formulasDe(aprimoramento: Aprimoramento, chave: string): string[] {
+  return aprimoramento.modificadores
+    .filter((m) => m.chave.toLowerCase() === chave && m.valor === null && m.formula)
+    .map((m) => m.formula);
+}
+
+/**
+ * Junta termos iguais de uma rolagem: ["1d8", "+3", "1d8", "3d8", "+2"] vira
+ * "5d8 + 5". A decomposição acima da caixa já explica de onde veio cada
+ * pedaço — no resultado o que importa é o que se joga na mesa.
+ */
+export function somarTermos(partes: string[]): string {
+  const porFaces = new Map<number, number>();
+  let fixo = 0;
+
+  for (const parte of partes) {
+    for (const bruto of String(parte).match(/[+-]?\s*\d*d\d+|[+-]?\s*\d+/gi) ?? []) {
+      const termo = bruto.replace(/\s+/g, "");
+      const sinal = termo.startsWith("-") ? -1 : 1;
+      const corpo = termo.replace(/^[+-]/, "");
+      const dado = corpo.match(/^(\d*)d(\d+)$/i);
+      if (dado) {
+        const faces = Number(dado[2]);
+        porFaces.set(faces, (porFaces.get(faces) ?? 0) + sinal * (Number(dado[1]) || 1));
+      } else {
+        fixo += sinal * Number(corpo);
+      }
+    }
+  }
+
+  // Dados maiores primeiro, como se escreve uma fórmula.
+  const termos = [...porFaces.entries()]
+    .filter(([, quantidade]) => quantidade !== 0)
+    .sort(([a], [b]) => b - a)
+    .map(([faces, quantidade]) => `${quantidade}d${faces}`);
+
+  if (fixo !== 0) termos.push(String(Math.abs(fixo)));
+  if (!termos.length) return "0";
+
+  const sinais = [...porFaces.values()].filter((q) => q !== 0).map(() => "+");
+  if (fixo !== 0) sinais.push(fixo > 0 ? "+" : "−");
+
+  return termos.reduce((texto, termo, indice) => (indice === 0 ? termo : `${texto} ${sinais[indice]} ${termo}`), "");
 }

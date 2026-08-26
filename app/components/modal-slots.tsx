@@ -39,7 +39,7 @@ function Slot({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-16 flex-1 basis-32 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center transition-colors ${
+      className={`flex min-h-20 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center transition-colors ${
         ehOItem
           ? "border-acento bg-acento/10"
           : "border-borda bg-superficie-alta hover:border-acento/60 hover:bg-foreground/[0.03]"
@@ -52,7 +52,10 @@ function Slot({
         <FontAwesomeIcon icon={icone} className={`size-5! ${ocupante ? "" : "opacity-30"}`} />
       )}
       <span className="w-full truncate text-[11px] font-bold uppercase tracking-wider opacity-55">{rotulo}</span>
-      <span className="w-full truncate text-xs font-semibold">{ocupante?.nome ?? "vazio"}</span>
+      {/* title dá o nome inteiro de volta quando o texto é cortado. */}
+      <span className="w-full truncate text-xs font-semibold" title={ocupante?.nome}>
+        {ocupante?.nome ?? "vazio"}
+      </span>
     </button>
   );
 }
@@ -83,7 +86,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
       {naMao && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">Mãos</span>
-          <div className="flex flex-row flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {/* Arma de duas mãos só cabe no slot duplo — o sistema esconde os
                 slots individuais nesse caso. */}
             {!item.duasMaos &&
@@ -100,13 +103,15 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
                   />
                 );
               })}
-            <Slot
-              rotulo="Duas mãos"
-              icone={faHandBackFist}
-              ocupante={mapa.get("mao-12")}
-              ehOItem={mapa.get("mao-12")?.id === item.id}
-              onClick={() => escolher("hand", 12)}
-            />
+            <div className="col-span-2">
+              <Slot
+                rotulo="Duas mãos"
+                icone={faHandBackFist}
+                ocupante={mapa.get("mao-12")}
+                ehOItem={mapa.get("mao-12")?.id === item.id}
+                onClick={() => escolher("hand", 12)}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -114,7 +119,8 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
       {noCorpo && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">Vestido</span>
-          <div className="flex flex-row flex-wrap gap-2">
+          {/* São 4 espaços por padrão: 2×2 no celular cabe sem espremer. */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {Array.from({ length: limiteVestido }, (_, i) => i + 1).map((indice) => {
               const ocupante = mapa.get(`vestido-${indice}`);
               return (

@@ -2,7 +2,13 @@
 // arton-de-bolso/scripts/adaptador-tormenta20.mjs — qualquer campo novo lá
 // precisa ganhar um espelho aqui.
 
-export type ItemDetalhe = { rotulo: string; valor: number; valorFormatado?: string };
+export type ItemDetalhe = {
+  rotulo: string;
+  valor: number;
+  valorFormatado?: string;
+  /** Quando a parte é um dado ("1d8"), e não um número somável. */
+  dado?: string;
+};
 
 export type Atributo = {
   chave: string;
@@ -78,6 +84,8 @@ export type ModificadorAprimoramento = {
  */
 export type Aprimoramento = {
   id: string;
+  /** Item que originou o efeito; escopo "self" só vale para ele. */
+  origemId: string | null;
   nome: string;
   img: string;
   descricao: string;
@@ -121,6 +129,24 @@ export type Arma = {
   ataque: AtaqueArma | null;
   dano: DanoArma[];
   critico: { margem: number; multiplicador: number; texto: string };
+};
+
+/** Armadura ou escudo: o que protege e o que atrapalha. */
+export type Protecao = {
+  id: string;
+  nome: string;
+  img: string;
+  equipado: boolean;
+  slot: SlotEquipado | null;
+  tipoSlot: string;
+  duasMaos: boolean;
+  descricao: string;
+  /** "escudo", "leve" ou "pesada". */
+  tipo: string;
+  defesa: number;
+  /** Negativa: desconta de perícias marcadas com penalidade de armadura. */
+  penalidade: number;
+  reducaoDano: number;
 };
 
 export type Moeda = { chave: string; sigla: string; label: string; valor: number; emTibar: number };
@@ -211,6 +237,7 @@ export type Ficha = {
   magias: Magia[];
   aprimoramentos: Aprimoramento[];
   armas: Arma[];
+  protecoes: Protecao[];
   configEquipamento: ConfigEquipamento;
 };
 

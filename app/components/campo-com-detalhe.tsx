@@ -26,6 +26,9 @@ function ListaDetalhe({
 }) {
   return (
     <div className={`flex flex-col ${grande ? "text-base" : "gap-1 text-sm"}`}>
+      {/* Container próprio para as linhas — ver o comentário em
+          modal-formula-pericia: o Total não pode ser o `last-child` delas. */}
+      <div className={`flex flex-col ${grande ? "" : "gap-1"}`}>
       {itens.map((item, indice) => (
         <div
           key={item.rotulo}
@@ -39,6 +42,7 @@ function ListaDetalhe({
           </span>
         </div>
       ))}
+      </div>
       <div
         className={`flex flex-row items-center justify-between gap-4 border-t-2 border-borda font-bold ${
           grande ? "mt-1 pt-3 text-xl" : "mt-1 pt-1"

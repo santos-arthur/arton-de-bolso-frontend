@@ -2,6 +2,7 @@
 
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import LinhaArma from "../components/linha-arma";
+import LinhaProtecao from "../components/linha-protecao";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
@@ -19,6 +20,9 @@ export default function Page() {
   const armas = ficha.armas ?? [];
   const equipadas = armas.filter((a) => a.equipado);
   const guardadas = armas.filter((a) => !a.equipado);
+  const protecoes = ficha.protecoes ?? [];
+  const vestidas = protecoes.filter((p) => p.equipado);
+  const naMochila = protecoes.filter((p) => !p.equipado);
   const { movimento, tamanho, resistencias, imunidadesCondicoes } = ficha;
 
   return (
@@ -71,13 +75,41 @@ export default function Page() {
 
       {guardadas.length > 0 && (
         <div className="flex flex-col gap-2">
-          <TituloSecao>Guardadas</TituloSecao>
+          <TituloSecao>Armas guardadas</TituloSecao>
           <ul className="flex flex-col gap-2">
             {guardadas.map((arma) => (
               <LinhaArma key={arma.id} arma={arma} />
             ))}
           </ul>
         </div>
+      )}
+
+      {protecoes.length > 0 && (
+        <>
+          <div className="flex flex-col gap-2">
+            <TituloSecao>Proteção</TituloSecao>
+            {vestidas.length === 0 ? (
+              <EstadoVazio>Nenhuma armadura ou escudo em uso.</EstadoVazio>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {vestidas.map((protecao) => (
+                  <LinhaProtecao key={protecao.id} protecao={protecao} />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {naMochila.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <TituloSecao>Proteção na mochila</TituloSecao>
+              <ul className="flex flex-col gap-2">
+                {naMochila.map((protecao) => (
+                  <LinhaProtecao key={protecao.id} protecao={protecao} />
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </PaginaFicha>
   );
