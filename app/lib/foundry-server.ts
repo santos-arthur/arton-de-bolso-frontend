@@ -74,16 +74,40 @@ function lerSetCookie(resposta: Response): string[] {
 
 /**
  * O módulo Foundry manda caminhos de imagem relativos (ex:
- * "tokenizer/pc-images/foo.webp") — fazem sentido só dentro da própria
- * origem do Foundry, mas o navegador carrega essa página a partir da nossa
- * origem (front). Sem isso o navegador tentaria buscar a imagem em
- * `<origem-do-front>/tokenizer/...` e quebraria. O Foundry serve arquivos
- * estáticos sem exigir sessão, então expor essas URLs é seguro.
+ * "tokenizer/pc-images/foo.webp") — fazem sentido só dentro da origem do
+ * Foundry, não da nossa. Antes eles viravam URL absoluta pro Foundry; hoje
+ * apontam pra `/api/imagem`, que busca lá e repassa.
+ *
+ * O desvio existe porque o Foundry fala HTTP puro: com o front servido por
+ * HTTPS (o túnel de desenvolvimento, ou qualquer deploy de verdade), o
+ * navegador barra imagem `http://` numa página `https://` — é conteúdo
+ * misto, e some tudo sem erro visível na tela. Passando pelo nosso servidor,
+ * a imagem chega na mesma origem e no mesmo esquema da página.
  */
 function absolutizarImagem(caminho: string | undefined | null): string {
   if (!caminho) return "";
-  if (/^(https?:)?\/\//i.test(caminho)) return caminho;
-  return `${FOUNDRY_URL}/${caminho.replace(/^\/+/, "")}`;
+  // Já é HTTPS de outro lugar: não tem o que consertar, e mandar pro proxy
+  // só transformaria nosso servidor em ponte pra origem alheia.
+  if (/^https:\/\//i.test(caminho)) return caminho;
+  const limpo = caminho.replace(new RegExp(`^${FOUNDRY_URL}/*`, "i"), "").replace(/^\/+/, "");
+  // Sobrou um endereço absoluto que não é do Foundry nem HTTPS: deixa passar
+  // como veio, em vez de fingir que é um caminho de arquivo de lá.
+  if (/^(https?:)?\/\//i.test(limpo)) return limpo;
+  return `/api/imagem?caminho=${encodeURIComponent(limpo)}`;
+}
+
+/**
+ * Busca um arquivo estático no Foundry pro proxy de imagem. Só aceita
+ * caminho relativo: o parâmetro vem do navegador e, sem essa trava, a rota
+ * viraria um buscador de URLs arbitrárias hospedado no nosso servidor.
+ */
+export async function buscarImagemDoFoundry(caminho: string): Promise<Response> {
+  // Checado antes de tirar as barras da frente: depois, "//host/x" já teria
+  // virado "host/x" e passaria como se fosse um arquivo de lá.
+  if (/^[a-z]+:/i.test(caminho) || caminho.startsWith("//") || caminho.split("/").includes("..")) {
+    throw new Error("Caminho de imagem inválido.");
+  }
+  return buscarComTimeout(`${FOUNDRY_URL}/${encodeURI(caminho.replace(/^\/+/, ""))}`);
 }
 
 function absolutizarImagensDaFicha(ficha: Ficha): Ficha {
