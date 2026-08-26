@@ -27,7 +27,7 @@ export default function Page() {
 
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Combate">Defesa {ficha.defesa.total ?? "—"}</CabecalhoPagina>
+      <CabecalhoPagina titulo="Combate" />
 
       <div className="flex flex-row flex-wrap gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2">
