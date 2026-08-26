@@ -54,11 +54,11 @@ function LinhaPersonagem({
         <span
           role="img"
           aria-hidden="true"
-          className="size-9 shrink-0 rounded-lg bg-cover bg-center"
+          className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-red-900"
           style={{ backgroundImage: `url(${personagem.img})` }}
         />
       ) : (
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-borda">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-red-900">
           <FaUser aria-hidden="true" className="size-3.5!" />
         </span>
       )}
@@ -232,17 +232,17 @@ export default function MenuLateral() {
           onClick={() => setPainelAberto(true)}
           title={ficha ? `Trocar personagem (${ficha.nome})` : "Escolher personagem"}
           aria-haspopup="dialog"
-          className="mt-1 flex min-h-12 flex-row items-center gap-2.5 rounded-xl border border-borda px-2 transition-colors hover:bg-foreground/5 xl:px-2.5"
+          className="mt-1 flex min-h-12 flex-row items-center rounded-xl transition-colors hover:bg-foreground/5 xl:px-2.5"
         >
           {ficha?.img ? (
             <span
               role="img"
               aria-hidden="true"
-              className="size-8 shrink-0 rounded-lg bg-cover bg-center"
+              className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-red-900"
               style={{ backgroundImage: `url(${ficha.img})` }}
             />
           ) : (
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-borda">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-red-900">
               {ficha ? <FaUser aria-hidden="true" className="size-3.5!" /> : <FaBars aria-hidden="true" className="size-3.5!" />}
             </span>
           )}
