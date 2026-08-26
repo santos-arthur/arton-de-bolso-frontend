@@ -89,7 +89,12 @@ export default function Page() {
           titulo="Deslocamento"
           classeContainer="relative"
           classeGatilho="flex h-full w-full flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left transition-colors hover:border-acento/60"
-          itens={[{ rotulo: `Base (${tamanho})`, valor: movimento.valor ?? 0 }]}
+          // A decomposição vem pronta do relay (base, bônus de efeito,
+          // armadura pesada, sobrecarga, condição). Antes esta lista era
+          // montada aqui com uma linha só, "Base (Médio)", carregando o valor
+          // *final* — o que dava o número certo com o rótulo errado e escondia
+          // qualquer penalidade.
+          itens={movimento.itens}
           total={movimento.valor ?? 0}
         >
           <span className="text-[11px] font-bold uppercase leading-none tracking-wider opacity-55">Deslocamento</span>

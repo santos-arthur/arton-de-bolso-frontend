@@ -31,7 +31,12 @@ export type Defesa = {
   itens: ItemDetalhe[];
 };
 
-export type Movimento = { valor: number | null; unidade: string };
+export type Movimento = {
+  valor: number | null;
+  unidade: string;
+  /** De onde saiu o número: base da raça, efeitos que somam ou tiram. */
+  itens: ItemDetalhe[];
+};
 
 export type RecursoGenerico = { chave: string; label: string; atual: number; max: number | null };
 
