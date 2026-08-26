@@ -2,8 +2,11 @@
 
 import { faHandFist } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
+import ModalSlots from "./modal-slots";
 import Tag from "./tag";
+import { useFoundry } from "../lib/foundry-provider";
 import type { ItemInventario } from "../lib/foundry-types";
 
 /** Item da mochila. Usado no Inventário e no Combate (armas em punho). */
@@ -16,7 +19,12 @@ export default function LinhaItem({
   somenteLeitura: boolean;
   aoAlternarEquipado: () => void;
 }) {
+  const { ficha } = useFoundry();
+  const [escolhendoSlot, setEscolhendoSlot] = useState(false);
+  const usaSlots = !!ficha?.configEquipamento.usaSlots;
+
   return (
+    <>
     <CartaoExpansivel
       nome={item.nome}
       img={item.img}
@@ -35,7 +43,7 @@ export default function LinhaItem({
           ) : (
             <button
               type="button"
-              onClick={aoAlternarEquipado}
+              onClick={() => (usaSlots ? setEscolhendoSlot(true) : aoAlternarEquipado())}
               aria-pressed={item.equipado}
               className={`flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors ${
                 item.equipado
@@ -49,6 +57,8 @@ export default function LinhaItem({
           )
         ) : undefined
       }
-    />
+      />
+      {escolhendoSlot && <ModalSlots item={item} onFechar={() => setEscolhendoSlot(false)} />}
+    </>
   );
 }

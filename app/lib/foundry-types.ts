@@ -90,7 +90,48 @@ export type Aprimoramento = {
   aumenta: boolean;
 };
 
+/** Ataque de uma arma, decomposto — o total que se soma ao 1d20. */
+export type AtaqueArma = {
+  /** Perícia usada (Luta, Pontaria). */
+  pericia: string;
+  total: number;
+  totalFormatado: string;
+  itens: ItemDetalhe[];
+};
+
+/** Uma rolagem de dano da arma: a fórmula e o tipo (corte, impacto...). */
+export type DanoArma = {
+  nome: string;
+  formula: string;
+  tipo: string;
+  fixo: number;
+  itens: ItemDetalhe[];
+};
+
+export type Arma = {
+  id: string;
+  nome: string;
+  img: string;
+  equipado: boolean;
+  slot: SlotEquipado | null;
+  tipoSlot: string;
+  duasMaos: boolean;
+  descricao: string;
+  alcance: string;
+  ataque: AtaqueArma | null;
+  dano: DanoArma[];
+  critico: { margem: number; multiplicador: number; texto: string };
+};
+
 export type Moeda = { chave: string; sigla: string; label: string; valor: number; emTibar: number };
+
+/** Onde um item está equipado, quando o mundo usa slots. */
+export type SlotEquipado = {
+  /** 1..limite, ou 12 quando ocupa as duas mãos. */
+  indice: number;
+  tipo: "mao" | "vestido";
+  duasMaos: boolean;
+};
 
 export type ItemInventario = {
   id: string;
@@ -99,7 +140,20 @@ export type ItemInventario = {
   quantidade: number;
   equipavel: boolean;
   equipado: boolean;
+  slot: SlotEquipado | null;
+  /** "hand", "body" ou "both": onde este item pode ser posto. */
+  tipoSlot: string;
+  /** Arma de empunhadura dupla: só cabe no slot das duas mãos. */
+  duasMaos: boolean;
   descricao: string;
+};
+
+/** Limites de equipamento do mundo e do personagem. */
+export type ConfigEquipamento = {
+  /** Falso = o sistema trata equipado como sim/não, sem slots. */
+  usaSlots: boolean;
+  limiteMaos: number;
+  limiteVestido: number;
 };
 
 export type GrupoInventario = { tipo: string; label: string; itens: ItemInventario[] };
@@ -156,6 +210,8 @@ export type Ficha = {
   poderes: Poder[];
   magias: Magia[];
   aprimoramentos: Aprimoramento[];
+  armas: Arma[];
+  configEquipamento: ConfigEquipamento;
 };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */
@@ -198,6 +254,7 @@ export type MensagemParaFoundry =
   | { tipo: "definirAtual"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "definirTemporario"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "alternarEquipado"; itemId: string }
+  | { tipo: "equiparEmSlot"; itemId: string; contexto: "hand" | "body"; indice: number; idAtual: string | null }
   | { tipo: "ajustarDinheiro"; moeda: string; valor: number }
   | { tipo: "descansar"; opcoes: OpcoesDescanso };
 

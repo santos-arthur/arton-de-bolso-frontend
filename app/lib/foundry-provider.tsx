@@ -94,6 +94,8 @@ type FoundryContextValue = {
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
   definirTemporario: (recurso: "pv" | "pm", valor: number) => void;
   alternarEquipado: (itemId: string) => void;
+  /** Põe um item num slot de mão ou de vestido; `idAtual` é quem estava lá. */
+  equiparEmSlot: (itemId: string, contexto: "hand" | "body", indice: number, idAtual: string | null) => void;
   ajustarDinheiro: (moeda: string, valor: number) => void;
   descansar: (opcoes: DescansoOpcoes) => void;
 };
@@ -347,6 +349,11 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       })),
     alternarEquipado: (itemId) =>
       agir({ tipo: "alternarEquipado", itemId }, (f) => alternarEquipadoLocal(f, itemId)),
+    // Sem palpite otimista: trocar de slot desequipa outros itens por regras
+    // do sistema (duas mãos libera as duas, armadura tira armadura), e errar
+    // esse encadeamento na tela é pior que esperar o push.
+    equiparEmSlot: (itemId, contexto, indice, idAtual) =>
+      enviar({ tipo: "equiparEmSlot", itemId, contexto, indice, idAtual }),
     ajustarDinheiro: (moeda, valor) =>
       agir({ tipo: "ajustarDinheiro", moeda, valor }, (f) => ({
         ...f,

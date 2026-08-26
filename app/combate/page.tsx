@@ -1,29 +1,29 @@
 "use client";
 
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
-import LinhaItem from "../components/linha-item";
+import LinhaArma from "../components/linha-arma";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
 
 /**
  * PV, PM e Defesa vivem no cabeçalho, visível em todas as seções — repeti-los
- * aqui só duplicaria o mesmo número. O que esta seção acrescenta é o que muda
- * de mão durante a luta. Nada é rolado aqui: os dados são jogados na mesa.
+ * aqui só duplicaria o mesmo número. O que esta seção acrescenta é o que se
+ * usa na luta. Nada é rolado: os dados são jogados na mesa.
  */
 export default function Page() {
-  const { ficha, somenteLeitura, alternarEquipado } = useFoundry();
+  const { ficha } = useFoundry();
 
   if (!ficha) return null;
 
-  const armas = ficha.inventario.find((grupo) => grupo.tipo === "arma")?.itens ?? [];
+  const armas = ficha.armas ?? [];
   const equipadas = armas.filter((a) => a.equipado);
   const guardadas = armas.filter((a) => !a.equipado);
   const { movimento, tamanho, resistencias, imunidadesCondicoes } = ficha;
 
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Combate" />
+      <CabecalhoPagina titulo="Combate">Defesa {ficha.defesa.total ?? "—"}</CabecalhoPagina>
 
       <div className="flex flex-row flex-wrap gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2">
@@ -63,12 +63,7 @@ export default function Page() {
         ) : (
           <ul className="flex flex-col gap-2">
             {equipadas.map((arma) => (
-              <LinhaItem
-                key={arma.id}
-                item={arma}
-                somenteLeitura={somenteLeitura}
-                aoAlternarEquipado={() => alternarEquipado(arma.id)}
-              />
+              <LinhaArma key={arma.id} arma={arma} />
             ))}
           </ul>
         )}
@@ -79,12 +74,7 @@ export default function Page() {
           <TituloSecao>Guardadas</TituloSecao>
           <ul className="flex flex-col gap-2">
             {guardadas.map((arma) => (
-              <LinhaItem
-                key={arma.id}
-                item={arma}
-                somenteLeitura={somenteLeitura}
-                aoAlternarEquipado={() => alternarEquipado(arma.id)}
-              />
+              <LinhaArma key={arma.id} arma={arma} />
             ))}
           </ul>
         </div>
