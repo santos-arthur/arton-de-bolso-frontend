@@ -2,6 +2,7 @@
 
 import { FaBed } from "react-icons/fa6";
 import { useState } from "react";
+import CampoSelect from "./campo-select";
 import FolhaModal from "./folha-modal";
 import { CONDICOES, DESCANSO_PADRAO, calcularDescanso, condicaoDe } from "../lib/descanso";
 import { useFoundry } from "../lib/foundry-provider";
@@ -97,19 +98,19 @@ function ModalDescanso({ onFechar }: { onFechar: () => void }) {
         <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Condição</span>
         {/* Select nativo: no celular abre o seletor do sistema, que é mais
             rápido de percorrer do que quatro cartões ocupando a folha. */}
-        <select
+        <CampoSelect
           value={dados.condicao}
           onChange={(evento) =>
             setDados((atual) => ({ ...atual, condicao: evento.target.value as CondicaoDescanso }))
           }
-          className="min-h-11 rounded-xl border border-borda bg-superficie-alta px-3 text-sm font-semibold outline-none focus:border-acento"
+          className="font-semibold"
         >
           {CONDICOES.map((opcao) => (
             <option key={opcao.chave} value={opcao.chave}>
               {opcao.rotulo}
             </option>
           ))}
-        </select>
+        </CampoSelect>
         {/* O efeito da condição escolhida fica aqui embaixo, e não dentro de
             cada <option>: o seletor nativo do celular corta rótulos longos. */}
         <span className="flex flex-col text-xs">

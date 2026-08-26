@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import CampoSelect from "./campo-select";
 import Logo from "./logo";
 import { useFoundry } from "../lib/foundry-provider";
 
@@ -45,11 +46,10 @@ function FormularioLogin() {
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Usuário</span>
-          <select
+          <CampoSelect
             value={escolhido}
             onChange={(evento) => setUsuarioId(evento.target.value)}
             required
-            className="min-h-11 rounded-xl border border-borda bg-superficie-alta px-3 text-sm outline-none focus:border-acento"
           >
             <option value="" disabled>
               Escolha seu usuário
@@ -59,7 +59,7 @@ function FormularioLogin() {
                 {usuario.ocupado ? `${usuario.nome} (em uso)` : usuario.nome}
               </option>
             ))}
-          </select>
+          </CampoSelect>
         </label>
 
         <label className="flex flex-col gap-1.5">
