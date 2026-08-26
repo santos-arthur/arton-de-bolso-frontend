@@ -29,7 +29,11 @@ política de cookie de navegador).
   referenciando a sessão em memória.
 - **`app/api/sessao`** — checagem rápida de "já estou logado?".
 - **`app/api/usuarios`** — lista de usuários do Foundry (pro dropdown de
-  login).
+  login), cada um com `ocupado`: quem já está conectado (client do Foundry
+  aberto, ou sessão aberta aqui) aparece como "(em uso)" e não pode ser
+  escolhido. A recusa de verdade é do servidor — `autenticar()` reconfere
+  antes do `POST /join`, com dados frescos. Ver
+  [`../docs/arquitetura.md`](../docs/arquitetura.md#login-exclusivo-por-usuário-2026-08-26).
 - **`app/api/ficha/eventos`** — Server-Sent Events: empurra a ficha (e
   qualquer atualização) pro navegador em tempo real.
 - **`app/api/ficha/acao`** — recebe uma ação do navegador (ajustar PV,

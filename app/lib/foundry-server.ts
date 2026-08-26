@@ -33,12 +33,34 @@ type SessaoServidor = {
   personagens: ListaPersonagens | null;
   erro: string | null;
   ouvintes: Set<() => void>;
+  /** Momento em que o último SSE se desligou (null = tem alguém com a tela aberta agora). */
+  ociosaDesde: number | null;
 };
 
 // Em memória, dura enquanto o processo Node estiver de pé — reinício do
 // servidor derruba todo mundo (precisam logar de novo). Suficiente pra essa
 // escala; não há necessidade de Redis/DB pra isso hoje.
 const sessoes = new Map<string, SessaoServidor>();
+
+/**
+ * Logins que já passaram pela checagem de "esse usuário está livre?" mas
+ * ainda não viraram sessão no mapa acima. Sem isso, dois toques em "Entrar"
+ * quase simultâneos no mesmo usuário passariam os dois pela checagem antes
+ * de qualquer um dos dois ser registrado.
+ */
+const loginsEmAndamento = new Set<string>();
+
+/**
+ * Uma sessão sem nenhuma tela aberta por tanto tempo é dada como abandonada.
+ * Existe por causa da exclusividade de login: sem isso, fechar o navegador
+ * (ou trocar de aparelho) deixaria o usuário "em uso" até o servidor
+ * reiniciar, sem ninguém do outro lado para deslogar. Quem está com o app
+ * aberto mantém o SSE ligado e nunca é atingido.
+ */
+const TEMPO_SESSAO_OCIOSA_MS = 15 * 60 * 1000;
+
+const ERRO_USUARIO_EM_USO =
+  "Este usuário já está conectado. Saia da outra sessão antes de entrar por aqui.";
 
 function lerSetCookie(resposta: Response): string[] {
   // getSetCookie() é a forma correta (Node 18.14+/20+) — get("set-cookie")
@@ -151,26 +173,108 @@ function aguardarSessao(socket: Socket): Promise<{ sessionId: string | null; use
   });
 }
 
-export async function listarUsuariosFoundry(): Promise<UsuarioFoundry[]> {
-  const sessionId = await criarSessaoAnonima();
-  const socket = conectarSocket(sessionId);
+/** Resposta do `getJoinData` do Foundry — a mesma que alimenta a tela de entrada dele. */
+type DadosDeEntrada = {
+  users?: Array<{ _id?: string; id?: string; name?: string }>;
+  /** Ids de quem o Foundry considera conectado agora (client aberto ou socket autenticado). */
+  activeUsers?: string[];
+};
+
+/**
+ * Lê a tela de entrada do Foundry por uma conexão anônima. Aceita um
+ * `sessionId` já criado para o login reaproveitar o mesmo — assim a checagem
+ * de "esse usuário está livre?" não deixa uma sessão órfã no Foundry a cada
+ * tentativa.
+ */
+async function lerDadosDeEntrada(sessionId?: string): Promise<DadosDeEntrada> {
+  const sessao = sessionId ?? (await criarSessaoAnonima());
+  const socket = conectarSocket(sessao);
   try {
     await aguardarSessao(socket);
-    const dados = await new Promise<{ users?: Array<{ _id?: string; id?: string; name?: string }> }>((resolve) => {
-      socket.emit("getJoinData", resolve);
+    return await new Promise<DadosDeEntrada>((resolve) => {
+      const tempoLimite = setTimeout(() => resolve({}), TEMPO_LIMITE_MS);
+      socket.emit("getJoinData", (resposta: DadosDeEntrada) => {
+        clearTimeout(tempoLimite);
+        resolve(resposta ?? {});
+      });
     });
-    return (dados?.users ?? [])
-      .map((u) => ({ id: u._id ?? u.id ?? "", nome: u.name ?? "" }))
-      .filter((u) => u.id);
   } finally {
     socket.disconnect();
   }
+}
+
+/**
+ * Ids que não podem ser escolhidos no login, de três fontes:
+ *   - `activeUsers` do Foundry — quem está com o client aberto;
+ *   - sessões vivas deste processo — quem já entrou pelo app (nem todo socket
+ *     autenticado conta como "ativo" pro Foundry, então o mapa local não é
+ *     redundante);
+ *   - logins em andamento — a janela entre a checagem e o registro da sessão.
+ *
+ * De quebra faz a faxina do mapa: sessão cujo socket caiu não segura mais o
+ * usuário — mesma política do `sessaoAtiva`, que já derruba nesse caso.
+ */
+function usuariosOcupados(ativosNoFoundry: string[] = []): Set<string> {
+  const ocupados = new Set(ativosNoFoundry);
+  const agora = Date.now();
+  for (const [id, sessao] of sessoes) {
+    const abandonada = sessao.ociosaDesde !== null && agora - sessao.ociosaDesde > TEMPO_SESSAO_OCIOSA_MS;
+    if (!sessao.socket.connected || abandonada) {
+      encerrarSessao(id);
+      continue;
+    }
+    ocupados.add(sessao.foundryUserId);
+  }
+  for (const userId of loginsEmAndamento) ocupados.add(userId);
+  return ocupados;
+}
+
+/**
+ * A tela de login fica reperguntando quem está livre (ver o polling no
+ * provider), e cada leitura custa uma sessão + um socket no Foundry. Uma
+ * janela curta de cache, somada a compartilhar a leitura já em voo, faz um
+ * grupo inteiro esperando na tela de entrada custar o mesmo que um jogador
+ * só. Não vale para o login em si, que sempre lê fresco.
+ */
+const CACHE_ENTRADA_MS = 4000;
+let cacheEntrada: { em: number; dados: DadosDeEntrada } | null = null;
+let leituraEmVoo: Promise<DadosDeEntrada> | null = null;
+
+function lerDadosDeEntradaComCache(): Promise<DadosDeEntrada> {
+  if (cacheEntrada && Date.now() - cacheEntrada.em < CACHE_ENTRADA_MS) {
+    return Promise.resolve(cacheEntrada.dados);
+  }
+  if (leituraEmVoo) return leituraEmVoo;
+  leituraEmVoo = lerDadosDeEntrada()
+    .then((dados) => {
+      cacheEntrada = { em: Date.now(), dados };
+      return dados;
+    })
+    .finally(() => {
+      leituraEmVoo = null;
+    });
+  return leituraEmVoo;
+}
+
+export async function listarUsuariosFoundry(): Promise<UsuarioFoundry[]> {
+  const dados = await lerDadosDeEntradaComCache();
+  const ocupados = usuariosOcupados(dados.activeUsers);
+  return (dados.users ?? [])
+    .map((u) => {
+      const id = u._id ?? u.id ?? "";
+      return { id, nome: u.name ?? "", ocupado: ocupados.has(id) };
+    })
+    .filter((u) => u.id);
 }
 
 export async function autenticar(
   userid: string,
   senha: string
 ): Promise<{ sucesso: true; sessaoId: string } | { sucesso: false; erro: string }> {
+  // Barreira local antes de qualquer ida ao Foundry: se já temos sessão viva
+  // (ou um login no meio do caminho) para esse usuário, nem vale a viagem.
+  if (usuariosOcupados().has(userid)) return { sucesso: false, erro: ERRO_USUARIO_EM_USO };
+
   let sessionId: string;
   try {
     sessionId = await criarSessaoAnonima();
@@ -178,6 +282,35 @@ export async function autenticar(
     return { sucesso: false, erro: (erro as Error).message };
   }
 
+  // A lista da tela pode estar velha (alguém entrou nos últimos segundos),
+  // então a decisão de verdade é tomada aqui, com dados frescos — nunca com
+  // o cache que a listagem serve.
+  let ativosNoFoundry: string[] = [];
+  try {
+    ativosNoFoundry = (await lerDadosDeEntrada(sessionId)).activeUsers ?? [];
+  } catch (erro) {
+    return { sucesso: false, erro: (erro as Error).message };
+  }
+  if (usuariosOcupados(ativosNoFoundry).has(userid)) {
+    return { sucesso: false, erro: ERRO_USUARIO_EM_USO };
+  }
+
+  // Daqui até a sessão entrar no mapa, o usuário fica reservado — a checagem
+  // acima e este `add` são síncronos, então nenhum outro login se intercala.
+  loginsEmAndamento.add(userid);
+  try {
+    return await concluirLogin(userid, senha, sessionId);
+  } finally {
+    loginsEmAndamento.delete(userid);
+  }
+}
+
+/** Segunda metade do login: já sabemos que o usuário está livre, agora é o handshake em si. */
+async function concluirLogin(
+  userid: string,
+  senha: string,
+  sessionId: string
+): Promise<{ sucesso: true; sessaoId: string } | { sucesso: false; erro: string }> {
   let respostaLogin: Response;
   try {
     respostaLogin = await buscarComTimeout(`${FOUNDRY_URL}/join`, {
@@ -215,7 +348,8 @@ export async function autenticar(
     ficha: null,
     personagens: null,
     erro: null,
-    ouvintes: new Set()
+    ouvintes: new Set(),
+    ociosaDesde: Date.now()
   };
   sessoes.set(sessaoId, sessao);
 
@@ -314,7 +448,12 @@ export function inscrever(sessaoId: string, notificar: () => void): () => void {
   const sessao = sessoes.get(sessaoId);
   if (!sessao) return () => {};
   sessao.ouvintes.add(notificar);
-  return () => sessao.ouvintes.delete(notificar);
+  sessao.ociosaDesde = null;
+  return () => {
+    sessao.ouvintes.delete(notificar);
+    // Nenhuma tela aberta a partir de agora — começa a contar o abandono.
+    if (!sessao.ouvintes.size) sessao.ociosaDesde = Date.now();
+  };
 }
 
 export function enviarMensagem(sessaoId: string, mensagem: MensagemParaFoundry) {
@@ -330,4 +469,7 @@ export function encerrarSessao(sessaoId: string | undefined | null) {
   if (!sessao) return;
   sessao.socket.disconnect();
   sessoes.delete(sessaoId);
+  // Quem acabou de sair precisa reaparecer livre na próxima listagem, não
+  // daqui a alguns segundos.
+  cacheEntrada = null;
 }

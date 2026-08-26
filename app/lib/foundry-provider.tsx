@@ -23,6 +23,14 @@ type DescansoOpcoes = Extract<MensagemParaFoundry, { tipo: "descansar" }>["opcoe
 /** Trava de segurança: se o relay não responder a uma troca de personagem, a tela não fica presa em "carregando" pra sempre. */
 const LIMITE_TROCA_MS = 10000;
 
+/**
+ * De quanto em quanto tempo a tela de login repergunta quem está livre. Um
+ * usuário já conectado não pode ser escolhido de novo, então quem espera o
+ * colega sair precisa ver isso acontecer sem apertar F5. Só roda enquanto o
+ * login está na tela, e o servidor ainda agrupa as leituras num cache curto.
+ */
+const INTERVALO_USUARIOS_MS = 10000;
+
 const LISTAS_VAZIAS: ListaPersonagens = { meus: [], companheiros: [] };
 
 /**
@@ -270,6 +278,19 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Enquanto ninguém está logado, mantém a lista de usuários fresca — é ela
+  // que diz quem está "em uso".
+  useEffect(() => {
+    if (status !== "loginNecessario") return;
+    const id = setInterval(async () => {
+      const lista = await buscarUsuarios();
+      // Lista vazia aqui é quase sempre falha momentânea de rede — apagar os
+      // nomes da tela por causa disso seria pior do que manter os antigos.
+      if (lista.length) setUsuarios(lista);
+    }, INTERVALO_USUARIOS_MS);
+    return () => clearInterval(id);
+  }, [status]);
+
   const login = useCallback(
     async (userId: string, senha: string) => {
       setErroLogin(null);
@@ -284,6 +305,9 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         if (!dados.sucesso) {
           setErroLogin(dados.erro ?? "Não foi possível entrar.");
           setStatus("loginNecessario");
+          // O motivo mais provável de recusa agora é "esse usuário já entrou"
+          // — a lista precisa refletir isso na hora, não no próximo ciclo.
+          setUsuarios(await buscarUsuarios());
           return;
         }
         // Login sempre começa na home, nunca na rota em que o navegador

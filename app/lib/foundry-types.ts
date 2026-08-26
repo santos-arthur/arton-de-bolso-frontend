@@ -257,7 +257,8 @@ export type ListaPersonagens = {
   companheiros: PersonagemDisponivel[];
 };
 
-export type UsuarioFoundry = { id: string; nome: string };
+/** Um usuário na tela de login. `ocupado` = já conectado (aqui ou no Foundry) — não pode ser escolhido de novo. */
+export type UsuarioFoundry = { id: string; nome: string; ocupado: boolean };
 
 /** Condição do descanso — define o multiplicador por nível (T20, p. 106). */
 export type CondicaoDescanso = "ruim" | "normal" | "confortavel" | "luxuoso";

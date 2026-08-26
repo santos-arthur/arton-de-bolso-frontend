@@ -19,11 +19,17 @@ function FormularioLogin() {
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  // A lista se atualiza sozinha enquanto a tela está aberta (ver o polling no
+  // provider). Se alguém entrar com o usuário que estava escolhido aqui, a
+  // escolha simplesmente deixa de valer — em vez de deixar o botão pronto
+  // pra um login que o servidor vai recusar.
+  const escolhido = usuarios.find((usuario) => usuario.id === usuarioId && !usuario.ocupado)?.id ?? "";
+
   async function aoSubmeter(evento: FormEvent) {
     evento.preventDefault();
-    if (!usuarioId) return;
+    if (!escolhido) return;
     setEnviando(true);
-    await login(usuarioId, senha);
+    await login(escolhido, senha);
     setEnviando(false);
   }
 
@@ -41,7 +47,7 @@ function FormularioLogin() {
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Usuário</span>
           <select
-            value={usuarioId}
+            value={escolhido}
             onChange={(evento) => setUsuarioId(evento.target.value)}
             required
             className="min-h-11 rounded-xl border border-borda bg-superficie-alta px-3 text-sm outline-none focus:border-acento"
@@ -50,8 +56,8 @@ function FormularioLogin() {
               Escolha seu usuário
             </option>
             {usuarios.map((usuario) => (
-              <option key={usuario.id} value={usuario.id}>
-                {usuario.nome}
+              <option key={usuario.id} value={usuario.id} disabled={usuario.ocupado}>
+                {usuario.ocupado ? `${usuario.nome} (em uso)` : usuario.nome}
               </option>
             ))}
           </select>
@@ -71,7 +77,7 @@ function FormularioLogin() {
 
         <button
           type="submit"
-          disabled={enviando || !usuarioId}
+          disabled={enviando || !escolhido}
           className="min-h-11 rounded-xl bg-acento px-4 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {enviando ? "Entrando..." : "Entrar"}
