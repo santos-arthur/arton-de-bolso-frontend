@@ -16,6 +16,7 @@ const TITULOS: Record<string, string> = {
   "/pericias": "Perícias",
   "/poderes": "Poderes",
   "/inventario": "Inventário",
+  "/inventario/bau": "Baú",
   "/magias": "Magias",
   "/configuracoes": "Configurações"
 };

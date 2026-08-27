@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import Link from "next/link";
+import { useMemo } from "react";
+import { GiChest } from "react-icons/gi";
 import BarraEspacos from "../components/barra-espacos";
-import CampoBusca, { normalizar } from "../components/campo-busca";
-import LinhaItem from "../components/linha-item";
+import CabecalhoPagina, { TituloSecao } from "../components/cabecalho-pagina";
+import ListaInventario, { recortarInventario } from "../components/lista-inventario";
 import PaginaFicha from "../components/pagina-ficha";
 import { useCampoNumerico } from "../lib/campo-numerico";
 import { useFoundry } from "../lib/foundry-provider";
@@ -47,21 +48,16 @@ function CampoMoeda({
 }
 
 export default function Page() {
-  const { ficha, somenteLeitura, alternarEquipado, ajustarDinheiro } = useFoundry();
-  const [busca, setBusca] = useState("");
+  const { ficha, somenteLeitura, ajustarDinheiro } = useFoundry();
 
   const inventario = ficha?.inventario ?? SEM_INVENTARIO;
-  const grupos = useMemo(() => {
-    const alvo = normalizar(busca);
-    if (!alvo) return inventario;
-    return inventario
-      .map((grupo) => ({ ...grupo, itens: grupo.itens.filter((i) => normalizar(i.nome).includes(alvo)) }))
-      .filter((grupo) => grupo.itens.length);
-  }, [inventario, busca]);
+  const naMochila = useMemo(() => recortarInventario(inventario, true), [inventario]);
+  const noBau = useMemo(() => recortarInventario(inventario, false), [inventario]);
 
   if (!ficha) return null;
 
-  const totalItens = inventario.reduce((soma, grupo) => soma + grupo.itens.length, 0);
+  const totalItens = naMochila.reduce((soma, grupo) => soma + grupo.itens.length, 0);
+  const totalNoBau = noBau.reduce((soma, grupo) => soma + grupo.itens.length, 0);
   // Total na unidade base (T$), pra não somar 1 TO = 10 T$ de cabeça.
   const totalEmTibar = ficha.dinheiro.reduce((soma, moeda) => soma + moeda.valor * moeda.emTibar, 0);
 
@@ -90,27 +86,22 @@ export default function Page() {
         </div>
       </div>
 
-      {totalItens > 8 && <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar item..." />}
+      {/* O baú é o resto da mochila, não outra seção da ficha: por isso o
+          caminho para ele é daqui, e não uma aba a mais no dock. */}
+      <Link
+        href="/inventario/bau"
+        className="flex flex-row items-center justify-between gap-3 rounded-2xl border border-borda bg-superficie-alta px-3 py-2.5 transition-colors hover:bg-foreground/5"
+      >
+        <span className="flex flex-row items-center gap-2 text-sm font-bold">
+          <GiChest aria-hidden="true" className="size-4! opacity-70" />
+          Baú
+        </span>
+        <span className="numero text-xs opacity-60">
+          {totalNoBau} {totalNoBau === 1 ? "item guardado" : "itens guardados"}
+        </span>
+      </Link>
 
-      {grupos.length === 0 ? (
-        <EstadoVazio>{totalItens ? "Nenhum item encontrado." : "A mochila está vazia."}</EstadoVazio>
-      ) : (
-        grupos.map((grupo) => (
-          <section key={grupo.tipo} className="flex flex-col gap-2">
-            <TituloSecao>{grupo.label}</TituloSecao>
-            <ul className="flex flex-col gap-2">
-              {grupo.itens.map((item) => (
-                <LinhaItem
-                  key={item.id}
-                  item={item}
-                  somenteLeitura={somenteLeitura}
-                  aoAlternarEquipado={() => alternarEquipado(item.id)}
-                />
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
+      <ListaInventario grupos={naMochila} vazio="A mochila está vazia." />
     </PaginaFicha>
   );
 }

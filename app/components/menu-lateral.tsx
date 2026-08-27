@@ -14,7 +14,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Logo from "./logo";
-import { ITENS_NAV } from "./navegacao";
+import { ITENS_NAV, eDaSecao } from "./navegacao";
 import { useFoundry, usePersonagens } from "../lib/foundry-provider";
 import type { PersonagemDisponivel } from "../lib/foundry-types";
 
@@ -158,7 +158,7 @@ export default function MenuLateral() {
       >
         <ul className="flex h-16 flex-row items-stretch">
           {secoes.map((item) => {
-            const ativo = pathname === item.href;
+            const ativo = eDaSecao(pathname, item.href);
             return (
               <li key={item.href} className="min-w-0 flex-1">
                 <Link
@@ -255,7 +255,7 @@ export default function MenuLateral() {
         {secoes.length > 0 && (
           <div className="mt-2 flex flex-col gap-1 border-t border-borda pt-2">
             {secoes.map((item) => {
-              const ativo = pathname === item.href;
+              const ativo = eDaSecao(pathname, item.href);
               return (
                 <Link
                   key={item.href}

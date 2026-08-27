@@ -228,6 +228,8 @@ export type ItemInventario = {
   nome: string;
   img: string;
   quantidade: number;
+  /** Na mochila (ocupando espaço) ou guardado no baú. */
+  carregado: boolean;
   /** Preço de uma unidade, em T$ (a moeda base); pode ser fracionário. */
   preco: number;
   /** Espaços que uma unidade ocupa na mochila; meio espaço é comum. */
@@ -400,6 +402,8 @@ export type MensagemParaFoundry =
   | { tipo: "definirAtual"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "definirTemporario"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "alternarEquipado"; itemId: string }
+  /** Move o item entre a mochila e o baú (`system.carregado` do sistema). */
+  | { tipo: "alternarCarregado"; itemId: string }
   /** Contador da mochila: soma `delta` unidades ao item (nunca abaixo de zero). */
   | { tipo: "ajustarQuantidade"; itemId: string; delta: number }
   | { tipo: "alternarPreparada"; magiaId: string }

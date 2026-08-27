@@ -88,13 +88,14 @@ function alternarPreparadaLocal(ficha: Ficha, magiaId: string): Ficha {
   };
 }
 
-function alternarEquipadoLocal(ficha: Ficha, itemId: string): Ficha {
+/** Vira uma chave booleana de um item da mochila, na ficha local. */
+function alternarNoItemLocal(ficha: Ficha, itemId: string, chave: "equipado" | "carregado"): Ficha {
   return {
     ...ficha,
     inventario: ficha.inventario.map((grupo) => ({
       ...grupo,
       itens: grupo.itens.map((item) =>
-        item.id === itemId ? { ...item, equipado: !item.equipado } : item
+        item.id === itemId ? { ...item, [chave]: !item[chave] } : item
       )
     }))
   };
@@ -150,6 +151,8 @@ type FoundryContextValue = {
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
   definirTemporario: (recurso: "pv" | "pm", valor: number) => void;
   alternarEquipado: (itemId: string) => void;
+  /** Move o item entre a mochila e o baú — guardado não ocupa espaço. */
+  alternarCarregado: (itemId: string) => void;
   /** Contador da mochila: soma unidades ao item (negativo tira; nunca passa de zero). */
   ajustarQuantidade: (itemId: string, delta: number) => void;
   /** Marca/desmarca a magia como preparada — só para quem prepara (ver `preparavel`). */
@@ -478,7 +481,9 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         [recurso]: { ...f[recurso], temp: Math.max(0, valor) }
       })),
     alternarEquipado: (itemId) =>
-      agir({ tipo: "alternarEquipado", itemId }, (f) => alternarEquipadoLocal(f, itemId)),
+      agir({ tipo: "alternarEquipado", itemId }, (f) => alternarNoItemLocal(f, itemId, "equipado")),
+    alternarCarregado: (itemId) =>
+      agir({ tipo: "alternarCarregado", itemId }, (f) => alternarNoItemLocal(f, itemId, "carregado")),
     ajustarQuantidade: (itemId, delta) =>
       agir({ tipo: "ajustarQuantidade", itemId, delta }, (f) =>
         mudarQuantidadesLocal(f, new Map([[itemId, delta]]))

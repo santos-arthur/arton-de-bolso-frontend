@@ -21,7 +21,16 @@ export const ITENS_NAV: { rotulo: string; curto: string; href: string; icone: Ic
   { rotulo: "Magias", curto: "Magias", href: "/magias", icone: FaWandSparkles }
 ];
 
+/**
+ * A rota está nesta seção? Compara por prefixo para as sub-páginas contarem
+ * como parte dela — `/inventario/bau` é o baú da mochila, não uma seção nova:
+ * o dock mantém "Mochila" aceso e o cabeçalho da ficha continua na tela.
+ */
+export function eDaSecao(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 /** Rotas em que o cabeçalho da ficha faz sentido — fora delas (home, configurações) ele some. */
 export function eRotaDeFicha(pathname: string) {
-  return ITENS_NAV.some((item) => item.href === pathname);
+  return ITENS_NAV.some((item) => eDaSecao(pathname, item.href));
 }

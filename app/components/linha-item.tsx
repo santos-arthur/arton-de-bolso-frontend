@@ -1,7 +1,7 @@
 "use client";
 
 import { FaCoins, FaHandFist, FaHandSparkles, FaMinus, FaPlus } from "react-icons/fa6";
-import { GiBackpack } from "react-icons/gi";
+import { GiBackpack, GiChest } from "react-icons/gi";
 import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
 import ModalConsumivel from "./modal-consumivel";
@@ -73,6 +73,43 @@ function Ficha({ item }: { item: ItemInventario }) {
   );
 }
 
+/**
+ * Mochila ou baú, em um toque. O ícone é o estado: quem está com o
+ * personagem mostra a mochila; quem ficou guardado, o baú — e o baú não
+ * conta espaço nenhum.
+ */
+function Guardar({
+  carregado,
+  somenteLeitura,
+  aoAlternar
+}: {
+  carregado: boolean;
+  somenteLeitura: boolean;
+  aoAlternar: () => void;
+}) {
+  const Icone = carregado ? GiBackpack : GiChest;
+  const titulo = carregado ? "Na mochila" : "No baú";
+
+  if (somenteLeitura) {
+    return <Icone role="img" aria-label={titulo} title={titulo} className="size-4! shrink-0 opacity-55" />;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={aoAlternar}
+      title={carregado ? "Guardar no baú" : "Levar na mochila"}
+      aria-label={carregado ? "Guardar no baú" : "Levar na mochila"}
+      aria-pressed={!carregado}
+      className={`flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors ${
+        carregado ? "border-borda hover:bg-foreground/5" : "border-acento text-acento"
+      }`}
+    >
+      <Icone aria-hidden="true" className="size-4!" />
+    </button>
+  );
+}
+
 /** Item da mochila. Usado no Inventário e no Combate (armas em punho). */
 export default function LinhaItem({
   item,
@@ -83,7 +120,7 @@ export default function LinhaItem({
   somenteLeitura: boolean;
   aoAlternarEquipado: () => void;
 }) {
-  const { ficha, ajustarQuantidade } = useFoundry();
+  const { ficha, ajustarQuantidade, alternarCarregado } = useFoundry();
   const [escolhendoSlot, setEscolhendoSlot] = useState(false);
   const [usando, setUsando] = useState(false);
   const usaSlots = !!ficha?.configEquipamento.usaSlots;
@@ -128,14 +165,18 @@ export default function LinhaItem({
         </>
       }
       acessorio={
-        // A contagem fecha a linha, do lado do polegar: é o que se lê correndo
-        // a mochila ("tenho quantas flechas?"). Vale também para o item
-        // avulso — "1×" é o estoque dele, e a coluna sem número passava a
-        // impressão de item sem quantidade. Largura reservada para "99×",
-        // assim os nomes não dançam de uma linha para a outra.
+        // Fechando a linha, do lado do polegar: onde o item está e quantos
+        // são — o que se lê correndo a mochila. A contagem vale também para o
+        // item avulso ("1×" é o estoque dele) e tem largura reservada para
+        // "99×", assim os nomes não dançam de uma linha para a outra.
         temQuantidade ? (
-          <span className="numero w-9 shrink-0 text-right text-sm font-bold opacity-70">
-            {contador.valor}×
+          <span className="flex shrink-0 flex-row items-center gap-2">
+            <Guardar
+              carregado={item.carregado}
+              somenteLeitura={somenteLeitura}
+              aoAlternar={() => alternarCarregado(item.id)}
+            />
+            <span className="numero w-9 text-right text-sm font-bold opacity-70">{contador.valor}×</span>
           </span>
         ) : item.equipavel ? (
           somenteLeitura ? (
@@ -146,6 +187,12 @@ export default function LinhaItem({
               </span>
             ) : undefined
           ) : (
+            <span className="flex shrink-0 flex-row items-center gap-2">
+            <Guardar
+              carregado={item.carregado}
+              somenteLeitura={somenteLeitura}
+              aoAlternar={() => alternarCarregado(item.id)}
+            />
             <button
               type="button"
               onClick={() => (usaSlots ? setEscolhendoSlot(true) : aoAlternarEquipado())}
@@ -159,6 +206,7 @@ export default function LinhaItem({
               <FaHandFist aria-hidden="true" className="size-2.5!" />
               {item.equipado ? "Equipado" : "Equipar"}
             </button>
+            </span>
           )
         ) : undefined
       }
