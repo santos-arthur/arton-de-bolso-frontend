@@ -14,6 +14,7 @@ export default function CartaoExpansivel({
   descricao,
   etiquetas,
   acessorio,
+  acoes,
   destacado = false
 }: {
   nome: string;
@@ -21,10 +22,15 @@ export default function CartaoExpansivel({
   descricao?: string;
   etiquetas?: ReactNode;
   acessorio?: ReactNode;
+  /** Controles que moram dentro do cartão aberto, acima da descrição. */
+  acoes?: ReactNode;
   destacado?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const temDescricao = !!descricao;
+  // Com ações dentro, o cartão abre mesmo sem descrição — é onde os
+  // controles do item moram agora.
+  const expansivel = temDescricao || !!acoes;
 
   return (
     <li
@@ -40,14 +46,14 @@ export default function CartaoExpansivel({
 
         <button
           type="button"
-          onClick={() => temDescricao && setAberto((v) => !v)}
-          disabled={!temDescricao}
-          aria-expanded={temDescricao ? aberto : undefined}
+          onClick={() => expansivel && setAberto((v) => !v)}
+          disabled={!expansivel}
+          aria-expanded={expansivel ? aberto : undefined}
           className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left disabled:cursor-default"
         >
           <span className="flex w-full min-w-0 flex-row items-center gap-2">
             <span className="min-w-0 truncate text-sm font-bold">{nome}</span>
-            {temDescricao && (
+            {expansivel && (
               <FaChevronDown
                 aria-hidden="true"
                 className={`size-2.5! shrink-0 opacity-40 transition-transform ${aberto ? "rotate-180" : ""}`}
@@ -59,6 +65,14 @@ export default function CartaoExpansivel({
 
         {acessorio}
       </div>
+
+      {/* As ações antes da descrição: quem abre o cartão para usar o item não
+          precisa rolar um texto de compêndio inteiro para achar o botão. */}
+      {aberto && acoes && (
+        <div className="flex flex-row flex-wrap items-center justify-between gap-2 border-t border-borda px-3 py-2.5">
+          {acoes}
+        </div>
+      )}
 
       {aberto && temDescricao && (
         <div

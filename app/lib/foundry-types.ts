@@ -188,11 +188,48 @@ export type SlotEquipado = {
   duasMaos: boolean;
 };
 
+/**
+ * O que um consumível faz ao ser usado. Mesmos campos de uma magia porque no
+ * sistema é a mesma coisa: um pergaminho é a magia copiada para dentro de um
+ * item, com o custo em PM zerado — usar gasta uma unidade dele, não mana.
+ */
+/**
+ * Teste que a mesa faz antes de usar: ler um pergaminho de uma magia que o
+ * personagem não conhece exige identificar a magia primeiro. Null quando não
+ * há teste nenhum — conhecendo a magia, é só ler.
+ */
+export type TesteDeUso = {
+  pericia: string;
+  total: number;
+  totalFormatado: string;
+  cd: number;
+};
+
+export type UsoDeConsumivel = {
+  /** Em PM. Zero no pergaminho criado pelo sistema; um consumível pode cobrar. */
+  custo: number;
+  ativacao: string;
+  alcance: string;
+  alvo: string;
+  area: string;
+  duracao: string;
+  resistencia: string;
+  /** Já calculada pelo sistema com os dados de quem carrega o item. */
+  cd: number | null;
+  rolagens: RolagemMagia[];
+  /** Teste para ativar, quando o pergaminho traz uma magia que o personagem não conhece. */
+  teste: TesteDeUso | null;
+  /** O próprio item: usar tira uma unidade (o `consumeSelf` do sistema). */
+  consumo: ConsumoDeItem | null;
+};
+
 export type ItemInventario = {
   id: string;
   nome: string;
   img: string;
   quantidade: number;
+  /** Preenchido quando o consumível tem efeito, resistência ou custo — o resto da mochila não se "usa". */
+  uso: UsoDeConsumivel | null;
   equipavel: boolean;
   equipado: boolean;
   slot: SlotEquipado | null;

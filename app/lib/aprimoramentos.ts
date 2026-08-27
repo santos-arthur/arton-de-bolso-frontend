@@ -42,6 +42,29 @@ export function aprimoramentosDe(
     });
 }
 
+/**
+ * Truque é o aprimoramento gratuito escrito na própria magia — o livro os
+ * lista como "Truque: muda o alvo para 1 morto-vivo…". Conjurar assim não
+ * gasta PM nenhum, nem o da magia, e por ser outro jeito de lançar não aceita
+ * mais nada junto.
+ *
+ * Ser da própria magia (escopo "self") é parte da regra: aprimoramento de
+ * graça vindo de um poder — o "+1 na CD" do Xamã Místico — é de graça, mas
+ * não é truque.
+ */
+export const ehTruque = (item: Aprimoramento) => item.escopos.includes("self") && item.custo === 0;
+
+/**
+ * O que o truque desliga: os aprimoramentos escritos na própria magia — os
+ * outros truques dela e os que se paga em PM. Poder, item e consumível ficam
+ * de fora porque não são jeitos de lançar a magia: eles incidem sobre o que
+ * for lançado, truque ou não.
+ */
+export const daPropriaMagia = (item: Aprimoramento) => item.escopos.includes("self");
+
+/** A regra do truque, pronta para o hook de uso — vale na magia e no pergaminho dela. */
+export const TRUQUE = { quando: ehTruque, exclui: daPropriaMagia, rotulo: "Truque" };
+
 /** Soma dos modificadores de uma chave ("roll" num teste, "ataque" num golpe). */
 export function bonusDe(aprimoramento: Aprimoramento, chave: string): number | null {
   const aplicaveis = aprimoramento.modificadores.filter(

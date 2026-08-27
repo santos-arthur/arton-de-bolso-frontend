@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 /**
  * Liga um <input type="number"> a um valor que vive no servidor.
@@ -39,6 +39,79 @@ export function useCampoNumerico(
         setRascunho(null);
         evento.currentTarget.blur();
       }
+    }
+  };
+}
+
+/**
+ * Contador de −/+ ligado a um valor que vive no servidor. Mesma ideia do
+ * `useCampoNumerico`, para quem ajusta a toques em vez de digitar: os toques
+ * mexem num número local, o valor que chega de fora é ignorado enquanto a mão
+ * está na tela, e só o **resultado** vai para o Foundry — quatro toques para
+ * baixo e três para cima viram um único −1.
+ *
+ * Sem isso, cada toque era uma escrita e um push de volta: com o dedo rápido,
+ * o número dançava (mostrava o estado de duas escritas atrás) e a mochila
+ * levava seis mensagens para andar uma casa.
+ *
+ * Ao soltar, o número volta a espelhar a ficha — que a essa altura já traz o
+ * palpite otimista do provider. Se o Foundry recusar o ajuste, a ficha
+ * ressincronizada corrige a tela: é o único caso em que o número se mexe
+ * sozinho.
+ */
+export function useContadorAdiado(
+  valor: number,
+  aoAjustar: (delta: number) => void,
+  { min = 0, atrasoMs = 600 }: { min?: number; atrasoMs?: number } = {}
+) {
+  const [local, setLocal] = useState<number | null>(null);
+  const acumulado = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A função mais recente, sem refazer o efeito de limpeza a cada render.
+  // Guardada num efeito, e não no corpo: mexer em ref durante o render é
+  // justamente o que quebra quando o React re-renderiza por conta própria.
+  const enviar = useRef(aoAjustar);
+  useEffect(() => {
+    enviar.current = aoAjustar;
+  });
+
+  const mostrado = local ?? valor;
+
+  function despachar() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const total = acumulado.current;
+    acumulado.current = 0;
+    // O envio vem antes de soltar o número: o palpite do provider entra no
+    // mesmo passo, e a tela não pisca o valor antigo entre os dois.
+    if (total) enviar.current(total);
+    setLocal(null);
+  }
+
+  // Sair da tela com toque pendente não pode perder o ajuste — fechar o
+  // cartão desmonta o contador, e o item já apareceu gasto para o jogador.
+  useEffect(() => {
+    return () => {
+      if (!timer.current) return;
+      clearTimeout(timer.current);
+      const total = acumulado.current;
+      acumulado.current = 0;
+      if (total) enviar.current(total);
+    };
+  }, []);
+
+  return {
+    valor: mostrado,
+    ajustar(delta: number) {
+      // O piso pode comer parte do toque: com 1 unidade, um −1 vale −1 e o
+      // seguinte não vale nada.
+      const alvo = Math.max(min, mostrado + delta);
+      const efetivo = alvo - mostrado;
+      if (!efetivo) return;
+      acumulado.current += efetivo;
+      setLocal(alvo);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(despachar, atrasoMs);
     }
   };
 }
