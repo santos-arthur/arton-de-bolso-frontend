@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
-import { ListaAprimoramentos, RodapeGasto, useAprimoramentos } from "./lista-aprimoramentos";
+import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
 import { aprimoramentosDe, bonusDe, somarTermos } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Arma } from "../lib/foundry-types";
@@ -59,15 +59,18 @@ function Titulo({ children }: { children: ReactNode }) {
  * Painel de ataque de uma arma. Cada bloco mostra de onde vem o número e, em
  * seguida, o que se rola na mesa — o app nunca rola nada.
  */
-export default function ModalAtaque({ arma, onFechar }: { arma: Arma; onFechar: () => void }) {
+export default function ModalAtaque({ arma: atual, onFechar }: { arma: Arma; onFechar: () => void }) {
   const { ficha } = useFoundry();
   const todos = ficha?.aprimoramentos;
   const aplicaveis = useMemo(
-    () => aprimoramentosDe(todos ?? [], "attack", arma.nome, arma.id),
-    [todos, arma.nome, arma.id]
+    () => aprimoramentosDe(todos ?? [], "attack", atual.nome, atual.id),
+    [todos, atual.nome, atual.id]
   );
 
-  const uso = useAprimoramentos(aplicaveis);
+  const uso = useAprimoramentos(aplicaveis, { acao: atual.nome, consumo: atual.consumo });
+  // Pago o uso, o painel vira extrato: nem a arma que chega da ficha nova
+  // mexe mais no que está na tela.
+  const arma = useCongelado(atual, uso.pago);
   const totalAtaque = (arma.ataque?.total ?? 0) + uso.bonusTotal("ataque");
   const dano = arma.dano[0];
 

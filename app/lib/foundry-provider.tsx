@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { calcularDescanso } from "./descanso";
 import type {
   Ficha,
+  GastoDeUso,
   ListaPersonagens,
   MensagemDoFoundry,
   MensagemParaFoundry,
@@ -99,6 +100,37 @@ function alternarEquipadoLocal(ficha: Ficha, itemId: string): Ficha {
   };
 }
 
+/**
+ * Baixa da mochila o que o uso gastou. Item que zera sai da lista — é o que o
+ * Foundry vai fazer com a última flecha, e deixar um "0×" na tela até o push
+ * chegar mostraria um item que já não existe.
+ *
+ * Só o que foi gasto é filtrado: um item que já estava zerado por outro
+ * motivo continua onde está, porque não cabe a este palpite limpar a ficha.
+ */
+function gastarItensLocal(ficha: Ficha, itens: GastoDeUso["itens"]): Ficha {
+  if (!itens.length) return ficha;
+  const pedidos = new Map<string, number>();
+  for (const { itemId, quantidade } of itens) {
+    pedidos.set(itemId, (pedidos.get(itemId) ?? 0) + quantidade);
+  }
+
+  return {
+    ...ficha,
+    inventario: ficha.inventario
+      .map((grupo) => ({
+        ...grupo,
+        itens: grupo.itens
+          .map((item) => {
+            const gasto = pedidos.get(item.id);
+            return gasto ? { ...item, quantidade: item.quantidade - gasto } : item;
+          })
+          .filter((item) => !pedidos.has(item.id) || item.quantidade > 0)
+      }))
+      .filter((grupo) => grupo.itens.length)
+  };
+}
+
 type FoundryContextValue = {
   status: Status;
   usuarios: UsuarioFoundry[];
@@ -131,6 +163,8 @@ type FoundryContextValue = {
   equiparEmSlot: (itemId: string, contexto: "hand" | "body", indice: number, idAtual: string | null) => void;
   ajustarDinheiro: (moeda: string, valor: number) => void;
   descansar: (opcoes: DescansoOpcoes) => void;
+  /** Cobra um uso: os PM e os itens de uma vez, com aviso no chat da mesa. */
+  gastarUso: (uso: GastoDeUso) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -462,6 +496,10 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         ...f,
         dinheiro: f.dinheiro.map((m) => (m.chave === moeda ? { ...m, valor: Math.max(0, valor) } : m))
       })),
+    gastarUso: (uso) =>
+      agir({ tipo: "gastarUso", uso }, (f) =>
+        gastarItensLocal(uso.pm > 0 ? ajustarRecursoLocal(f, "pm", -uso.pm) : f, uso.itens)
+      ),
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);

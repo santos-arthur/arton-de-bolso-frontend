@@ -84,6 +84,22 @@ export type ModificadorAprimoramento = {
 };
 
 /**
+ * Item que um uso gasta da mochila: a munição do ataque, o material da magia,
+ * o consumível que originou um aprimoramento marcado. Vem montado pelo
+ * módulo — o app só decide *quantas* unidades, nunca qual item.
+ */
+export type ConsumoDeItem = {
+  itemId: string;
+  nome: string;
+  /** Unidades por uso (por aplicação, num aprimoramento repetível). */
+  quantidade: number;
+  /** `mpMultiplier` do sistema: a quantidade multiplica pelo custo em PM do uso. */
+  porPM: boolean;
+  /** Quantas o personagem tem agora — é o que trava o botão quando acaba. */
+  disponivel: number;
+};
+
+/**
  * Active Effect "de uso" (`onuse`) do sistema: o que o personagem pode ativar
  * durante um uso, pagando PM. `restritoA` vazio significa "qualquer um do
  * escopo"; preenchido, limita aos nomes listados (ex.: o Escriba só vale em
@@ -100,6 +116,8 @@ export type Aprimoramento = {
   custo: number;
   escopos: EscopoAprimoramento[];
   restritoA: string[];
+  /** Preenchido quando o aprimoramento mora num consumível: marcá-lo gasta uma unidade dele. */
+  consumo: ConsumoDeItem | null;
   modificadores: ModificadorAprimoramento[];
   /** Repetível: pode ser aplicado mais de uma vez, pagando de novo. */
   aumenta: boolean;
@@ -138,6 +156,8 @@ export type Arma = {
   ataque: AtaqueArma | null;
   dano: DanoArma[];
   critico: { margem: number; multiplicador: number; texto: string };
+  /** Munição que o ataque gasta, quando a arma declara consumo no Foundry. */
+  consumo: ConsumoDeItem | null;
 };
 
 /** Armadura ou escudo: o que protege e o que atrapalha. */
@@ -244,6 +264,8 @@ export type Magia = {
   /** CD do conjurador — é do personagem, não da magia. */
   cd: number | null;
   rolagens: RolagemMagia[];
+  /** Material que a conjuração gasta, quando a magia declara consumo no Foundry. */
+  consumo: ConsumoDeItem | null;
 };
 
 export type Ficha = {
@@ -314,6 +336,14 @@ export type OpcoesDescanso = {
 };
 
 /** Mensagens que o front envia pro relay (`module.arton-de-bolso`). */
+/** O que um uso cobra: PM e unidades de itens, com o nome da ação para o chat. */
+export type GastoDeUso = {
+  /** Nome do que foi usado ("Bola de Fogo", "Arco longo", "Ofício") — só para o chat. */
+  acao: string;
+  pm: number;
+  itens: { itemId: string; quantidade: number }[];
+};
+
 export type MensagemParaFoundry =
   | { tipo: "obterFicha" }
   | { tipo: "obterPersonagens" }
@@ -325,7 +355,13 @@ export type MensagemParaFoundry =
   | { tipo: "alternarPreparada"; magiaId: string }
   | { tipo: "equiparEmSlot"; itemId: string; contexto: "hand" | "body"; indice: number; idAtual: string | null }
   | { tipo: "ajustarDinheiro"; moeda: string; valor: number }
-  | { tipo: "descansar"; opcoes: OpcoesDescanso };
+  | { tipo: "descansar"; opcoes: OpcoesDescanso }
+  /**
+   * Gasto de um uso inteiro (PM + itens), com o aviso no chat da mesa. Só ids
+   * e quantidades: nome de item e texto da mensagem são montados no Foundry,
+   * que é quem tem a verdade sobre a mochila.
+   */
+  | { tipo: "gastarUso"; uso: GastoDeUso };
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =

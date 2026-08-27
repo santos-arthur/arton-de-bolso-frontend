@@ -2,7 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
-import { ListaAprimoramentos, RodapeGasto, useAprimoramentos } from "./lista-aprimoramentos";
+import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
 import { aprimoramentosDe, bonusDe, somarTermos } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Aprimoramento, Magia } from "../lib/foundry-types";
@@ -22,6 +22,9 @@ const CHAVES = [
 
 /** Modo do Active Effect que troca o valor do campo em vez de somar a ele. */
 const SUBSTITUI = 5;
+
+/** Menor custo de uma conjuração, por mais que os descontos somem. */
+const CUSTO_MINIMO = 1;
 
 /**
  * Truque é o aprimoramento gratuito escrito na própria magia — o livro os
@@ -130,19 +133,26 @@ function Dado({ rotulo, mudou, children }: { rotulo: string; mudou?: boolean; ch
  * O gasto aqui inclui o PM da própria magia, não só o dos aprimoramentos: no
  * ataque a arma é de graça, aqui a magia nunca é.
  */
-export default function ModalMagia({ magia, onFechar }: { magia: Magia; onFechar: () => void }) {
+export default function ModalMagia({ magia: atual, onFechar }: { magia: Magia; onFechar: () => void }) {
   const { ficha } = useFoundry();
   const todos = ficha?.aprimoramentos;
   const aplicaveis = useMemo(
-    () => aprimoramentosDe(todos ?? [], "spell", magia.nome, magia.id),
-    [todos, magia.nome, magia.id]
+    () => aprimoramentosDe(todos ?? [], "spell", atual.nome, atual.id),
+    [todos, atual.nome, atual.id]
   );
 
-  const uso = useAprimoramentos(aplicaveis, magia.custo, {
-    quando: ehTruque,
-    exclui: daPropriaMagia,
-    rotulo: "Truque"
+  const uso = useAprimoramentos(aplicaveis, {
+    acao: atual.nome,
+    custoBase: atual.custo,
+    // Regra do livro: por mais desconto que se junte, conjurar custa 1 PM.
+    // O truque escapa disso por não ser desconto — é outro jeito de lançar.
+    custoMinimo: CUSTO_MINIMO,
+    consumo: atual.consumo,
+    exclusivos: { quando: ehTruque, exclui: daPropriaMagia, rotulo: "Truque" }
   });
+  // Pago o uso, o painel vira extrato: nem a magia que chega da ficha nova
+  // mexe mais no que está na tela.
+  const magia = useCongelado(atual, uso.pago);
   const rolagem = magia.rolagens[0];
   const cd = magia.cd === null ? null : magia.cd + uso.bonusTotal("cd");
 
@@ -192,6 +202,11 @@ export default function ModalMagia({ magia, onFechar }: { magia: Magia; onFechar
                 />
               );
             })}
+            {/* Sem isto o Total contraria as linhas acima: elas somam zero (ou
+                menos) e a conta fecha em 1. */}
+            {uso.noMinimo && (
+              <Linha destacado rotulo="Mínimo de uma conjuração" valor={`${CUSTO_MINIMO} PM`} />
+            )}
             {uso.exclusivo && <Linha destacado rotulo="Conjurada como truque" valor="não gasta PM" />}
           </div>
           <Total valor={`${uso.custoTotal} PM`} />

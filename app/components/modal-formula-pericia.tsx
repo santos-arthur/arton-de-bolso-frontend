@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import FolhaModal from "./folha-modal";
-import { ListaAprimoramentos, RodapeGasto, useAprimoramentos } from "./lista-aprimoramentos";
+import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
 import { aprimoramentosDe, bonusDe } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { FormulaPericia } from "../lib/foundry-types";
@@ -19,7 +19,7 @@ const CHAVES = [{ chave: "roll", rotulo: "no teste" }];
  * ativar para melhorá-lo.
  */
 export default function ModalFormulaPericia({
-  formula,
+  formula: atual,
   onFechar
 }: {
   formula: FormulaPericia;
@@ -27,12 +27,15 @@ export default function ModalFormulaPericia({
 }) {
   const { ficha } = useFoundry();
   const todos = ficha?.aprimoramentos;
-  const rotulo = formula?.label;
+  const rotulo = atual?.label;
   // Só os que valem para *esta* perícia: escopo "skill" e, se houver
   // restrição por nome, o nome dela na lista.
   const aplicaveis = useMemo(() => aprimoramentosDe(todos ?? [], "skill", rotulo), [todos, rotulo]);
 
-  const uso = useAprimoramentos(aplicaveis);
+  const uso = useAprimoramentos(aplicaveis, { acao: rotulo ?? "Teste de perícia" });
+  // Pago o uso, o painel vira extrato: a fórmula que chega da ficha nova não
+  // mexe mais no que está na tela.
+  const formula = useCongelado(atual, uso.pago);
   const total = formula?.total ?? 0;
   const bonus = uso.bonusTotal("roll");
 

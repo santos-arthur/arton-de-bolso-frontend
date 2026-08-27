@@ -4,49 +4,149 @@ import { FaCheck, FaChevronDown, FaCoins, FaEye, FaMinus, FaPlus } from "react-i
 import { useState, type ReactNode } from "react";
 import { bonusDe, formulasDe, multiplicarFormula } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
-import type { Aprimoramento } from "../lib/foundry-types";
+import type { Aprimoramento, ConsumoDeItem } from "../lib/foundry-types";
+
+/** Um item do gasto, já com o total de unidades deste uso. */
+export type ItemGasto = { itemId: string; nome: string; quantidade: number; disponivel: number };
+
+/**
+ * O que o uso cobra, em texto de botão: "5 PM e Flecha", "Enxofre ×2",
+ * "3 PM, Flecha e Pó de dragão".
+ *
+ * A partir de três itens vira contagem ("3 itens"): a lista logo acima já diz
+ * quais são, e um botão que quebra em três linhas some com o polegar.
+ */
+function resumirGasto(pm: number, itens: ItemGasto[]) {
+  const partes: string[] = [];
+  if (pm > 0) partes.push(`${pm} PM`);
+  if (itens.length > 2) {
+    partes.push(`${itens.reduce((soma, item) => soma + item.quantidade, 0)} itens`);
+  } else {
+    for (const item of itens) {
+      partes.push(item.quantidade > 1 ? `${item.nome} ×${item.quantidade}` : item.nome);
+    }
+  }
+  if (partes.length < 2) return partes[0] ?? "";
+  return `${partes.slice(0, -1).join(", ")} e ${partes.at(-1)}`;
+}
+
+/**
+ * Junta os consumos num gasto só, por item: a mesma erva pode vir do material
+ * declarado na magia e de um aprimoramento marcado, e o que o jogador precisa
+ * ver (e o Foundry, baixar) é o total.
+ */
+function juntarConsumos(entradas: { consumo: ConsumoDeItem; vezes: number }[]): ItemGasto[] {
+  const porItem = new Map<string, ItemGasto>();
+  for (const { consumo, vezes } of entradas) {
+    const quantidade = consumo.quantidade * vezes;
+    if (quantidade <= 0) continue;
+    const atual = porItem.get(consumo.itemId);
+    if (atual) atual.quantidade += quantidade;
+    else {
+      porItem.set(consumo.itemId, {
+        itemId: consumo.itemId,
+        nome: consumo.nome,
+        quantidade,
+        disponivel: consumo.disponivel
+      });
+    }
+  }
+  return [...porItem.values()];
+}
+
+/**
+ * Segura o valor de antes: enquanto `congelar` é falso o valor acompanha o
+ * que chega; ligado, fica o último.
+ *
+ * Companheiro do gasto: `useAprimoramentos` congela por dentro a lista de
+ * aprimoramentos, e isto congela o que veio de fora do painel (a arma, a
+ * magia, a fórmula da perícia). Sem os dois, o item que acabou some da ficha
+ * e o painel se reescreve enquanto o jogador ainda confere o que rolar.
+ */
+export function useCongelado<T>(valor: T, congelar: boolean): T {
+  // "Ajustar estado durante o render", o padrão do próprio React para estado
+  // derivado de props: o guardado acompanha o que chega até `congelar` ligar.
+  // Devolver `valor` enquanto está solto evita renderizar o valor de ontem no
+  // quadro em que a prop muda.
+  const [guardado, setGuardado] = useState(valor);
+  if (!congelar && !Object.is(guardado, valor)) setGuardado(valor);
+  return congelar ? guardado : valor;
+}
 
 export type UsoDeAprimoramentos = ReturnType<typeof useAprimoramentos>;
 
 /**
- * Estado de uso dos aprimoramentos de um teste ou ataque.
+ * Estado de uso dos aprimoramentos de um teste, ataque ou conjuração — e do
+ * que esse uso vai cobrar em PM e em itens.
  *
- * Cada um pode ser aplicado N vezes quando marcado como repetível (`aumenta`)
- * no Foundry — é o caso do "Golpe Divino: Aumentar dano +1d8", em que cada
- * PM extra soma mais um d8. Custo e bônus crescem juntos, como no sistema.
- */
-/**
- * `custoBase` é o que a ação custa antes de qualquer aprimoramento — o PM da
- * própria magia. Ataque não tem: a arma não custa PM, só os aprimoramentos.
+ * Cada aprimoramento pode ser aplicado N vezes quando marcado como repetível
+ * (`aumenta`) no Foundry — é o caso do "Golpe Divino: Aumentar dano +1d8", em
+ * que cada PM extra soma mais um d8. Custo e bônus crescem juntos, como no
+ * sistema.
  *
- * `exclusivo` descreve o aprimoramento que muda a natureza da ação em vez de
- * somar a ela — nas magias, o truque. Escolhido um desses, o custo inteiro
- * zera (nem a ação em si é cobrada) e o que ele `exclui` sai de cena: fica
- * desmarcado e travado. Quem diz o que conta como exclusivo, o que ele
- * exclui e como chamá-lo na tela é quem usa o hook — a regra e a palavra são
- * de magia, não daqui.
+ * As opções:
+ *
+ * - `acao` é o nome do que está sendo usado; só serve para o aviso no chat.
+ * - `custoBase` é o que a ação custa antes de qualquer aprimoramento — o PM
+ *   da própria magia. Ataque não tem: a arma não custa PM, só os
+ *   aprimoramentos.
+ * - `custoMinimo` é o piso do que se paga quando há custo base: em T20 nem
+ *   toda redução chega a zero — a magia nunca sai por menos de 1 PM.
+ * - `consumo` é o item que o próprio uso gasta (a munição da arma, o material
+ *   da magia). Some a ele os aprimoramentos marcados que moram num
+ *   consumível: marcar é usar o frasco.
+ * - `exclusivos` descreve o aprimoramento que muda a natureza da ação em vez
+ *   de somar a ela — nas magias, o truque. Escolhido um desses, o custo
+ *   inteiro zera (nem a ação em si é cobrada) e o que ele `exclui` sai de
+ *   cena: fica desmarcado e travado. Quem diz o que conta como exclusivo, o
+ *   que ele exclui e como chamá-lo na tela é quem usa o hook — a regra e a
+ *   palavra são de magia, não daqui.
  */
 export function useAprimoramentos(
   aplicaveis: Aprimoramento[],
-  custoBase = 0,
-  exclusivos?: {
-    quando: (item: Aprimoramento) => boolean;
-    /** O que o exclusivo desliga. Fora disso, tudo segue disponível. */
-    exclui: (item: Aprimoramento) => boolean;
-    rotulo: string;
-  }
+  opcoes: {
+    acao?: string;
+    custoBase?: number;
+    custoMinimo?: number;
+    consumo?: ConsumoDeItem | null;
+    exclusivos?: {
+      quando: (item: Aprimoramento) => boolean;
+      /** O que o exclusivo desliga. Fora disso, tudo segue disponível. */
+      exclui: (item: Aprimoramento) => boolean;
+      rotulo: string;
+    };
+  } = {}
 ) {
-  const { ficha, somenteLeitura, ajustarPM } = useFoundry();
+  const { acao = "", custoBase = 0, custoMinimo = 0, consumo = null, exclusivos } = opcoes;
+  const { ficha, somenteLeitura, gastarUso } = useFoundry();
   // Quem já vem ligado na ficha entra marcado: o jogador não precisa lembrar
   // de ativar todo turno o que o personagem tem sempre. Continua desmarcável.
   const [vezes, setVezes] = useState<Record<string, number>>(() =>
     Object.fromEntries(aplicaveis.filter((item) => item.ativoPorPadrao).map((item) => [item.id, 1]))
   );
-  const [pago, setPago] = useState(false);
+  /**
+   * O uso, congelado no instante em que foi pago.
+   *
+   * Não é só um "já gastei": gastar muda a ficha, a ficha nova desce pelo
+   * stream e o que está em volta se mexeria sozinho — o consumível que
+   * acabou some do Foundry, e com ele o aprimoramento que morava nele
+   * desapareceria da lista, mudando bônus e totais debaixo do olho de quem
+   * ainda está conferindo o que rolar na mesa. Depois de pago a tela
+   * congela: mesma lista, mesmas contas, até fechar o painel.
+   */
+  const [pagoCom, setPagoCom] = useState<{
+    aplicaveis: Aprimoramento[];
+    consumo: ConsumoDeItem | null;
+  } | null>(null);
+  const pago = !!pagoCom;
+
+  // Depois do gasto, tudo se calcula sobre o retrato de então.
+  const emUso = pagoCom?.aplicaveis ?? aplicaveis;
+  const consumoEmUso = pagoCom ? pagoCom.consumo : consumo;
 
   const pmAtual = ficha?.pm.atual ?? 0;
   const quantidadeDe = (item: Aprimoramento) => vezes[item.id] ?? 0;
-  const escolhidos = aplicaveis.filter((item) => quantidadeDe(item) > 0);
+  const escolhidos = emUso.filter((item) => quantidadeDe(item) > 0);
 
   const exclusivo = exclusivos ? (escolhidos.find(exclusivos.quando) ?? null) : null;
 
@@ -55,16 +155,37 @@ export function useAprimoramentos(
     exclusivos?.quando(item) ? exclusivos.rotulo : null;
 
   // Custo negativo é desconto de verdade ("−1 PM nesta magia") e entra na
-  // soma; o que ele não pode é virar crédito, daí o piso em zero.
-  const custoTotal = exclusivo
-    ? 0
-    : Math.max(0, escolhidos.reduce((soma, item) => soma + item.custo * quantidadeDe(item), custoBase));
+  // soma; o que ele não pode é virar crédito.
+  const somaDosCustos = escolhidos.reduce(
+    (soma, item) => soma + item.custo * quantidadeDe(item),
+    custoBase
+  );
+  // O piso só vale onde há custo base a reduzir — é limite de desconto, não
+  // cobrança inventada num ataque ou num teste que não custam nada.
+  const piso = custoBase > 0 ? custoMinimo : 0;
+  const custoTotal = exclusivo ? 0 : Math.max(piso, somaDosCustos);
+  /** Os descontos passaram do limite e o custo parou no mínimo da regra. */
+  const noMinimo = !exclusivo && piso > 0 && somaDosCustos < piso;
   const semPM = custoTotal > pmAtual;
-  // Trava por dois motivos: já foi pago (não dá pra mexer no que se gastou) ou
-  // um exclusivo está em uso e este é um dos que ele desliga.
+
+  // `porPM` é o `mpMultiplier` do sistema: gasta uma unidade por PM da
+  // conjuração, então só dá para resolver aqui, depois de fechado o custo.
+  const itensGastos = juntarConsumos([
+    ...(consumoEmUso ? [{ consumo: consumoEmUso, vezes: consumoEmUso.porPM ? custoTotal : 1 }] : []),
+    ...escolhidos.flatMap((item) =>
+      item.consumo ? [{ consumo: item.consumo, vezes: quantidadeDe(item) }] : []
+    )
+  ]);
+  /** O primeiro item que não dá para gastar — é o que o botão vai dizer. */
+  const faltando = itensGastos.find((item) => item.quantidade > item.disponivel) ?? null;
+
+  const resumoDoGasto = resumirGasto(custoTotal, itensGastos);
+
+  // Trava por dois motivos: o uso já foi pago — daí em diante o painel é um
+  // extrato do que se gastou, e nada mais se marca ou desmarca — ou um
+  // exclusivo está em uso e este é um dos que ele desliga.
   const travado = (item: Aprimoramento) =>
-    (pago && item.custo > 0) ||
-    (!!exclusivo && item.id !== exclusivo.id && !!exclusivos?.exclui(item));
+    pago || (!!exclusivo && item.id !== exclusivo.id && !!exclusivos?.exclui(item));
 
   function definir(item: Aprimoramento, quantidade: number) {
     if (travado(item)) return;
@@ -74,7 +195,7 @@ export function useAprimoramentos(
       // lançar a mesma magia, não se somam. Deixar marcado o que vai travar
       // em seguida daria a entender que ainda vale.
       if (quantidade > 0 && exclusivos?.quando(item)) {
-        for (const outro of aplicaveis) {
+        for (const outro of emUso) {
           if (outro.id !== item.id && exclusivos.exclui(outro)) novo[outro.id] = 0;
         }
       }
@@ -105,17 +226,36 @@ export function useAprimoramentos(
     );
   }
 
+  /**
+   * Cobra o uso: PM e itens de uma vez só, e o Foundry anuncia no chat da
+   * mesa. Um pedido só para os dois — é um gasto, não dois; se o item não
+   * couber, nem o PM sai.
+   */
   function gastar() {
-    if (somenteLeitura || pago || semPM || custoTotal === 0) return;
-    ajustarPM(-custoTotal);
-    setPago(true);
+    if (somenteLeitura || pago || semPM || faltando) return;
+    if (custoTotal === 0 && !itensGastos.length) return;
+    gastarUso({
+      acao,
+      pm: custoTotal,
+      itens: itensGastos.map(({ itemId, quantidade }) => ({ itemId, quantidade }))
+    });
+    setPagoCom({ aplicaveis, consumo });
   }
 
   return {
-    aplicaveis,
+    /** A lista que a tela mostra: a atual, ou a congelada depois do gasto. */
+    aplicaveis: emUso,
     escolhidos,
     pmAtual,
     custoTotal,
+    /** O que sai da mochila neste uso, agrupado por item. */
+    itensGastos,
+    /** Item que o personagem não tem em quantidade suficiente, ou null. */
+    faltando,
+    /** "5 PM e Flecha" — o que o botão de gasto anuncia. */
+    resumoDoGasto,
+    /** O custo parou no mínimo da regra (a magia não sai por menos de 1 PM). */
+    noMinimo,
     /** Aprimoramento exclusivo em uso (o truque), ou null. */
     exclusivo,
     rotuloExclusivo,
@@ -203,11 +343,18 @@ function Linha({
     })
     .filter(Boolean);
 
+  // O que este aprimoramento tira da mochila. "sem custo" ao lado disso seria
+  // mentira: não custa PM, mas custa o frasco.
+  const gastoDeItem = item.consumo
+    ? `gasta ${item.consumo.nome}${quantidade > 1 ? ` ×${quantidade * item.consumo.quantidade}` : ""}`
+    : null;
+
   // Truque não é "de graça": é outro jeito de lançar a magia, e a palavra na
   // etiqueta é o que o jogador procura na lista.
   const custo =
-    uso.rotuloExclusivo(item) ?? (item.custo > 0 ? `${item.custo * Math.max(1, quantidade)} PM` : "sem custo");
-  const detalhes = [...efeitos, custo].join(" · ");
+    uso.rotuloExclusivo(item) ??
+    (item.custo > 0 ? `${item.custo * Math.max(1, quantidade)} PM` : gastoDeItem ? null : "sem custo");
+  const detalhes = [...efeitos, custo, gastoDeItem].filter(Boolean).join(" · ");
 
   const conteudo = (
     <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -243,8 +390,12 @@ function Linha({
     </span>
   );
 
+  // Apagar a linha só faz sentido enquanto ela é uma escolha: com o truque
+  // ligado, a opacidade separa o que ficou de fora do que segue disponível.
+  // Depois de pago está tudo travado igual, e apagar a lista inteira
+  // atrapalharia justamente quem abriu o painel para conferir.
   const classe = `flex flex-row items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
-    travado ? "opacity-70" : ""
+    travado && !uso.pago ? "opacity-70" : ""
   } ${marcado ? "border-acento bg-acento/10" : "border-borda bg-superficie-alta"}`;
 
   const imagem = item.img ? (
@@ -306,8 +457,14 @@ export function ListaAprimoramentos({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">
-        {uso.somenteLeitura ? `Pode usar ${contexto}` : `Marque o que vai usar ${contexto}`} · {uso.pmAtual} PM
-        disponíveis
+        {/* Pago, o convite a marcar vira registro: a lista continua na tela
+            para conferência, mas não é mais uma escolha. */}
+        {uso.pago
+          ? `Usado ${contexto}`
+          : uso.somenteLeitura
+            ? `Pode usar ${contexto}`
+            : `Marque o que vai usar ${contexto}`}{" "}
+        · {uso.pmAtual} PM disponíveis
       </span>
       {uso.aplicaveis.map((item) => (
         <Linha key={item.id} item={item} uso={uso} chaves={chaves} comRegra={comRegra} />
@@ -316,38 +473,43 @@ export function ListaAprimoramentos({
   );
 }
 
-/** Rodapé de confirmação — vira aviso quando a ficha é só de leitura. */
+/**
+ * Rodapé de confirmação — vira aviso quando a ficha é só de leitura.
+ *
+ * O botão diz exatamente o que vai sair: PM, itens, ou os dois. Um uso que não
+ * cobra nada não tem rodapé nenhum.
+ */
 export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
-  if (uso.custoTotal === 0) return undefined;
+  if (!uso.resumoDoGasto) return undefined;
 
   if (uso.somenteLeitura) {
     return (
       <p className="flex min-h-12 flex-row items-center justify-center gap-2 text-sm font-semibold opacity-60">
         <FaEye aria-hidden="true" className="size-3.5!" />
-        <span className="numero">Custaria {uso.custoTotal} PM</span>
+        <span className="numero">Custaria {uso.resumoDoGasto}</span>
       </p>
     );
   }
+
+  // Falta de PM e falta de item travam igual; o botão nomeia o que faltou,
+  // porque "não dá" sem dizer o quê manda o jogador procurar sozinho.
+  const impedido = uso.semPM ? "Sem PM suficiente" : uso.faltando ? `Sem ${uso.faltando.nome}` : null;
 
   return (
     <button
       type="button"
       onClick={uso.gastar}
-      disabled={uso.pago || uso.semPM}
+      disabled={uso.pago || !!impedido}
       className={`flex min-h-12 w-full flex-row items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-opacity ${
         uso.pago
           ? "border border-borda opacity-60"
-          : uso.semPM
+          : impedido
             ? "border border-borda opacity-50"
             : "bg-acento text-white hover:opacity-90"
       }`}
     >
       {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCoins aria-hidden="true" className="size-4!" />}
-      {uso.pago
-        ? `${uso.custoTotal} PM gastos`
-        : uso.semPM
-          ? "Sem PM suficiente"
-          : `Gastar ${uso.custoTotal} PM`}
+      {uso.pago ? `Gastou ${uso.resumoDoGasto}` : (impedido ?? `Gastar ${uso.resumoDoGasto}`)}
     </button>
   );
 }
