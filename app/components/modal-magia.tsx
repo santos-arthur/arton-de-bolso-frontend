@@ -247,7 +247,10 @@ export default function ModalMagia({ magia, onFechar }: { magia: Magia; onFechar
         </div>
       )}
 
-      <ListaAprimoramentos uso={uso} chaves={CHAVES} contexto="nesta magia" />
+      {/* Sem as regras: aqui a lista é de escolha rápida — o que marcar antes
+          de conjurar —, e a descrição dos poderes que aparecem nela é a regra
+          do poder inteiro, que já mora na página de Poderes. */}
+      <ListaAprimoramentos uso={uso} chaves={CHAVES} contexto="nesta magia" comRegra={false} />
     </FolhaModal>
   );
 }

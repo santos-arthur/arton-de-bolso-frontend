@@ -176,13 +176,16 @@ function Contador({
 function Linha({
   item,
   uso,
-  chaves
+  chaves,
+  comRegra
 }: {
   item: Aprimoramento;
   uso: UsoDeAprimoramentos;
   chaves: { chave: string; rotulo: string }[];
+  comRegra: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
+  const regra = comRegra ? item.descricao : "";
   const quantidade = uso.quantidadeDe(item);
   const travado = uso.travado(item);
   const marcado = quantidade > 0;
@@ -210,7 +213,7 @@ function Linha({
     <span className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="flex flex-row items-start gap-2">
         <span className="min-w-0 flex-1 text-sm font-bold">{item.nome}</span>
-        {item.descricao && (
+        {regra && (
           // preventDefault: dentro do <label>, um clique aqui acionaria o
           // checkbox junto — aqui ele só abre a regra.
           <button
@@ -231,10 +234,10 @@ function Linha({
         )}
       </span>
       <span className="numero text-xs font-semibold text-acento">{detalhes}</span>
-      {aberto && item.descricao && (
+      {aberto && regra && (
         <span
           className="prosa-foundry border-t border-borda pt-2 text-xs opacity-70"
-          dangerouslySetInnerHTML={{ __html: item.descricao }}
+          dangerouslySetInnerHTML={{ __html: regra }}
         />
       )}
     </span>
@@ -279,15 +282,24 @@ function Linha({
   );
 }
 
-/** A lista em si, com o rótulo da seção. */
+/**
+ * A lista em si, com o rótulo da seção.
+ *
+ * `comRegra` liga o dropdown que abre a descrição do efeito. Ele vale onde o
+ * texto explica o próprio aprimoramento, mas o que vem de um poder traz a
+ * regra inteira do poder — parágrafos que o jogador já leu na página de
+ * Poderes e que, no meio de conjurar, só afastam o que ele veio ver.
+ */
 export function ListaAprimoramentos({
   uso,
   chaves,
-  contexto
+  contexto,
+  comRegra = true
 }: {
   uso: UsoDeAprimoramentos;
   chaves: { chave: string; rotulo: string }[];
   contexto: string;
+  comRegra?: boolean;
 }) {
   if (!uso.aplicaveis.length) return null;
 
@@ -298,7 +310,7 @@ export function ListaAprimoramentos({
         disponíveis
       </span>
       {uso.aplicaveis.map((item) => (
-        <Linha key={item.id} item={item} uso={uso} chaves={chaves} />
+        <Linha key={item.id} item={item} uso={uso} chaves={chaves} comRegra={comRegra} />
       ))}
     </div>
   );
