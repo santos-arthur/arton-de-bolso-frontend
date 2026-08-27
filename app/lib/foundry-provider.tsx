@@ -94,9 +94,14 @@ function alternarNoItemLocal(ficha: Ficha, itemId: string, chave: "equipado" | "
     ...ficha,
     inventario: ficha.inventario.map((grupo) => ({
       ...grupo,
-      itens: grupo.itens.map((item) =>
-        item.id === itemId ? { ...item, [chave]: !item[chave] } : item
-      )
+      itens: grupo.itens.map((item) => {
+        if (item.id !== itemId) return item;
+        const virado = { ...item, [chave]: !item[chave] };
+        // Guardar desequipa junto — é o que o módulo faz. Sem isto a linha
+        // ficava um instante com a etiqueta "Equipado" dentro do baú.
+        if (chave === "carregado" && !virado.carregado) virado.equipado = false;
+        return virado;
+      })
     }))
   };
 }

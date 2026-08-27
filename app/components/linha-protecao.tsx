@@ -2,7 +2,7 @@
 
 import { FaShieldHalved } from "react-icons/fa6";
 import { useState } from "react";
-import CartaoExpansivel from "./cartao-expansivel";
+import CartaoExpansivel, { AcaoSecundaria } from "./cartao-expansivel";
 import ModalSlots from "./modal-slots";
 import Tag from "./tag";
 import { useFoundry } from "../lib/foundry-provider";
@@ -39,21 +39,18 @@ export default function LinhaProtecao({ protecao }: { protecao: Protecao }) {
             {protecao.penalidade !== 0 && <Tag>Penalidade {protecao.penalidade}</Tag>}
             {protecao.reducaoDano > 0 && <Tag>RD {protecao.reducaoDano}</Tag>}
             {NOME_DO_TIPO[protecao.tipo] && <Tag>{NOME_DO_TIPO[protecao.tipo]}</Tag>}
+            {protecao.equipado && <Tag>{ondeEsta ?? "Equipada"}</Tag>}
           </>
         }
-        acessorio={
+        acoes={
           somenteLeitura ? undefined : (
-            <button
-              type="button"
+            <AcaoSecundaria
+              icone={FaShieldHalved}
+              ligado={protecao.equipado}
               onClick={() => (usaSlots ? setEscolhendoSlot(true) : alternarEquipado(protecao.id))}
-              aria-pressed={protecao.equipado}
-              className={`flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors ${
-                protecao.equipado ? "border-acento text-acento" : "border-borda hover:bg-foreground/5"
-              }`}
             >
-              <FaShieldHalved aria-hidden="true" className="size-2.5!" />
-              {ondeEsta ?? (protecao.equipado ? "Tirar" : "Vestir")}
-            </button>
+              {protecao.equipado ? "Equipada" : "Equipar"}
+            </AcaoSecundaria>
           )
         }
       />

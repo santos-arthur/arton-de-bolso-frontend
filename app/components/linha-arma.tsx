@@ -2,7 +2,7 @@
 
 import { FaHandFist, FaKhanda } from "react-icons/fa6";
 import { useState } from "react";
-import CartaoExpansivel from "./cartao-expansivel";
+import CartaoExpansivel, { AcaoPrincipal, AcaoSecundaria } from "./cartao-expansivel";
 import ModalAtaque from "./modal-ataque";
 import ModalSlots from "./modal-slots";
 import Tag from "./tag";
@@ -22,6 +22,14 @@ export default function LinhaArma({ arma }: { arma: Arma }) {
 
   const ataque = arma.ataque;
   const dano = arma.dano[0];
+  // Onde ela está empunhada, quando o mundo usa slots — vira etiqueta de
+  // estado; o botão fica com a ação, sempre com o mesmo par de palavras das
+  // outras telas.
+  const ondeEsta = arma.slot
+    ? arma.slot.duasMaos
+      ? "Nas duas mãos"
+      : `Mão ${arma.slot.indice}`
+    : null;
 
   return (
     <>
@@ -36,40 +44,26 @@ export default function LinhaArma({ arma }: { arma: Arma }) {
             {dano && <Tag>{dano.formula}{dano.tipo ? ` ${dano.tipo}` : ""}</Tag>}
             <Tag>Crítico {arma.critico.texto}</Tag>
             {arma.alcance && <Tag>{arma.alcance}</Tag>}
+            {arma.equipado && <Tag>{ondeEsta ?? "Empunhada"}</Tag>}
           </>
         }
-        acessorio={
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {arma.equipado && ataque && (
-              <button
-                type="button"
-                onClick={() => setAtacando(true)}
-                className="flex min-h-9 items-center gap-1.5 rounded-full bg-acento px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
-              >
-                <FaKhanda aria-hidden="true" className="size-3!" />
-                Atacar
-              </button>
-            )}
-            {!somenteLeitura && (
-              <button
-                type="button"
-                onClick={() => (usaSlots ? setEscolhendoSlot(true) : alternarEquipado(arma.id))}
-                aria-pressed={arma.equipado}
-                className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition-colors ${
-                  arma.equipado ? "border-acento text-acento" : "border-borda hover:bg-foreground/5"
-                }`}
-              >
-                <FaHandFist aria-hidden="true" className="size-2.5!" />
-                {arma.slot
-                  ? arma.slot.duasMaos
-                    ? "Duas mãos"
-                    : `Mão ${arma.slot.indice}`
-                  : arma.equipado
-                    ? "Guardar"
-                    : "Equipar"}
-              </button>
-            )}
-          </div>
+        acao={
+          arma.equipado && ataque ? (
+            <AcaoPrincipal icone={FaKhanda} onClick={() => setAtacando(true)}>
+              Atacar
+            </AcaoPrincipal>
+          ) : undefined
+        }
+        acoes={
+          somenteLeitura ? undefined : (
+            <AcaoSecundaria
+              icone={FaHandFist}
+              ligado={arma.equipado}
+              onClick={() => (usaSlots ? setEscolhendoSlot(true) : alternarEquipado(arma.id))}
+            >
+              {arma.equipado ? "Equipado" : "Equipar"}
+            </AcaoSecundaria>
+          )
         }
       />
 

@@ -2,18 +2,90 @@
 
 import { FaChevronDown } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
+import type { IconType } from "react-icons";
 
 /**
- * Linha de lista que abre a descrição no lugar. Poderes, magias e itens têm o
- * mesmo formato — nome, etiquetas e um texto do compêndio que só interessa na
- * hora de usar — então compartilham o mesmo cartão.
+ * A pílula de ação principal — a que resolve o cartão: Usar, Conjurar,
+ * Atacar. Só uma por cartão, sempre no mesmo canto, em todas as telas.
+ */
+export function AcaoPrincipal({
+  icone: Icone,
+  onClick,
+  children
+}: {
+  icone: IconType;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-acento px-3.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+    >
+      <Icone aria-hidden="true" className="size-3!" />
+      {children}
+    </button>
+  );
+}
+
+/**
+ * As demais: equipar, preparar, guardar no baú. Vivem dentro do cartão
+ * aberto, nunca na lista — o cabeçalho é para ler, não para operar.
+ * `ligado` marca o estado atual (equipado, preparada, guardado).
+ */
+export function AcaoSecundaria({
+  icone: Icone,
+  onClick,
+  ligado = false,
+  children
+}: {
+  icone: IconType;
+  onClick: () => void;
+  ligado?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ligado}
+      // `w-fit` porque o bloco de ações é uma coluna flex, e sem isso o botão
+      // esticava de ponta a ponta do cartão — era o que acontecia no Combate,
+      // onde ele é o único filho.
+      className={`flex min-h-9 w-fit shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors ${
+        ligado ? "border-acento text-acento" : "border-borda hover:bg-foreground/5"
+      }`}
+    >
+      <Icone aria-hidden="true" className="size-3!" />
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Uma linha de lista da ficha — item, poder, magia, arma, armadura. Todas
+ * seguem o mesmo desenho, e é ele que faz as telas parecerem a mesma
+ * aplicação:
+ *
+ *   [img] Nome do item                            [ Ação ]
+ *         etiqueta · etiqueta · etiqueta
+ *   ─────────────────────────────────────────────────────
+ *   nome completo, dados e as ações secundárias
+ *   ─────────────────────────────────────────────────────
+ *   descrição do compêndio
+ *
+ * O cabeçalho é para correr o olho: nome, o que o item faz (as etiquetas) e
+ * a única ação que resolve aquele cartão. Tudo que muda estado — equipar,
+ * preparar, guardar, contar unidades — mora dentro, no mesmo lugar em todas
+ * as telas, e é o que separa ler de operar.
  */
 export default function CartaoExpansivel({
   nome,
   img,
   descricao,
   etiquetas,
-  acessorio,
+  acao,
   acoes,
   destacado = false
 }: {
@@ -21,15 +93,16 @@ export default function CartaoExpansivel({
   img?: string;
   descricao?: string;
   etiquetas?: ReactNode;
-  acessorio?: ReactNode;
-  /** Controles que moram dentro do cartão aberto, acima da descrição. */
+  /** A ação principal, no canto do cabeçalho. Use <AcaoPrincipal />. */
+  acao?: ReactNode;
+  /** O que aparece dentro do cartão aberto, acima da descrição. */
   acoes?: ReactNode;
   destacado?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const temDescricao = !!descricao;
   // Com ações dentro, o cartão abre mesmo sem descrição — é onde os
-  // controles do item moram agora.
+  // controles do item moram.
   const expansivel = temDescricao || !!acoes;
 
   return (
@@ -63,10 +136,10 @@ export default function CartaoExpansivel({
           {etiquetas && <span className="flex flex-row flex-wrap gap-1">{etiquetas}</span>}
         </button>
 
-        {acessorio}
+        {acao}
       </div>
 
-      {/* Antes da descrição: quem abre o cartão para conferir ou usar o item
+      {/* Antes da descrição: quem abre o cartão para conferir ou operar o item
           não precisa rolar um texto de compêndio inteiro para chegar lá. */}
       {aberto && acoes && (
         <div className="flex flex-col gap-2.5 border-t border-borda px-3 py-2.5">{acoes}</div>

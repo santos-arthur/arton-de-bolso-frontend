@@ -4,7 +4,7 @@ import { FaStar, FaWandSparkles } from "react-icons/fa6";
 import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
-import CartaoExpansivel from "../components/cartao-expansivel";
+import CartaoExpansivel, { AcaoPrincipal, AcaoSecundaria } from "../components/cartao-expansivel";
 import ModalMagia from "../components/modal-magia";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
@@ -102,40 +102,24 @@ export default function Page() {
                       {magia.escola && <Tag>{magia.escola}</Tag>}
                       {magia.tipo && <Tag>{magia.tipo}</Tag>}
                       {magia.ativacao && <Tag>{magia.ativacao}</Tag>}
+                      {magia.preparavel && magia.preparada && <Tag>Preparada</Tag>}
                     </>
                   }
-                  acessorio={
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setConjurando(magia)}
-                        className="flex min-h-9 items-center gap-1.5 rounded-full bg-acento px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+                  acao={
+                    <AcaoPrincipal icone={FaWandSparkles} onClick={() => setConjurando(magia)}>
+                      Conjurar
+                    </AcaoPrincipal>
+                  }
+                  acoes={
+                    magia.preparavel && !somenteLeitura ? (
+                      <AcaoSecundaria
+                        icone={FaStar}
+                        ligado={magia.preparada}
+                        onClick={() => alternarPreparada(magia.id)}
                       >
-                        <FaWandSparkles aria-hidden="true" className="size-3!" />
-                        Conjurar
-                      </button>
-                      {magia.preparavel &&
-                        (somenteLeitura ? (
-                          magia.preparada && (
-                            <FaStar role="img" title="Preparada" className="size-3.5! text-acento" />
-                          )
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => alternarPreparada(magia.id)}
-                            aria-pressed={magia.preparada}
-                            title={magia.preparada ? "Preparada" : "Não preparada"}
-                            className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition-colors ${
-                              magia.preparada
-                                ? "border-acento text-acento"
-                                : "border-borda opacity-60 hover:bg-foreground/5"
-                            }`}
-                          >
-                            <FaStar aria-hidden="true" className="size-3!" />
-                            {magia.preparada ? "Preparada" : "Preparar"}
-                          </button>
-                        ))}
-                    </div>
+                        {magia.preparada ? "Preparada" : "Preparar"}
+                      </AcaoSecundaria>
+                    ) : undefined
                   }
                 />
               ))}
