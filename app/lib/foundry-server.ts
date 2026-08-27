@@ -68,6 +68,20 @@ const TEMPO_SEM_ALIVE_MS = 3 * 60 * 1000;
  */
 const INTERVALO_VARREDURA_MS = 60 * 1000;
 
+/**
+ * Papel "Nenhum" (`CONST.USER_ROLES.NONE`). É o que o mestre aplica ao banir
+ * — e o "Expulsar" do Foundry é exatamente isso: banir e desbanir em seguida
+ * (`Players.#kickUser`), sem deixar rastro no estado final.
+ */
+const PAPEL_NENHUM = 0;
+
+/**
+ * Por quanto tempo lembramos de uma sessão derrubada por expulsão. Serve só
+ * para o stream ainda conseguir dizer *por que* fechou quando o navegador
+ * reconectar — passado isso, é uma sessão desconhecida como qualquer outra.
+ */
+const MEMORIA_EXPULSAO_MS = 5 * 60 * 1000;
+
 const ERRO_USUARIO_EM_USO =
   "Este usuário já está conectado. Saia da outra sessão antes de entrar por aqui.";
 
@@ -208,7 +222,7 @@ function aguardarSessao(socket: Socket): Promise<{ sessionId: string | null; use
 
 /** Resposta do `getJoinData` do Foundry — a mesma que alimenta a tela de entrada dele. */
 type DadosDeEntrada = {
-  users?: Array<{ _id?: string; id?: string; name?: string }>;
+  users?: Array<{ _id?: string; id?: string; name?: string; role?: number }>;
   /** Ids de quem o Foundry considera conectado agora (client aberto ou socket autenticado). */
   activeUsers?: string[];
 };
@@ -263,6 +277,19 @@ function usuariosOcupados(ativosNoFoundry: string[] = []): Set<string> {
   for (const userId of loginsEmAndamento) ocupados.add(userId);
   return ocupados;
 }
+
+/**
+ * Banido é quem o mestre pôs no papel "Nenhum" — no Foundry ele deixa de
+ * conseguir entrar, e pelo app não pode ser diferente. Note que o "Expulsar"
+ * passa por este mesmo estado, mas só por alguns milissegundos: a chance de
+ * uma leitura cair exatamente nessa fresta é remota, e o preço seria uma
+ * mensagem trocada numa tentativa que funciona na seguinte.
+ */
+function estaBanido(dados: DadosDeEntrada, userId: string): boolean {
+  return (dados.users ?? []).some((u) => (u._id ?? u.id) === userId && u.role === PAPEL_NENHUM);
+}
+
+const ERRO_USUARIO_BANIDO = "Este usuário está banido no Foundry — fale com o mestre.";
 
 /**
  * A tela de login fica reperguntando quem está livre (ver o polling no
@@ -326,13 +353,14 @@ export async function autenticar(
   // A lista da tela pode estar velha (alguém entrou nos últimos segundos),
   // então a decisão de verdade é tomada aqui, com dados frescos — nunca com
   // o cache que a listagem serve.
-  let ativosNoFoundry: string[] = [];
+  let dadosFrescos: DadosDeEntrada;
   try {
-    ativosNoFoundry = (await lerDadosDeEntrada(sessionId)).activeUsers ?? [];
+    dadosFrescos = await lerDadosDeEntrada(sessionId);
   } catch (erro) {
     return { sucesso: false, erro: (erro as Error).message };
   }
-  if (usuariosOcupados(ativosNoFoundry).has(userid)) {
+  if (estaBanido(dadosFrescos, userid)) return { sucesso: false, erro: ERRO_USUARIO_BANIDO };
+  if (usuariosOcupados(dadosFrescos.activeUsers ?? []).has(userid)) {
     return { sucesso: false, erro: ERRO_USUARIO_EM_USO };
   }
 
@@ -384,6 +412,69 @@ async function concluirLogin(
   return { sucesso: true, sessaoId: criarSessaoLocal(sessionId, sessaoFoundry.userId, socket).id };
 }
 
+/** Recorte do `modifyDocument` que o Foundry transmite a cada escrita — só olhamos updates de usuário. */
+type PacoteDocumento = {
+  type?: string;
+  action?: string;
+  result?: Array<{ _id?: string; role?: number }>;
+};
+
+/**
+ * Presença no Foundry. Sem isto, quem entra pelo app não aparece na lista de
+ * jogadores do mestre: o servidor só conta como ativo quem anuncia atividade,
+ * e um socket autenticado calado não conta. Como o "Expulsar" do menu exige o
+ * jogador ativo, sem presença o mestre não teria nem como expulsar alguém que
+ * está só no app.
+ *
+ * Uma emissão basta — a presença vale enquanto este socket viver.
+ */
+function marcarPresenca(sessao: SessaoServidor, ativo: boolean) {
+  sessao.socket.emit("userActivity", sessao.foundryUserId, { active: ativo });
+}
+
+/**
+ * Sessões derrubadas por expulsão, e quando. O stream lê daqui para dizer ao
+ * navegador que ele não caiu por falha de rede — foi o mestre que o tirou.
+ */
+const expulsas = new Map<string, number>();
+
+export function foiExpulsa(sessaoId: string | undefined | null): boolean {
+  return !!sessaoId && expulsas.has(sessaoId);
+}
+
+/**
+ * O mestre expulsou este jogador. Diferente de tudo mais que derruba uma
+ * sessão, aqui a do Foundry precisa morrer junto: o "Expulsar" só desconecta
+ * clients de jogo (o nosso socket nem sente), a sessão de lá continua válida
+ * por 24h e é ela que o cookie do navegador aponta. Sem o logout, o app
+ * voltaria sozinho, sem senha, no carregamento seguinte — e a expulsão não
+ * teria significado nenhum.
+ */
+function expulsarSessao(sessao: SessaoServidor) {
+  const ouvintes = [...sessao.ouvintes];
+  expulsas.set(sessao.id, Date.now());
+  encerrarSessao(sessao.id);
+  void deslogarNoFoundry(sessao.id);
+  // Depois de `encerrarSessao` a sessão não tem mais ouvintes registrados —
+  // avisar a cópia é o que faz o stream fechar agora, em vez de no próximo
+  // ping.
+  ouvintes.forEach((notificar) => notificar());
+}
+
+/**
+ * Desfaz o vínculo entre a sessão e o usuário no Foundry. É o mesmo caminho
+ * do logout nativo: `game.logOut()` só navega para `/join`, e é o GET que o
+ * servidor trata como "esqueça quem estava logado nesta sessão".
+ */
+async function deslogarNoFoundry(sessaoId: string) {
+  try {
+    await buscarComTimeout(`${FOUNDRY_URL}/join`, { headers: { Cookie: `session=${sessaoId}` } });
+  } catch {
+    // A sessão já morreu aqui de qualquer forma; no pior caso o cookie
+    // continua valendo lá até o Foundry expirá-lo.
+  }
+}
+
 /**
  * Monta a sessão em memória em volta de um socket já autenticado — o mesmo
  * fim de linha do login e da restauração.
@@ -405,6 +496,20 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     ultimoAlive: Date.now()
   };
   sessoes.set(sessaoId, sessao);
+
+  marcarPresenca(sessao, true);
+  // socket.io reconecta sozinho, e o Foundry esquece a presença junto com a
+  // conexão antiga — sem remarcar, o jogador some da lista do mestre depois
+  // de qualquer tranco de rede.
+  socket.on("connect", () => marcarPresenca(sessao, true));
+
+  socket.on("modifyDocument", (pacote: PacoteDocumento) => {
+    if (pacote?.type !== "User" || pacote?.action !== "update") return;
+    const expulso = (pacote.result ?? []).some(
+      (documento) => documento?._id === sessao.foundryUserId && documento?.role === PAPEL_NENHUM
+    );
+    if (expulso) expulsarSessao(sessao);
+  });
 
   socket.on(MODULE_EVENTO, (mensagem: MensagemDoFoundry) => {
     if (mensagem.tipo === "ficha") {
@@ -461,6 +566,14 @@ async function restaurarSessao(sessaoId: string): Promise<SessaoServidor | null>
     return null;
   }
 
+  // Um banimento aplicado enquanto o app estava fechado não chega por socket
+  // nenhum — a única forma de respeitá-lo é conferir na volta.
+  if (estaBanido(await lerDadosDeEntradaComCache().catch(() => ({})), info.userId)) {
+    socket.disconnect();
+    void deslogarNoFoundry(sessaoId);
+    return null;
+  }
+
   // `usuariosOcupados()` sem argumento de propósito: o `activeUsers` do
   // Foundry ainda conta este usuário (a sessão dele segue viva lá), então
   // olhar pra ele faria a sessão barrar a si mesma. O que importa é se *outra*
@@ -509,6 +622,9 @@ function expirarSessoesAbandonadas() {
   const agora = Date.now();
   for (const [id, sessao] of sessoes) {
     if (agora - sessao.ultimoAlive > TEMPO_SEM_ALIVE_MS) encerrarSessao(id);
+  }
+  for (const [id, quando] of expulsas) {
+    if (agora - quando > MEMORIA_EXPULSAO_MS) expulsas.delete(id);
   }
 }
 
@@ -582,6 +698,9 @@ export function encerrarSessao(sessaoId: string | undefined | null) {
   if (!sessaoId) return;
   const sessao = sessoes.get(sessaoId);
   if (!sessao) return;
+  // Antes de desligar: o mestre vê o jogador sair na hora, em vez de esperar
+  // o Foundry notar a conexão caída.
+  marcarPresenca(sessao, false);
   sessao.socket.disconnect();
   sessoes.delete(sessaoId);
   // Quem acabou de sair precisa reaparecer livre na próxima listagem, não

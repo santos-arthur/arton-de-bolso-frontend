@@ -254,6 +254,16 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         encerrarTroca();
       } else if (mensagem.tipo === "personagens") {
         setPersonagens({ meus: mensagem.meus, companheiros: mensagem.companheiros });
+      } else if (mensagem.tipo === "expulso") {
+        // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
+        // stream aqui para o onerror não tratar isto como falha de rede.
+        stream.close();
+        setFicha(null);
+        setPersonagens(null);
+        encerrarTroca();
+        setErroServidor(null);
+        carregarUsuariosELogin();
+        setErroLogin("O mestre desconectou você do jogo.");
       } else if (mensagem.tipo === "erro") {
         setErroServidor(mensagem.mensagem);
         encerrarTroca();

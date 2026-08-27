@@ -31,7 +31,8 @@ política de cookie de navegador).
 - **`app/api/usuarios`** — lista de usuários do Foundry (pro dropdown de
   login), cada um com `ocupado`: quem já está conectado (client do Foundry
   aberto, ou sessão aberta aqui) aparece como "(em uso)" e não pode ser
-  escolhido. A recusa de verdade é do servidor — `autenticar()` reconfere
+  escolhido. Quem está banido no Foundry é recusado no login. A recusa de
+  verdade é do servidor — `autenticar()` reconfere
   antes do `POST /join`, com dados frescos. Ver
   [`../docs/arquitetura.md`](../docs/arquitetura.md#login-exclusivo-por-usuário-2026-08-26).
 - **`app/api/ficha/eventos`** — Server-Sent Events: empurra a ficha (e
@@ -41,6 +42,16 @@ política de cookie de navegador).
 - **[`app/lib/foundry-provider.tsx`](app/lib/foundry-provider.tsx)** — único
   arquivo do lado do navegador que sabe desses endpoints; todo o resto da UI
   usa só `useFoundry()`.
+
+## Expulsando um jogador
+
+Quem entra pelo app aparece na lista de jogadores do Foundry como qualquer
+outro, e o **"Expulsar"** do mestre derruba a sessão dele aqui: o app cai na
+tela de login avisando quem o desconectou, e voltar exige senha de novo — a
+sessão do Foundry é encerrada junto, senão o cookie traria o jogador de volta
+sozinho. "Banir" também é respeitado, inclusive com o app fechado. Os detalhes
+(e o que foi medido para chegar neles) estão em
+[`../docs/arquitetura.md`](../docs/arquitetura.md#expulsar-pelo-foundry-derruba-a-sessão-do-app-2026-08-27).
 
 ## Variáveis de ambiente
 

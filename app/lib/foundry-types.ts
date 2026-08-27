@@ -300,4 +300,6 @@ export type MensagemDoFoundry =
   | { tipo: "ficha"; ficha: Ficha }
   | ({ tipo: "personagens" } & ListaPersonagens)
   | { tipo: "semFicha" }
-  | { tipo: "erro"; mensagem: string };
+  | { tipo: "erro"; mensagem: string }
+  /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
+  | { tipo: "expulso" };

@@ -1,5 +1,12 @@
 import { cookies } from "next/headers";
-import { COOKIE_SESSAO, estadosAtuais, inscrever, obterSessao, sessaoExiste } from "../../../lib/foundry-server";
+import {
+  COOKIE_SESSAO,
+  estadosAtuais,
+  foiExpulsa,
+  inscrever,
+  obterSessao,
+  sessaoExiste
+} from "../../../lib/foundry-server";
 import type { MensagemDoFoundry } from "../../../lib/foundry-types";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +47,12 @@ export async function GET() {
       const enviarEstado = () => {
         // A sessão some do mapa quando o Foundry a invalida (mundo relançado,
         // expirou). Fechar o stream faz o navegador reagir e voltar pro login.
-        if (!sessaoExiste(sessaoId)) return encerrar();
+        if (!sessaoExiste(sessaoId)) {
+          // Expulsão é a única saída que tem um porquê a contar: sem isto o
+          // jogador veria a tela de login sem explicação nenhuma.
+          if (foiExpulsa(sessaoId)) controller.enqueue(codificador.encode(linhaSSE({ tipo: "expulso" })));
+          return encerrar();
+        }
         for (const estado of estadosAtuais(sessaoId!)) {
           controller.enqueue(codificador.encode(linhaSSE(estado)));
         }
