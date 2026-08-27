@@ -101,6 +101,8 @@ export type Aprimoramento = {
   modificadores: ModificadorAprimoramento[];
   /** Repetível: pode ser aplicado mais de uma vez, pagando de novo. */
   aumenta: boolean;
+  /** Já vem marcado: é algo que o personagem tem ligado sempre, não uma escolha do momento. */
+  ativoPorPadrao: boolean;
 };
 
 /** Ataque de uma arma, decomposto — o total que se soma ao 1d20. */

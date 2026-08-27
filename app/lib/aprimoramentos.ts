@@ -17,15 +17,25 @@ export function aprimoramentosDe(
   idDoAlvo?: string
 ): Aprimoramento[] {
   const alvo = nomeDoAlvo ? normalizar(nomeDoAlvo) : null;
-  return todos.filter((a) => {
-    // "self" é um upgrade do próprio item (a "Maciça" numa arma): vale só
-    // para ela, e não para todas as armas do personagem.
-    const doProprioItem = a.escopos.includes("self") && idDoAlvo && a.origemId === idDoAlvo;
-    if (!a.escopos.includes(escopo) && !doProprioItem) return false;
-    if (!a.restritoA.length) return true;
-    if (!alvo) return true;
-    return a.restritoA.some((nome) => normalizar(nome) === alvo);
-  });
+  // "self" é um upgrade do próprio item (a "Maciça" numa arma, o aprimoramento
+  // escrito na própria magia): vale só para ele, não para todos do tipo.
+  const doProprioItem = (a: Aprimoramento) =>
+    a.escopos.includes("self") && !!idDoAlvo && a.origemId === idDoAlvo;
+
+  return todos
+    .filter((a) => {
+      if (!a.escopos.includes(escopo) && !doProprioItem(a)) return false;
+      if (!a.restritoA.length) return true;
+      if (!alvo) return true;
+      return a.restritoA.some((nome) => normalizar(nome) === alvo);
+    })
+    // Os do próprio item primeiro: são os que o jogador procura ao abrir a
+    // magia ("aumenta a cura em +1d8"), enquanto os gerais valem para tudo e
+    // servem de complemento.
+    .sort((a, b) => {
+      const proprio = Number(doProprioItem(b)) - Number(doProprioItem(a));
+      return proprio || a.nome.localeCompare(b.nome, "pt-BR");
+    });
 }
 
 /** Soma dos modificadores de uma chave ("roll" num teste, "ataque" num golpe). */

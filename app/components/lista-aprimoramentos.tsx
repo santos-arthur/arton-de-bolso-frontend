@@ -15,25 +15,71 @@ export type UsoDeAprimoramentos = ReturnType<typeof useAprimoramentos>;
  * no Foundry — é o caso do "Golpe Divino: Aumentar dano +1d8", em que cada
  * PM extra soma mais um d8. Custo e bônus crescem juntos, como no sistema.
  */
-export function useAprimoramentos(aplicaveis: Aprimoramento[]) {
+/**
+ * `custoBase` é o que a ação custa antes de qualquer aprimoramento — o PM da
+ * própria magia. Ataque não tem: a arma não custa PM, só os aprimoramentos.
+ *
+ * `exclusivo` descreve o aprimoramento que muda a natureza da ação em vez de
+ * somar a ela — nas magias, o truque. Escolhido um desses, o custo inteiro
+ * zera (nem a ação em si é cobrada) e o que ele `exclui` sai de cena: fica
+ * desmarcado e travado. Quem diz o que conta como exclusivo, o que ele
+ * exclui e como chamá-lo na tela é quem usa o hook — a regra e a palavra são
+ * de magia, não daqui.
+ */
+export function useAprimoramentos(
+  aplicaveis: Aprimoramento[],
+  custoBase = 0,
+  exclusivos?: {
+    quando: (item: Aprimoramento) => boolean;
+    /** O que o exclusivo desliga. Fora disso, tudo segue disponível. */
+    exclui: (item: Aprimoramento) => boolean;
+    rotulo: string;
+  }
+) {
   const { ficha, somenteLeitura, ajustarPM } = useFoundry();
-  const [vezes, setVezes] = useState<Record<string, number>>({});
+  // Quem já vem ligado na ficha entra marcado: o jogador não precisa lembrar
+  // de ativar todo turno o que o personagem tem sempre. Continua desmarcável.
+  const [vezes, setVezes] = useState<Record<string, number>>(() =>
+    Object.fromEntries(aplicaveis.filter((item) => item.ativoPorPadrao).map((item) => [item.id, 1]))
+  );
   const [pago, setPago] = useState(false);
 
   const pmAtual = ficha?.pm.atual ?? 0;
   const quantidadeDe = (item: Aprimoramento) => vezes[item.id] ?? 0;
   const escolhidos = aplicaveis.filter((item) => quantidadeDe(item) > 0);
 
-  const custoTotal = escolhidos.reduce(
-    (soma, item) => soma + Math.max(0, item.custo) * quantidadeDe(item),
-    0
-  );
+  const exclusivo = exclusivos ? (escolhidos.find(exclusivos.quando) ?? null) : null;
+
+  /** "Truque" no lugar do custo, para o que não se mede em PM. */
+  const rotuloExclusivo = (item: Aprimoramento) =>
+    exclusivos?.quando(item) ? exclusivos.rotulo : null;
+
+  // Custo negativo é desconto de verdade ("−1 PM nesta magia") e entra na
+  // soma; o que ele não pode é virar crédito, daí o piso em zero.
+  const custoTotal = exclusivo
+    ? 0
+    : Math.max(0, escolhidos.reduce((soma, item) => soma + item.custo * quantidadeDe(item), custoBase));
   const semPM = custoTotal > pmAtual;
-  const travado = (item: Aprimoramento) => pago && item.custo > 0;
+  // Trava por dois motivos: já foi pago (não dá pra mexer no que se gastou) ou
+  // um exclusivo está em uso e este é um dos que ele desliga.
+  const travado = (item: Aprimoramento) =>
+    (pago && item.custo > 0) ||
+    (!!exclusivo && item.id !== exclusivo.id && !!exclusivos?.exclui(item));
 
   function definir(item: Aprimoramento, quantidade: number) {
     if (travado(item)) return;
-    setVezes((atual) => ({ ...atual, [item.id]: Math.max(0, quantidade) }));
+    setVezes((atual) => {
+      const novo = { ...atual, [item.id]: Math.max(0, quantidade) };
+      // Ligar o truque apaga o que ele exclui: são jeitos diferentes de
+      // lançar a mesma magia, não se somam. Deixar marcado o que vai travar
+      // em seguida daria a entender que ainda vale.
+      if (quantidade > 0 && exclusivos?.quando(item)) {
+        for (const outro of aplicaveis) {
+          if (outro.id !== item.id && exclusivos.exclui(outro)) novo[outro.id] = 0;
+        }
+      }
+      return novo;
+    });
   }
 
   /** Soma dos bônus numéricos de uma chave ("roll", "ataque", "dano"). */
@@ -70,6 +116,9 @@ export function useAprimoramentos(aplicaveis: Aprimoramento[]) {
     escolhidos,
     pmAtual,
     custoTotal,
+    /** Aprimoramento exclusivo em uso (o truque), ou null. */
+    exclusivo,
+    rotuloExclusivo,
     semPM,
     pago,
     somenteLeitura,
@@ -151,7 +200,10 @@ function Linha({
     })
     .filter(Boolean);
 
-  const custo = item.custo > 0 ? `${item.custo * Math.max(1, quantidade)} PM` : "sem custo";
+  // Truque não é "de graça": é outro jeito de lançar a magia, e a palavra na
+  // etiqueta é o que o jogador procura na lista.
+  const custo =
+    uso.rotuloExclusivo(item) ?? (item.custo > 0 ? `${item.custo * Math.max(1, quantidade)} PM` : "sem custo");
   const detalhes = [...efeitos, custo].join(" · ");
 
   const conteudo = (
