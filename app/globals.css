@@ -23,7 +23,7 @@
   --superficie: var(--color-olive-900);
   --superficie-alta: var(--color-olive-700);
   --borda: color-mix(in oklab, var(--color-olive-400) 22%, transparent);
-  --acento: var(--color-red-800);
+  --acento: var(--color-red-500);
   color-scheme: dark;
 }
 

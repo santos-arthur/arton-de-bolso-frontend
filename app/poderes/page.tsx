@@ -40,7 +40,9 @@ export default function Page() {
 
   return (
     <PaginaFicha>
-      <CabecalhoPagina titulo="Poderes">{poderes.length}</CabecalhoPagina>
+      <CabecalhoPagina titulo="Poderes">
+        {poderes.length} {poderes.length === 1 ? "poder" : "poderes"}
+      </CabecalhoPagina>
 
       {poderes.length > 6 && (
         <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar poder..." />

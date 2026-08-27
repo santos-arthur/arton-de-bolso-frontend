@@ -78,6 +78,15 @@ function definirRecursoLocal(ficha: Ficha, chave: "pv" | "pm", valor: number): F
   return { ...ficha, [chave]: { ...recurso, atual: limitado } };
 }
 
+function alternarPreparadaLocal(ficha: Ficha, magiaId: string): Ficha {
+  return {
+    ...ficha,
+    magias: ficha.magias.map((magia) =>
+      magia.id === magiaId ? { ...magia, preparada: !magia.preparada } : magia
+    )
+  };
+}
+
 function alternarEquipadoLocal(ficha: Ficha, itemId: string): Ficha {
   return {
     ...ficha,
@@ -116,6 +125,8 @@ type FoundryContextValue = {
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
   definirTemporario: (recurso: "pv" | "pm", valor: number) => void;
   alternarEquipado: (itemId: string) => void;
+  /** Marca/desmarca a magia como preparada — só para quem prepara (ver `preparavel`). */
+  alternarPreparada: (magiaId: string) => void;
   /** Põe um item num slot de mão ou de vestido; `idAtual` é quem estava lá. */
   equiparEmSlot: (itemId: string, contexto: "hand" | "body", indice: number, idAtual: string | null) => void;
   ajustarDinheiro: (moeda: string, valor: number) => void;
@@ -439,6 +450,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       })),
     alternarEquipado: (itemId) =>
       agir({ tipo: "alternarEquipado", itemId }, (f) => alternarEquipadoLocal(f, itemId)),
+    alternarPreparada: (magiaId) =>
+      agir({ tipo: "alternarPreparada", magiaId }, (f) => alternarPreparadaLocal(f, magiaId)),
     // Sem palpite otimista: trocar de slot desequipa outros itens por regras
     // do sistema (duas mãos libera as duas, armadura tira armadura), e errar
     // esse encadeamento na tela é pior que esperar o push.

@@ -79,6 +79,8 @@ export type ModificadorAprimoramento = {
   valor: number | null;
   /** A fórmula crua ("@int", "1d8"), para exibir quando não resolve. */
   formula: string;
+  /** Modo do Active Effect: 5 substitui o campo, o resto soma. */
+  modo: number;
 };
 
 /**
@@ -205,6 +207,20 @@ export type Poder = {
   descricao: string;
 };
 
+/**
+ * Uma rolagem de magia. Parecida com a de arma, mas não é a mesma coisa: aqui
+ * não há atributo somado nem crítico, e o que a fórmula faz ("Cura", "PM
+ * recuperados", "Fogo") é próprio de magia.
+ */
+export type RolagemMagia = {
+  nome: string;
+  formula: string;
+  /** O que a fórmula faz com os pontos; vazio quando a magia não diz. */
+  efeito: string;
+  fixo: number;
+  itens: ItemDetalhe[];
+};
+
 export type Magia = {
   id: string;
   nome: string;
@@ -213,8 +229,21 @@ export type Magia = {
   escola: string;
   tipo: string;
   preparada: boolean;
+  /** Esta ficha usa preparação de magias? Falso para conjurador espontâneo. */
+  preparavel: boolean;
   ativacao: string;
   descricao: string;
+  /** Custo em PM da magia sozinha, sem aprimoramento nenhum. */
+  custo: number;
+  alcance: string;
+  alvo: string;
+  area: string;
+  duracao: string;
+  /** Texto da magia ("Vontade anula"); vazio quando não permite resistência. */
+  resistencia: string;
+  /** CD do conjurador — é do personagem, não da magia. */
+  cd: number | null;
+  rolagens: RolagemMagia[];
 };
 
 export type Ficha = {
@@ -293,6 +322,7 @@ export type MensagemParaFoundry =
   | { tipo: "definirAtual"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "definirTemporario"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "alternarEquipado"; itemId: string }
+  | { tipo: "alternarPreparada"; magiaId: string }
   | { tipo: "equiparEmSlot"; itemId: string; contexto: "hand" | "body"; indice: number; idAtual: string | null }
   | { tipo: "ajustarDinheiro"; moeda: string; valor: number }
   | { tipo: "descansar"; opcoes: OpcoesDescanso };
