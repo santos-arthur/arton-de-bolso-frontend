@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import BarraEspacos from "../components/barra-espacos";
 import CampoBusca, { normalizar } from "../components/campo-busca";
 import LinhaItem from "../components/linha-item";
 import PaginaFicha from "../components/pagina-ficha";
@@ -69,6 +70,8 @@ export default function Page() {
       <CabecalhoPagina titulo="Inventário">
         {totalItens} {totalItens === 1 ? "item" : "itens"}
       </CabecalhoPagina>
+
+      <BarraEspacos carga={ficha.carga} />
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-row items-baseline justify-between gap-3">

@@ -254,6 +254,12 @@ export type ConfigEquipamento = {
 
 export type GrupoInventario = { tipo: string; label: string; itens: ItemInventario[] };
 
+/**
+ * Espaços da mochila. `limite` é o que o personagem carrega sem sobrecarga
+ * (base + Força ×2) e `max` é o dobro dele — o teto do que dá para arrastar.
+ */
+export type Carga = { atual: number; limite: number; max: number };
+
 export type Poder = {
   id: string;
   nome: string;
@@ -336,6 +342,7 @@ export type Ficha = {
   pericias: Pericia[];
   dinheiro: Moeda[];
   inventario: GrupoInventario[];
+  carga: Carga;
   poderes: Poder[];
   magias: Magia[];
   aprimoramentos: Aprimoramento[];
