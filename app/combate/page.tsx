@@ -3,10 +3,12 @@
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoComDetalhe from "../components/campo-com-detalhe";
 import LinhaArma from "../components/linha-arma";
+import LinhaItem from "../components/linha-item";
 import LinhaProtecao from "../components/linha-protecao";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
+import type { ItemInventario } from "../lib/foundry-types";
 
 /**
  * PV, PM e Defesa vivem no cabeçalho, visível em todas as seções — repeti-los
@@ -18,7 +20,7 @@ const CARTAO_DESLOCAMENTO =
   "flex w-full min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left";
 
 export default function Page() {
-  const { ficha } = useFoundry();
+  const { ficha, somenteLeitura, alternarEquipado } = useFoundry();
 
   if (!ficha) return null;
 
@@ -28,6 +30,20 @@ export default function Page() {
   const protecoes = ficha.protecoes ?? [];
   const vestidas = protecoes.filter((p) => p.equipado);
   const naMochila = protecoes.filter((p) => !p.equipado);
+
+  // Mão ocupada não é só arma: a tocha, a corda presa, o foco de conjuração.
+  // Quem já tem seção própria — armas e proteções — fica de fora para não
+  // aparecer duas vezes na mesma tela.
+  const jaListados = new Set([...armas.map((a) => a.id), ...protecoes.map((p) => p.id)]);
+  const naMao = (item: ItemInventario) =>
+    ficha.configEquipamento.usaSlots
+      ? item.slot?.tipo === "mao"
+      : // Sem slots o sistema só sabe "equipado"; onde ele *pode* ser posto
+        // (`equipado2.type`) é o que resta para separar mão de vestido.
+        ["hand", "both"].includes(item.tipoSlot);
+  const itensEmMaos = ficha.inventario
+    .flatMap((grupo) => grupo.itens)
+    .filter((item) => item.equipado && !jaListados.has(item.id) && naMao(item));
   const { movimento, tamanho, resistencias, imunidadesCondicoes } = ficha;
 
   const visorDeslocamento = (
@@ -86,12 +102,20 @@ export default function Page() {
 
       <div className="flex flex-col gap-2">
         <TituloSecao>Em punho</TituloSecao>
-        {equipadas.length === 0 ? (
-          <EstadoVazio>Nenhuma arma equipada.</EstadoVazio>
+        {equipadas.length === 0 && itensEmMaos.length === 0 ? (
+          <EstadoVazio>Nada nas mãos.</EstadoVazio>
         ) : (
           <ul className="flex flex-col gap-2">
             {equipadas.map((arma) => (
               <LinhaArma key={arma.id} arma={arma} />
+            ))}
+            {itensEmMaos.map((item) => (
+              <LinhaItem
+                key={item.id}
+                item={item}
+                somenteLeitura={somenteLeitura}
+                aoAlternarEquipado={() => alternarEquipado(item.id)}
+              />
             ))}
           </ul>
         )}
