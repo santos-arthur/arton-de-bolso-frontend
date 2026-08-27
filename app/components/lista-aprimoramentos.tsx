@@ -299,7 +299,9 @@ function Contador({
       >
         <FaPlus aria-hidden="true" className="size-2.5!" />
       </button>
-      <span className="numero text-sm font-bold leading-none">{quantidade}×</span>
+      {/* Mesma largura dos botões: o número cresce para dois dígitos sem
+          empurrar nada. */}
+      <span className="numero w-8 text-center text-sm font-bold leading-none">{quantidade}×</span>
       <button
         type="button"
         onClick={() => aoMudar(quantidade - 1)}

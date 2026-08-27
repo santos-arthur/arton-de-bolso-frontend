@@ -24,6 +24,10 @@ export function aprimoramentosDe(
 
   return todos
     .filter((a) => {
+      // Aprimoramento que mora num consumível acabado não é uma opção: sem
+      // frasco na mochila não há o que marcar. O item continua na ficha com
+      // quantidade 0 — some daqui, não de lá.
+      if (a.consumo && a.consumo.disponivel <= 0) return false;
       if (!a.escopos.includes(escopo) && !doProprioItem(a)) return false;
       if (!a.restritoA.length) return true;
       if (!alvo) return true;

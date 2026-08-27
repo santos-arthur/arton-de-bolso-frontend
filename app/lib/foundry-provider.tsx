@@ -100,35 +100,28 @@ function alternarEquipadoLocal(ficha: Ficha, itemId: string): Ficha {
   };
 }
 
-/**
- * Baixa da mochila o que o uso gastou. Item que zera sai da lista — é o que o
- * Foundry vai fazer com a última flecha, e deixar um "0×" na tela até o push
- * chegar mostraria um item que já não existe.
- *
- * Só o que foi gasto é filtrado: um item que já estava zerado por outro
- * motivo continua onde está, porque não cabe a este palpite limpar a ficha.
- */
+/** Muda a quantidade de itens da mochila, com piso em zero. Item zerado fica na lista. */
+function mudarQuantidadesLocal(ficha: Ficha, porItem: Map<string, number>): Ficha {
+  return {
+    ...ficha,
+    inventario: ficha.inventario.map((grupo) => ({
+      ...grupo,
+      itens: grupo.itens.map((item) => {
+        const delta = porItem.get(item.id);
+        return delta ? { ...item, quantidade: Math.max(0, item.quantidade + delta) } : item;
+      })
+    }))
+  };
+}
+
+/** Baixa da mochila o que o uso gastou. */
 function gastarItensLocal(ficha: Ficha, itens: GastoDeUso["itens"]): Ficha {
   if (!itens.length) return ficha;
   const pedidos = new Map<string, number>();
   for (const { itemId, quantidade } of itens) {
-    pedidos.set(itemId, (pedidos.get(itemId) ?? 0) + quantidade);
+    pedidos.set(itemId, (pedidos.get(itemId) ?? 0) - quantidade);
   }
-
-  return {
-    ...ficha,
-    inventario: ficha.inventario
-      .map((grupo) => ({
-        ...grupo,
-        itens: grupo.itens
-          .map((item) => {
-            const gasto = pedidos.get(item.id);
-            return gasto ? { ...item, quantidade: item.quantidade - gasto } : item;
-          })
-          .filter((item) => !pedidos.has(item.id) || item.quantidade > 0)
-      }))
-      .filter((grupo) => grupo.itens.length)
-  };
+  return mudarQuantidadesLocal(ficha, pedidos);
 }
 
 type FoundryContextValue = {
@@ -157,6 +150,8 @@ type FoundryContextValue = {
   definirAtual: (recurso: "pv" | "pm", valor: number) => void;
   definirTemporario: (recurso: "pv" | "pm", valor: number) => void;
   alternarEquipado: (itemId: string) => void;
+  /** Contador da mochila: soma unidades ao item (negativo tira; nunca passa de zero). */
+  ajustarQuantidade: (itemId: string, delta: number) => void;
   /** Marca/desmarca a magia como preparada — só para quem prepara (ver `preparavel`). */
   alternarPreparada: (magiaId: string) => void;
   /** Põe um item num slot de mão ou de vestido; `idAtual` é quem estava lá. */
@@ -484,6 +479,10 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       })),
     alternarEquipado: (itemId) =>
       agir({ tipo: "alternarEquipado", itemId }, (f) => alternarEquipadoLocal(f, itemId)),
+    ajustarQuantidade: (itemId, delta) =>
+      agir({ tipo: "ajustarQuantidade", itemId, delta }, (f) =>
+        mudarQuantidadesLocal(f, new Map([[itemId, delta]]))
+      ),
     alternarPreparada: (magiaId) =>
       agir({ tipo: "alternarPreparada", magiaId }, (f) => alternarPreparadaLocal(f, magiaId)),
     // Sem palpite otimista: trocar de slot desequipa outros itens por regras

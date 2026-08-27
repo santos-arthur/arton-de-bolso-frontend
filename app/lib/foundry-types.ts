@@ -352,6 +352,8 @@ export type MensagemParaFoundry =
   | { tipo: "definirAtual"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "definirTemporario"; recurso: "pv" | "pm"; valor: number }
   | { tipo: "alternarEquipado"; itemId: string }
+  /** Contador da mochila: soma `delta` unidades ao item (nunca abaixo de zero). */
+  | { tipo: "ajustarQuantidade"; itemId: string; delta: number }
   | { tipo: "alternarPreparada"; magiaId: string }
   | { tipo: "equiparEmSlot"; itemId: string; contexto: "hand" | "body"; indice: number; idAtual: string | null }
   | { tipo: "ajustarDinheiro"; moeda: string; valor: number }
