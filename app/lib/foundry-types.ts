@@ -228,6 +228,10 @@ export type ItemInventario = {
   nome: string;
   img: string;
   quantidade: number;
+  /** Preço de uma unidade, em T$ (a moeda base); pode ser fracionário. */
+  preco: number;
+  /** Espaços que uma unidade ocupa na mochila; meio espaço é comum. */
+  espacos: number;
   /** Preenchido quando o consumível tem efeito, resistência ou custo — o resto da mochila não se "usa". */
   uso: UsoDeConsumivel | null;
   equipavel: boolean;

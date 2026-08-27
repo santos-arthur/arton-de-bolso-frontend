@@ -1,6 +1,7 @@
 "use client";
 
-import { FaHandFist, FaHandSparkles, FaMinus, FaPlus } from "react-icons/fa6";
+import { FaCoins, FaHandFist, FaHandSparkles, FaMinus, FaPlus } from "react-icons/fa6";
+import { GiBackpack } from "react-icons/gi";
 import { useState } from "react";
 import CartaoExpansivel from "./cartao-expansivel";
 import ModalConsumivel from "./modal-consumivel";
@@ -44,6 +45,34 @@ function Contador({ quantidade, aoMudar }: { quantidade: number; aoMudar: (delta
   );
 }
 
+/** Duas casas: preço vem com "0,5 T$" e espaço com "0,5", nunca "0,50". */
+const numero = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+
+/**
+ * Ficha do item dentro do cartão aberto: o nome inteiro (no cabeçalho ele é
+ * truncado) e o que a mochila cobra por ele — quanto vale e quanto ocupa.
+ * Por unidade, como o Foundry guarda.
+ */
+function Ficha({ item }: { item: ItemInventario }) {
+  const dado = "flex flex-row items-center gap-1.5 whitespace-nowrap";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-bold">{item.nome}</span>
+      <span className="numero flex flex-row flex-wrap items-center gap-x-4 gap-y-1 text-xs opacity-70">
+        <span className={dado}>
+          <FaCoins aria-hidden="true" className="size-3! opacity-70" />
+          {numero.format(item.preco)} T$
+        </span>
+        <span className={dado}>
+          <GiBackpack aria-hidden="true" className="size-3.5! opacity-70" />
+          {numero.format(item.espacos)} {item.espacos === 1 ? "espaço" : "espaços"}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 /** Item da mochila. Usado no Inventário e no Combate (armas em punho). */
 export default function LinhaItem({
   item,
@@ -77,23 +106,26 @@ export default function LinhaItem({
       descricao={item.descricao}
       destacado={item.equipado}
       acoes={
-        usavel || temContador ? (
-          <>
-            {usavel ? (
-              <button
-                type="button"
-                onClick={() => setUsando(true)}
-                className="flex min-h-9 items-center gap-1.5 rounded-full bg-acento px-4 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
-              >
-                <FaHandSparkles aria-hidden="true" className="size-3!" />
-                Usar
-              </button>
-            ) : (
-              <span className="text-xs opacity-55">Unidades na mochila</span>
-            )}
-            {temContador && <Contador quantidade={contador.valor} aoMudar={contador.ajustar} />}
-          </>
-        ) : undefined
+        <>
+          <Ficha item={item} />
+          {(usavel || temContador) && (
+            <div className="flex flex-row flex-wrap items-center justify-between gap-2">
+              {usavel ? (
+                <button
+                  type="button"
+                  onClick={() => setUsando(true)}
+                  className="flex min-h-9 items-center gap-1.5 rounded-full bg-acento px-4 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  <FaHandSparkles aria-hidden="true" className="size-3!" />
+                  Usar
+                </button>
+              ) : (
+                <span className="text-xs opacity-55">Unidades na mochila</span>
+              )}
+              {temContador && <Contador quantidade={contador.valor} aoMudar={contador.ajustar} />}
+            </div>
+          )}
+        </>
       }
       acessorio={
         // A contagem fecha a linha, do lado do polegar: é o que se lê correndo

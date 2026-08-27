@@ -66,12 +66,10 @@ export default function CartaoExpansivel({
         {acessorio}
       </div>
 
-      {/* As ações antes da descrição: quem abre o cartão para usar o item não
-          precisa rolar um texto de compêndio inteiro para achar o botão. */}
+      {/* Antes da descrição: quem abre o cartão para conferir ou usar o item
+          não precisa rolar um texto de compêndio inteiro para chegar lá. */}
       {aberto && acoes && (
-        <div className="flex flex-row flex-wrap items-center justify-between gap-2 border-t border-borda px-3 py-2.5">
-          {acoes}
-        </div>
+        <div className="flex flex-col gap-2.5 border-t border-borda px-3 py-2.5">{acoes}</div>
       )}
 
       {aberto && temDescricao && (
