@@ -112,7 +112,6 @@ export default function CabecalhoFicha() {
   const pathname = usePathname();
   const [recursoAberto, setRecursoAberto] = useState<"pv" | "pm" | null>(null);
   const [retratoAberto, setRetratoAberto] = useState(false);
-
   if (!ficha || !eRotaDeFicha(pathname)) return null;
 
   const { nome, img, nivel, raca, classes, xp, pv, pm, defesa, recursosGenericos } = ficha;
@@ -166,12 +165,12 @@ export default function CabecalhoFicha() {
 
           {!somenteLeitura && <BotaoDescanso />}
         </div>
-
-        {/* Recursos vitais: grudam no topo. Rolar uma lista de magias não pode
-            custar a visão do PV — é o número que decide a jogada seguinte.
-            Os recursos genéricos (Bênçãos e afins) entram na mesma faixa; o
-            flex-wrap resolve as telas onde não cabem todos lado a lado. */}
-        <div className="sticky top-0 z-30 border-t border-borda bg-superficie/95 backdrop-blur-md">
+        {/* Recursos vitais: rolam com o resto do cabeçalho. Quem fica presa
+            no topo é só a busca — uma faixa de PV, PM, Defesa e recursos
+            comeria meia tela de celular o tempo todo. Os genéricos (Bênçãos e
+            afins) entram aqui; o flex-wrap resolve onde não cabem lado a
+            lado. */}
+        <div className="border-t border-borda">
           <div className="mx-auto grid w-full max-w-5xl grid-cols-2 items-stretch gap-2 px-4 py-2 sm:flex sm:flex-row sm:flex-wrap">
             <Medidor
               rotulo="PV"

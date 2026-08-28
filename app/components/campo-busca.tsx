@@ -20,7 +20,10 @@ export default function CampoBusca({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="sticky top-[4.25rem] z-20 -mx-4 flex flex-col gap-2 bg-background/95 px-4 py-2 backdrop-blur-md">
+    // A única coisa presa no topo da ficha: o resto do cabeçalho (retrato,
+    // nome, PV, PM, Defesa) rola para fora, e a busca fica — é ela que serve
+    // para percorrer uma lista de 40 linhas com o dedo.
+    <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 bg-background/95 px-4 py-2 backdrop-blur-md">
       <div className="relative flex flex-row items-center">
         <FaMagnifyingGlass
           aria-hidden="true"
