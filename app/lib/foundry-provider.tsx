@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRouter } from "next/navigation";
 import { calcularDescanso } from "./descanso";
 import type {
+  AnotacaoDiario,
+  Diario,
   Ficha,
   GastoDeUso,
   ListaPersonagens,
@@ -130,6 +132,34 @@ function gastarItensLocal(ficha: Ficha, itens: GastoDeUso["itens"]): Ficha {
   return mudarQuantidadesLocal(ficha, pedidos);
 }
 
+/**
+ * Aplica na cópia local a mesma edição que o Foundry vai gravar, para o
+ * "Salvar" da anotação ser instantâneo. `undefined` no lugar da anotação
+ * exclui a página. O push que chega logo em seguida substitui isto pelo
+ * estado real.
+ */
+function editarAnotacaoLocal(
+  diarios: Diario[] | null,
+  paginaId: string,
+  edicao: (anotacao: AnotacaoDiario) => AnotacaoDiario | undefined
+): Diario[] | null {
+  if (!diarios) return diarios;
+  return diarios.map((diario) =>
+    // Só o próprio diário pode mudar: uma página de outro jogador nunca é
+    // editável daqui, e mexer nela na tela seria mentira.
+    diario.meu
+      ? {
+          ...diario,
+          paginas: diario.paginas.flatMap((anotacao) => {
+            if (anotacao.id !== paginaId) return [anotacao];
+            const editada = edicao(anotacao);
+            return editada ? [editada] : [];
+          })
+        }
+      : diario
+  );
+}
+
 type FoundryContextValue = {
   status: Status;
   usuarios: UsuarioFoundry[];
@@ -138,6 +168,8 @@ type FoundryContextValue = {
   ficha: Ficha | null;
   /** Null enquanto o relay ainda não respondeu — a home mostra "carregando" nesse intervalo. */
   personagens: ListaPersonagens | null;
+  /** Anotações do jogador e as dos colegas; null enquanto ninguém pediu (ou a resposta não chegou). */
+  diarios: Diario[] | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -168,6 +200,11 @@ type FoundryContextValue = {
   descansar: (opcoes: DescansoOpcoes) => void;
   /** Cobra um uso: os PM e os itens de uma vez, com aviso no chat da mesa. */
   gastarUso: (uso: GastoDeUso) => void;
+  /** Pede as anotações ao relay — a tela de anotações chama ao abrir. */
+  carregarDiarios: () => void;
+  criarAnotacao: (titulo: string, texto: string) => void;
+  salvarAnotacao: (paginaId: string, titulo: string, texto: string) => void;
+  excluirAnotacao: (paginaId: string) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -196,8 +233,14 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [erroServidor, setErroServidor] = useState<string | null>(null);
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [personagens, setPersonagens] = useState<ListaPersonagens | null>(null);
+  const [diarios, setDiarios] = useState<Diario[] | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  // A tela de anotações já pediu os diários nesta aba? O cache do servidor
+  // nasce vazio a cada sessão nova, então numa reconexão (ou depois de o
+  // processo Node reiniciar) o pedido precisa ser refeito — senão a tela
+  // fica em branco até o jogador navegar de novo.
+  const pediuDiariosRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -282,6 +325,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       // cache pode estar vazio, e aí ninguém pediria nada — a tela ficaria
       // carregando pra sempre. Pedir de novo é barato e idempotente.
       enviar({ tipo: "obterFicha" });
+      if (pediuDiariosRef.current) enviar({ tipo: "obterDiarios" });
     };
 
     stream.onmessage = (evento) => {
@@ -302,12 +346,15 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         encerrarTroca();
       } else if (mensagem.tipo === "personagens") {
         setPersonagens({ meus: mensagem.meus, companheiros: mensagem.companheiros });
+      } else if (mensagem.tipo === "diarios") {
+        setDiarios(mensagem.diarios);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
         stream.close();
         setFicha(null);
         setPersonagens(null);
+        setDiarios(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -332,6 +379,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
           else {
             setFicha(null);
             setPersonagens(null);
+            setDiarios(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -379,6 +427,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
           if (!autenticado) {
             setFicha(null);
             setPersonagens(null);
+            setDiarios(null);
             carregarUsuariosELogin();
           }
         })
@@ -440,6 +489,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     await fetch("/api/logout", { method: "POST" }).catch(() => {});
     setFicha(null);
     setPersonagens(null);
+    setDiarios(null);
+    pediuDiariosRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -468,6 +519,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     erroServidor,
     ficha,
     personagens,
+    diarios,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -509,6 +561,22 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       agir({ tipo: "gastarUso", uso }, (f) =>
         gastarItensLocal(uso.pm > 0 ? ajustarRecursoLocal(f, "pm", -uso.pm) : f, uso.itens)
       ),
+    carregarDiarios: () => {
+      pediuDiariosRef.current = true;
+      enviar({ tipo: "obterDiarios" });
+    },
+    // Sem palpite otimista: o id da página nasce no Foundry, e inventar um
+    // aqui só para a lista piscar mais cedo criaria uma linha que some e
+    // volta com outro id logo em seguida.
+    criarAnotacao: (titulo, texto) => enviar({ tipo: "criarPaginaDiario", titulo, texto }),
+    salvarAnotacao: (paginaId, titulo, texto) => {
+      setDiarios((atuais) => editarAnotacaoLocal(atuais, paginaId, (a) => ({ ...a, titulo, texto })));
+      enviar({ tipo: "salvarPaginaDiario", paginaId, titulo, texto });
+    },
+    excluirAnotacao: (paginaId) => {
+      setDiarios((atuais) => editarAnotacaoLocal(atuais, paginaId, () => undefined));
+      enviar({ tipo: "excluirPaginaDiario", paginaId });
+    },
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);

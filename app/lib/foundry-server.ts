@@ -7,6 +7,7 @@
 
 import { io, type Socket } from "socket.io-client";
 import type {
+  Diario,
   Ficha,
   ListaPersonagens,
   MensagemDoFoundry,
@@ -30,6 +31,8 @@ type SessaoServidor = {
   ficha: Ficha | null;
   /** Null enquanto o relay ainda não respondeu nada — é o que distingue "sem personagem" de "ainda não sei". */
   personagens: ListaPersonagens | null;
+  /** Anotações do jogador e dos colegas; null até a tela de anotações pedir pela primeira vez. */
+  diarios: Diario[] | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -491,6 +494,7 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     socket,
     ficha: null,
     personagens: null,
+    diarios: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -519,6 +523,8 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
       sessao.ficha = null;
     } else if (mensagem.tipo === "personagens") {
       sessao.personagens = absolutizarImagensDasListas(mensagem);
+    } else if (mensagem.tipo === "diarios") {
+      sessao.diarios = mensagem.diarios;
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -672,6 +678,9 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   // antes disso a tela segue em "carregando" em vez de piscar a home vazia.
   if (sessao.ficha) mensagens.push({ tipo: "ficha", ficha: sessao.ficha });
   else if (sessao.personagens) mensagens.push({ tipo: "semFicha" });
+  // Só depois que a tela de anotações pediu uma vez: até lá não há o que
+  // remontar, e a lista nem foi calculada do lado do Foundry.
+  if (sessao.diarios) mensagens.push({ tipo: "diarios", diarios: sessao.diarios });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

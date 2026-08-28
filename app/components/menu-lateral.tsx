@@ -2,6 +2,7 @@
 
 import {
   FaBars,
+  FaBookOpen,
   FaEye,
   FaGear,
   FaHouse,
@@ -73,6 +74,23 @@ function LinhaPersonagem({
       </span>
     </button>
   );
+}
+
+/**
+ * O que não é seção da ficha: vale com ou sem personagem aberto, e por isso
+ * fica no rodapé do rail (e no fim do painel, no celular) em vez de na barra
+ * de abas. As anotações são do *usuário* — é o mesmo diário seja qual for o
+ * personagem que ele estiver olhando.
+ */
+const ACOES_DO_APP = [
+  { icone: FaHouse, rotulo: "Início", href: "/" },
+  { icone: FaBookOpen, rotulo: "Anotações", href: "/anotacoes" },
+  { icone: FaGear, rotulo: "Configurações", href: "/configuracoes" }
+] as const;
+
+/** A home só acende nela mesma; as outras acendem também nas sub-rotas (uma anotação aberta). */
+function acaoAtiva(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : eDaSecao(pathname, href);
 }
 
 function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -275,17 +293,14 @@ export default function MenuLateral() {
         )}
 
         <div className="mt-auto flex flex-col gap-1 border-t border-borda pt-2">
-          {[
-            { icone: FaHouse, rotulo: "Início", href: "/" },
-            { icone: FaGear, rotulo: "Configurações", href: "/configuracoes" }
-          ].map((item) => (
+          {ACOES_DO_APP.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               title={item.rotulo}
-              aria-current={pathname === item.href ? "page" : undefined}
+              aria-current={acaoAtiva(pathname, item.href) ? "page" : undefined}
               className={`flex min-h-11 w-full flex-row items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors xl:justify-start ${
-                pathname === item.href
+                acaoAtiva(pathname, item.href)
                   ? "bg-acento text-white"
                   : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
               }`}
@@ -378,6 +393,13 @@ export default function MenuLateral() {
                 rotulo="Início"
                 href="/"
                 ativo={pathname === "/"}
+                onClick={() => setPainelAberto(false)}
+              />
+              <AcaoPainel
+                Icone={FaBookOpen}
+                rotulo="Anotações"
+                href="/anotacoes"
+                ativo={acaoAtiva(pathname, "/anotacoes")}
                 onClick={() => setPainelAberto(false)}
               />
               <AcaoPainel

@@ -372,6 +372,16 @@ export type ListaPersonagens = {
 /** Um usuário na tela de login. `ocupado` = já conectado (aqui ou no Foundry) — não pode ser escolhido de novo. */
 export type UsuarioFoundry = { id: string; nome: string; ocupado: boolean };
 
+/**
+ * Uma anotação: uma página de texto dentro do diário (JournalEntry) do
+ * jogador. `texto` é texto puro — o módulo converte de e para o HTML da
+ * página, ver `diarios.mjs` no projeto irmão.
+ */
+export type AnotacaoDiario = { id: string; titulo: string; texto: string };
+
+/** Diário de um jogador. `meu` = sou o dono e posso escrever; os demais eu só leio. */
+export type Diario = { id: string; nome: string; meu: boolean; paginas: AnotacaoDiario[] };
+
 /** Condição do descanso — define o multiplicador por nível (T20, p. 106). */
 export type CondicaoDescanso = "ruim" | "normal" | "confortavel" | "luxuoso";
 
@@ -415,13 +425,19 @@ export type MensagemParaFoundry =
    * e quantidades: nome de item e texto da mensagem são montados no Foundry,
    * que é quem tem a verdade sobre a mochila.
    */
-  | { tipo: "gastarUso"; uso: GastoDeUso };
+  | { tipo: "gastarUso"; uso: GastoDeUso }
+  /** Anotações: nada disso depende do personagem aberto — é o diário do usuário. */
+  | { tipo: "obterDiarios" }
+  | { tipo: "criarPaginaDiario"; titulo: string; texto: string }
+  | { tipo: "salvarPaginaDiario"; paginaId: string; titulo: string; texto: string }
+  | { tipo: "excluirPaginaDiario"; paginaId: string };
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =
   | { tipo: "ficha"; ficha: Ficha }
   | ({ tipo: "personagens" } & ListaPersonagens)
   | { tipo: "semFicha" }
+  | { tipo: "diarios"; diarios: Diario[] }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };

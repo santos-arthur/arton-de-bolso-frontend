@@ -18,6 +18,8 @@ const TITULOS: Record<string, string> = {
   "/inventario": "Inventário",
   "/inventario/bau": "Baú",
   "/magias": "Magias",
+  "/anotacoes": "Anotações",
+  "/anotacoes/nova": "Nova anotação",
   "/configuracoes": "Configurações"
 };
 
@@ -38,7 +40,10 @@ export default function MolduraApp({ children }: { children: ReactNode }) {
   // Com várias abas abertas — comum em mesa — "Arton de Bolso" em todas não
   // distingue nada; o nome do personagem e a seção sim.
   useEffect(() => {
-    const partes = [naFicha ? nomeDaFicha : null, TITULOS[pathname], APP].filter(Boolean);
+    // Uma anotação aberta não tem título fixo (a rota carrega o id da
+    // página), então a seção responde por ela.
+    const titulo = TITULOS[pathname] ?? (pathname.startsWith("/anotacoes/") ? TITULOS["/anotacoes"] : undefined);
+    const partes = [naFicha ? nomeDaFicha : null, titulo, APP].filter(Boolean);
     document.title = partes.join(" · ");
   }, [pathname, nomeDaFicha, naFicha]);
 

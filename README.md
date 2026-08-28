@@ -39,6 +39,12 @@ política de cookie de navegador).
   qualquer atualização) pro navegador em tempo real.
 - **`app/api/ficha/acao`** — recebe uma ação do navegador (ajustar PV,
   equipar item, etc.) e repassa pro Foundry.
+- **`app/anotacoes`** — diário do jogador: as anotações dele e as dos
+  colegas (que ele lê, mas não edita). São os Journals nativos do Foundry,
+  numa pasta "Anotações Jogadores" — quem cria e autoriza é o módulo, ver
+  [`../arton-de-bolso/README.md`](../arton-de-bolso/README.md#anotações-dos-jogadores).
+  Não é seção da ficha: vale sem personagem aberto, e por isso mora no menu
+  junto de Início e Configurações.
 - **[`app/lib/foundry-provider.tsx`](app/lib/foundry-provider.tsx)** — único
   arquivo do lado do navegador que sabe desses endpoints; todo o resto da UI
   usa só `useFoundry()`.
