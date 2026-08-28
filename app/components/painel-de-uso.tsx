@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
+import Prosa from "./prosa";
 import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
 import { aprimoramentosDe, bonusDe, somarTermos } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
@@ -55,6 +56,8 @@ export type AcaoDeUso = {
   teste?: TesteDeUso | null;
   /** Só o poder tem: o que ele liga na ficha ao ser ativado. */
   efeitos?: EfeitoDeAtivacao[];
+  /** O texto de regra, como está no compêndio. */
+  descricao?: string;
 };
 
 /**
@@ -307,6 +310,15 @@ export default function PainelDeUso({
             Esta magia não está na sua ficha — é preciso identificá-la para ler o pergaminho. Falhar custa a
             ação e mais nada: o pergaminho continua com você.
           </p>
+        </div>
+      )}
+
+      {/* A regra primeiro: é ela que o jogador confere antes de decidir se
+          gasta, e a conta logo abaixo responde a essa decisão. */}
+      {acao.descricao && (
+        <div className="flex flex-col gap-2">
+          <Titulo>Descrição</Titulo>
+          <Prosa html={acao.descricao} className="text-sm opacity-85" />
         </div>
       )}
 

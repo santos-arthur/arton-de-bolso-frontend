@@ -31,7 +31,7 @@ export default function ModalConsumivel({
 }) {
   return (
     <PainelDeUso
-      acao={{ ...uso, id: item.id, nome: item.nome, rotuloDoCusto: item.nome }}
+      acao={{ ...uso, id: item.id, nome: item.nome, rotuloDoCusto: item.nome, descricao: item.descricao }}
       escopo="consumable"
       contexto="neste item"
       exclusivos={TRUQUE}
