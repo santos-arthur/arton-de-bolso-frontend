@@ -40,7 +40,9 @@ export default function Page() {
         Voltar para a mochila
       </Link>
 
-      <ListaInventario grupos={guardados} vazio="Nada guardado no baú." />
+      {/* Busca sempre à mão: no baú se procura o que foi largado lá meses
+          atrás, e esperar dar oito itens para poder buscar não ajuda. */}
+      <ListaInventario grupos={guardados} vazio="Nada guardado no baú." buscaSempre />
     </PaginaFicha>
   );
 }

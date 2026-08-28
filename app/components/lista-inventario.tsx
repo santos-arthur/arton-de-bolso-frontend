@@ -17,10 +17,13 @@ const MINIMO_PARA_BUSCA = 8;
  */
 export default function ListaInventario({
   grupos,
-  vazio
+  vazio,
+  buscaSempre = false
 }: {
   grupos: GrupoInventario[];
   vazio: string;
+  /** Mostra a busca mesmo com poucos itens — o baú é onde se procura coisa. */
+  buscaSempre?: boolean;
 }) {
   const { somenteLeitura, alternarEquipado } = useFoundry();
   const [busca, setBusca] = useState("");
@@ -36,7 +39,7 @@ export default function ListaInventario({
 
   return (
     <>
-      {total > MINIMO_PARA_BUSCA && (
+      {(buscaSempre ? total > 0 : total > MINIMO_PARA_BUSCA) && (
         <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar item..." />
       )}
 
