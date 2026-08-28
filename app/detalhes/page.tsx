@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import ListaEfeitos from "../components/lista-efeitos";
 import CampoComDetalhe from "../components/campo-com-detalhe";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
@@ -44,7 +45,8 @@ export default function Page() {
     origem,
     divindade,
     classes,
-    xp
+    xp,
+    efeitos
   } = ficha;
 
   return (
@@ -142,6 +144,11 @@ export default function Page() {
           <ListaDeTags itens={profArmaduras} vazio="Nenhuma" />
         </div>
       </div>
+
+      {/* Por último: é a lista que mais cresce e a que menos se consulta de
+          relance — quem vem aqui já sabe o que procura, e rola até o fim. */}
+      <TituloSecao>Efeitos</TituloSecao>
+      <ListaEfeitos efeitos={efeitos} />
 
       {atributos.length === 0 && <EstadoVazio>Sem dados de atributos.</EstadoVazio>}
     </PaginaFicha>

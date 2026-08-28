@@ -274,6 +274,40 @@ export type Poder = {
   /** Título da seção: "Base" ou "Nível 3". A lista já chega na ordem certa. */
   grupo: string;
   descricao: string;
+  /**
+   * Há o que ativar: o mestre marcou o poder com a tag `ativo` no Foundry.
+   * Sem ela o poder é passiva na tela — o bônus dele já está na ficha, e
+   * ativar não faria nada.
+   */
+  ativavel: boolean;
+  /** Em PM; zero no poder que só custa a ação. */
+  custo: number;
+  alcance: string;
+  alvo: string;
+  area: string;
+  duracao: string;
+  /** Texto da resistência ("Fortitude parcial"); vazio quando não há. */
+  resistencia: string;
+  /** Calculada pelo sistema no próprio poder (10 + metade do nível + atributo + bônus). */
+  cd: number | null;
+  rolagens: RolagemMagia[];
+  /** Item que a ativação gasta, quando o poder declara consumo no Foundry. */
+  consumo: ConsumoDeItem | null;
+  /** O que o poder liga na ficha ao ser ativado — a Fúria do bárbaro, o Frenesi. */
+  efeitos: EfeitoDeAtivacao[];
+};
+
+/**
+ * Active Effect que um poder liga na ficha ao ser ativado. `marcado` é a
+ * escolha padrão (o efeito vem habilitado no poder); `ligado` diz que ele já
+ * está valendo agora, de uma ativação anterior.
+ */
+export type EfeitoDeAtivacao = {
+  id: string;
+  nome: string;
+  img: string;
+  marcado: boolean;
+  ligado: boolean;
 };
 
 /**
@@ -317,6 +351,35 @@ export type Magia = {
   consumo: ConsumoDeItem | null;
 };
 
+/**
+ * Um Active Effect que vale na ficha: o que veio de um item equipado, o que um
+ * poder ligou, a condição que o mestre aplicou. Os "de uso" (as opções que
+ * aparecem ao conjurar ou ativar) ficam de fora — eles são escolha do momento,
+ * não estado do personagem.
+ */
+export type EfeitoFicha = {
+  id: string;
+  nome: string;
+  img: string;
+  /** Item de onde ele vem; vazio quando foi posto direto na ficha. */
+  origem: string;
+  descricao: string;
+  /** "3 rodadas", "1 minuto" — vazio quando não expira. */
+  duracao: string;
+  /** Desligado ou suprimido (a armadura guardada, o efeito que outro sobrepõe) não conta agora. */
+  ativo: boolean;
+  /** Grupo na lista: com prazo, permanente, ou o que não está contando. Já chega ordenado por ele. */
+  tipo: "temporario" | "passivo" | "inativo";
+  mudancas: MudancaDeEfeito[];
+};
+
+/**
+ * Uma linha do que o efeito altera: "Força soma +2". `chave` é o caminho cru
+ * do Active Effect, que o app usa para reescrever o rótulo (ver
+ * `lib/nomes-de-efeitos.ts`).
+ */
+export type MudancaDeEfeito = { chave: string; rotulo: string; modo: string; valor: string };
+
 export type Ficha = {
   id: string;
   /** Marcado pelo relay quando o usuário só tem OBSERVER no Actor (um "companheiro"): o front esconde todo controle de escrita. */
@@ -348,6 +411,8 @@ export type Ficha = {
   poderes: Poder[];
   magias: Magia[];
   aprimoramentos: Aprimoramento[];
+  /** Efeitos que valem na ficha, os ativos primeiro. Sem os de uso. */
+  efeitos: EfeitoFicha[];
   armas: Arma[];
   protecoes: Protecao[];
   configEquipamento: ConfigEquipamento;
@@ -439,6 +504,16 @@ export type GastoDeUso = {
   acao: string;
   pm: number;
   itens: { itemId: string; quantidade: number }[];
+  /**
+   * Item que originou o uso (o poder ativado). Com ele o Foundry anuncia no
+   * chat a ficha da ativação — execução, alcance, alvo, duração, CD e efeito —
+   * montada lá a partir do item, em vez da linha seca de gasto.
+   */
+  origemId?: string;
+  /** Ids dos aprimoramentos marcados; o Foundry resolve os nomes para o anúncio. */
+  aprimoramentos?: string[];
+  /** Ids dos efeitos a ligar na ficha — só faz sentido junto de `origemId`. */
+  efeitos?: string[];
 };
 
 export type MensagemParaFoundry =

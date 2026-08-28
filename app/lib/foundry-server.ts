@@ -149,7 +149,14 @@ function absolutizarImagensDaFicha(ficha: Ficha): Ficha {
       ...grupo,
       itens: grupo.itens.map((item) => ({ ...item, img: absolutizarImagem(item.img) }))
     })),
-    poderes: ficha.poderes.map((poder) => ({ ...poder, img: absolutizarImagem(poder.img) })),
+    poderes: ficha.poderes.map((poder) => ({
+      ...poder,
+      img: absolutizarImagem(poder.img),
+      // Os efeitos que o poder liga aparecem no painel de ativação, cada um
+      // com o próprio ícone — e ícone de efeito também é caminho do Foundry.
+      efeitos: poder.efeitos.map((efeito) => ({ ...efeito, img: absolutizarImagem(efeito.img) }))
+    })),
+    efeitos: ficha.efeitos.map((efeito) => ({ ...efeito, img: absolutizarImagem(efeito.img) })),
     magias: ficha.magias.map((magia) => ({ ...magia, img: absolutizarImagem(magia.img) })),
     aprimoramentos: ficha.aprimoramentos.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),
     armas: ficha.armas.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),

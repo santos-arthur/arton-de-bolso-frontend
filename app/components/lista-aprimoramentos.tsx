@@ -109,6 +109,13 @@ export function useAprimoramentos(
     custoBase?: number;
     custoMinimo?: number;
     consumo?: ConsumoDeItem | null;
+    /**
+     * Item que originou o uso. Preenchido, o Foundry publica o card do poder
+     * no chat — e é o que dá um botão a quem não gasta nada.
+     */
+    origemId?: string;
+    /** Ids dos efeitos que a ativação vai ligar na ficha. */
+    efeitos?: string[];
     exclusivos?: {
       quando: (item: Aprimoramento) => boolean;
       /** O que o exclusivo desliga. Fora disso, tudo segue disponível. */
@@ -117,7 +124,15 @@ export function useAprimoramentos(
     };
   } = {}
 ) {
-  const { acao = "", custoBase = 0, custoMinimo = 0, consumo = null, exclusivos } = opcoes;
+  const {
+    acao = "",
+    custoBase = 0,
+    custoMinimo = 0,
+    consumo = null,
+    origemId,
+    efeitos,
+    exclusivos
+  } = opcoes;
   const { ficha, somenteLeitura, gastarUso } = useFoundry();
   // Quem já vem ligado na ficha entra marcado: o jogador não precisa lembrar
   // de ativar todo turno o que o personagem tem sempre. Continua desmarcável.
@@ -227,17 +242,28 @@ export function useAprimoramentos(
   }
 
   /**
+   * Um uso que vale a viagem até o Foundry mesmo custando zero: é o poder que
+   * só toma a ação do turno, e que ainda assim a mesa precisa ver anunciado.
+   */
+  const podeAnunciar = !!origemId;
+
+  /**
    * Cobra o uso: PM e itens de uma vez só, e o Foundry anuncia no chat da
    * mesa. Um pedido só para os dois — é um gasto, não dois; se o item não
    * couber, nem o PM sai.
    */
   function gastar() {
     if (somenteLeitura || pago || semPM || faltando) return;
-    if (custoTotal === 0 && !itensGastos.length) return;
+    if (custoTotal === 0 && !itensGastos.length && !podeAnunciar) return;
     gastarUso({
       acao,
       pm: custoTotal,
-      itens: itensGastos.map(({ itemId, quantidade }) => ({ itemId, quantidade }))
+      itens: itensGastos.map(({ itemId, quantidade }) => ({ itemId, quantidade })),
+      origemId,
+      // Só os ids: quem sabe o nome de cada aprimoramento (e o que cada
+      // efeito faz) é o Foundry.
+      aprimoramentos: escolhidos.map((item) => item.id),
+      efeitos
     });
     setPagoCom({ aplicaveis, consumo });
   }
@@ -261,6 +287,8 @@ export function useAprimoramentos(
     rotuloExclusivo,
     semPM,
     pago,
+    /** Há o que anunciar na mesa mesmo sem gasto — o botão existe assim mesmo. */
+    podeAnunciar,
     somenteLeitura,
     quantidadeDe,
     definir,
@@ -482,7 +510,12 @@ export function ListaAprimoramentos({
  * cobra nada não tem rodapé nenhum.
  */
 export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
-  if (!uso.resumoDoGasto) return undefined;
+  // Sem gasto e sem anúncio não há botão: o painel é só consulta.
+  if (!uso.resumoDoGasto && !uso.podeAnunciar) return undefined;
+
+  // Ficha de companheiro: não se ativa poder dos outros, e o que não custa
+  // nada não tem sequer o "custaria" a mostrar.
+  if (uso.somenteLeitura && !uso.resumoDoGasto) return undefined;
 
   if (uso.somenteLeitura) {
     return (
@@ -511,7 +544,14 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
       }`}
     >
       {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCoins aria-hidden="true" className="size-4!" />}
-      {uso.pago ? `Gastou ${uso.resumoDoGasto}` : (impedido ?? `Gastar ${uso.resumoDoGasto}`)}
+      {/* Sem custo, o botão não fala de gasto: ele anuncia a ativação na mesa. */}
+      {uso.resumoDoGasto
+        ? uso.pago
+          ? `Gastou ${uso.resumoDoGasto}`
+          : (impedido ?? `Gastar ${uso.resumoDoGasto}`)
+        : uso.pago
+          ? "Anunciado na mesa"
+          : "Ativar"}
     </button>
   );
 }

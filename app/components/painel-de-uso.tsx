@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
 import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
 import { aprimoramentosDe, bonusDe, somarTermos } from "../lib/aprimoramentos";
@@ -8,6 +8,7 @@ import { useFoundry } from "../lib/foundry-provider";
 import type {
   Aprimoramento,
   ConsumoDeItem,
+  EfeitoDeAtivacao,
   EscopoAprimoramento,
   RolagemMagia,
   TesteDeUso
@@ -52,6 +53,8 @@ export type AcaoDeUso = {
   consumo: ConsumoDeItem | null;
   /** Só o pergaminho tem: o teste para ler uma magia que não se conhece. */
   teste?: TesteDeUso | null;
+  /** Só o poder tem: o que ele liga na ficha ao ser ativado. */
+  efeitos?: EfeitoDeAtivacao[];
 };
 
 /**
@@ -134,6 +137,65 @@ function Dado({ rotulo, mudou, children }: { rotulo: string; mudou?: boolean; ch
 }
 
 /**
+ * Os efeitos que a ativação liga na ficha — a Fúria do bárbaro, o Frenesi.
+ *
+ * Vêm marcados como o poder os declara no Foundry (habilitado = o poder
+ * sempre liga; desabilitado = opção), e ativar de novo um que já está valendo
+ * **renova** a duração em vez de empilhar dois na ficha.
+ */
+function ListaEfeitos({
+  efeitos,
+  escolhidos,
+  travado,
+  aoAlternar
+}: {
+  efeitos: EfeitoDeAtivacao[];
+  escolhidos: string[];
+  travado: boolean;
+  aoAlternar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Titulo>Efeitos na ficha</Titulo>
+      <ul className="flex flex-col gap-1.5">
+        {efeitos.map((efeito) => {
+          const marcado = escolhidos.includes(efeito.id);
+          return (
+            <li key={efeito.id}>
+              <label
+                className={`flex flex-row items-center gap-3 rounded-xl border px-3 py-2 transition-colors ${
+                  marcado ? "border-acento bg-acento/10" : "border-borda"
+                } ${travado ? "opacity-60" : "cursor-pointer hover:bg-foreground/5"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={marcado}
+                  disabled={travado}
+                  onChange={() => aoAlternar(efeito.id)}
+                  className="size-4 shrink-0 accent-[var(--acento)]"
+                />
+                {efeito.img && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={efeito.img} alt="" className="size-7 shrink-0 rounded-md object-cover" />
+                )}
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{efeito.nome}</span>
+                {/* Já valendo de uma ativação anterior: marcar aqui reinicia a
+                    contagem, e é bom saber disso antes de gastar o PM. */}
+                {efeito.ligado && (
+                  <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider opacity-55">
+                    ativo
+                  </span>
+                )}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
  * Painel de usar. Espelha a ideia do painel de ataque — mostrar de onde vem
  * cada número e o que se rola na mesa —, mas o conteúdo é o de magia: custo
  * em PM, CD da resistência e o efeito, no lugar de ataque e crítico.
@@ -150,6 +212,7 @@ export default function PainelDeUso({
   custoMinimo = 0,
   exclusivos,
   rotulos = {},
+  anunciarNaMesa = false,
   onFechar
 }: {
   acao: AcaoDeUso;
@@ -164,9 +227,21 @@ export default function PainelDeUso({
   };
   /** Textos das linhas que só existem em alguns usos (o piso, o truque). */
   rotulos?: { minimo?: string; exclusivo?: string };
+  /**
+   * Manda o Foundry anunciar a ficha da ativação no chat da mesa, em vez da
+   * linha de gasto — e dá botão a um uso que não custa nada. Ver
+   * `anunciarExecucao` no módulo.
+   */
+  anunciarNaMesa?: boolean;
   onFechar: () => void;
 }) {
   const { ficha } = useFoundry();
+  const efeitosDaAcao = useMemo(() => atual.efeitos ?? [], [atual.efeitos]);
+  // A escolha começa como o poder declara no Foundry e é do jogador a partir
+  // daí; congela junto com o resto assim que a ativação é paga.
+  const [efeitosEscolhidos, setEfeitosEscolhidos] = useState(() =>
+    efeitosDaAcao.filter((efeito) => efeito.marcado).map((efeito) => efeito.id)
+  );
   const todos = ficha?.aprimoramentos;
   const aplicaveis = useMemo(
     () => aprimoramentosDe(todos ?? [], escopo, atual.nome, atual.id),
@@ -178,6 +253,8 @@ export default function PainelDeUso({
     custoBase: atual.custo,
     custoMinimo,
     consumo: atual.consumo,
+    origemId: anunciarNaMesa ? atual.id : undefined,
+    efeitos: efeitosEscolhidos,
     exclusivos
   });
   // Pago o uso, o painel vira extrato: nem o que chega da ficha nova mexe
@@ -315,6 +392,19 @@ export default function PainelDeUso({
             </Dado>
           ))}
         </div>
+      )}
+
+      {efeitosDaAcao.length > 0 && (
+        <ListaEfeitos
+          efeitos={efeitosDaAcao}
+          escolhidos={efeitosEscolhidos}
+          travado={uso.pago || uso.somenteLeitura}
+          aoAlternar={(id) =>
+            setEfeitosEscolhidos((atuais) =>
+              atuais.includes(id) ? atuais.filter((outro) => outro !== id) : [...atuais, id]
+            )
+          }
+        />
       )}
 
       {/* Sem as regras: aqui a lista é de escolha rápida — o que marcar antes
