@@ -31,7 +31,7 @@ export default function Page() {
     const alvo = normalizar(busca);
     const todas = diario?.paginas ?? [];
     if (!alvo) return todas;
-    return todas.filter((pagina) => normalizar(`${pagina.titulo} ${pagina.texto}`).includes(alvo));
+    return todas.filter((pagina) => normalizar(`${pagina.titulo} ${resumir(pagina.conteudo, 400)}`).includes(alvo));
   }, [diario, busca]);
 
   if (carregando) {
@@ -104,8 +104,8 @@ export default function Page() {
                   >
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="truncate font-display text-base font-bold">{pagina.titulo}</span>
-                      {pagina.texto && (
-                        <span className="line-clamp-2 text-xs opacity-60">{resumir(pagina.texto)}</span>
+                      {pagina.conteudo && (
+                        <span className="line-clamp-2 text-xs opacity-60">{resumir(pagina.conteudo)}</span>
                       )}
                     </span>
                     <FaChevronRight aria-hidden="true" className="size-3! shrink-0 opacity-40" />

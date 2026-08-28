@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useFoundry } from "./foundry-provider";
+import { textoDoHtml } from "./html-seguro";
 import type { AnotacaoDiario, Diario } from "./foundry-types";
 
 const SEM_DIARIOS: Diario[] = [];
@@ -51,8 +52,12 @@ export function acharAnotacao(
   return null;
 }
 
-/** Primeiras linhas da anotação, para a prévia da lista. */
-export function resumir(texto: string, limite = 140): string {
-  const linha = texto.replace(/\s+/g, " ").trim();
+/**
+ * Primeiras linhas da anotação, para a prévia da lista e para a busca. O
+ * conteúdo é HTML formatado, então o que interessa aqui é só o texto visível —
+ * buscar por "negrito" não pode casar com a tag `<strong>`.
+ */
+export function resumir(html: string, limite = 140): string {
+  const linha = textoDoHtml(html).replace(/\s+/g, " ").trim();
   return linha.length > limite ? `${linha.slice(0, limite)}…` : linha;
 }

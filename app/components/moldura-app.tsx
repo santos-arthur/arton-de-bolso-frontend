@@ -20,6 +20,7 @@ const TITULOS: Record<string, string> = {
   "/magias": "Magias",
   "/anotacoes": "Anotações",
   "/anotacoes/nova": "Nova anotação",
+  "/compendio": "Compêndio",
   "/configuracoes": "Configurações"
 };
 
@@ -42,7 +43,8 @@ export default function MolduraApp({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Uma anotação aberta não tem título fixo (a rota carrega o id da
     // página), então a seção responde por ela.
-    const titulo = TITULOS[pathname] ?? (pathname.startsWith("/anotacoes/") ? TITULOS["/anotacoes"] : undefined);
+    const secao = ["/anotacoes", "/compendio"].find((raiz) => pathname.startsWith(`${raiz}/`));
+    const titulo = TITULOS[pathname] ?? (secao ? TITULOS[secao] : undefined);
     const partes = [naFicha ? nomeDaFicha : null, titulo, APP].filter(Boolean);
     document.title = partes.join(" · ");
   }, [pathname, nomeDaFicha, naFicha]);

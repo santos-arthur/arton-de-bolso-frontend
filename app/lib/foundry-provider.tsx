@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRouter } from "next/navigation";
 import { calcularDescanso } from "./descanso";
 import type {
+  Compendio,
   AnotacaoDiario,
   Diario,
   Ficha,
@@ -170,6 +171,8 @@ type FoundryContextValue = {
   personagens: ListaPersonagens | null;
   /** Anotações do jogador e as dos colegas; null enquanto ninguém pediu (ou a resposta não chegou). */
   diarios: Diario[] | null;
+  /** O que o mestre liberou para este jogador; null enquanto ninguém pediu. */
+  compendio: Compendio | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -202,9 +205,11 @@ type FoundryContextValue = {
   gastarUso: (uso: GastoDeUso) => void;
   /** Pede as anotações ao relay — a tela de anotações chama ao abrir. */
   carregarDiarios: () => void;
-  criarAnotacao: (titulo: string, texto: string) => void;
-  salvarAnotacao: (paginaId: string, titulo: string, texto: string) => void;
+  criarAnotacao: (titulo: string, conteudo: string) => void;
+  salvarAnotacao: (paginaId: string, titulo: string, conteudo: string) => void;
   excluirAnotacao: (paginaId: string) => void;
+  /** Pede o compêndio ao relay — a tela do compêndio chama ao abrir. */
+  carregarCompendio: () => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -234,6 +239,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [personagens, setPersonagens] = useState<ListaPersonagens | null>(null);
   const [diarios, setDiarios] = useState<Diario[] | null>(null);
+  const [compendio, setCompendio] = useState<Compendio | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   // A tela de anotações já pediu os diários nesta aba? O cache do servidor
@@ -241,6 +247,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   // processo Node reiniciar) o pedido precisa ser refeito — senão a tela
   // fica em branco até o jogador navegar de novo.
   const pediuDiariosRef = useRef(false);
+  const pediuCompendioRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -326,6 +333,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       // carregando pra sempre. Pedir de novo é barato e idempotente.
       enviar({ tipo: "obterFicha" });
       if (pediuDiariosRef.current) enviar({ tipo: "obterDiarios" });
+      if (pediuCompendioRef.current) enviar({ tipo: "obterCompendio" });
     };
 
     stream.onmessage = (evento) => {
@@ -348,6 +356,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setPersonagens({ meus: mensagem.meus, companheiros: mensagem.companheiros });
       } else if (mensagem.tipo === "diarios") {
         setDiarios(mensagem.diarios);
+      } else if (mensagem.tipo === "compendio") {
+        setCompendio(mensagem.compendio);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
@@ -355,6 +365,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setFicha(null);
         setPersonagens(null);
         setDiarios(null);
+        setCompendio(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -380,6 +391,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setFicha(null);
             setPersonagens(null);
             setDiarios(null);
+            setCompendio(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -428,6 +440,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setFicha(null);
             setPersonagens(null);
             setDiarios(null);
+            setCompendio(null);
             carregarUsuariosELogin();
           }
         })
@@ -490,7 +503,9 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setFicha(null);
     setPersonagens(null);
     setDiarios(null);
+    setCompendio(null);
     pediuDiariosRef.current = false;
+    pediuCompendioRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -520,6 +535,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     ficha,
     personagens,
     diarios,
+    compendio,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -568,14 +584,18 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     // Sem palpite otimista: o id da página nasce no Foundry, e inventar um
     // aqui só para a lista piscar mais cedo criaria uma linha que some e
     // volta com outro id logo em seguida.
-    criarAnotacao: (titulo, texto) => enviar({ tipo: "criarPaginaDiario", titulo, texto }),
-    salvarAnotacao: (paginaId, titulo, texto) => {
-      setDiarios((atuais) => editarAnotacaoLocal(atuais, paginaId, (a) => ({ ...a, titulo, texto })));
-      enviar({ tipo: "salvarPaginaDiario", paginaId, titulo, texto });
+    criarAnotacao: (titulo, conteudo) => enviar({ tipo: "criarPaginaDiario", titulo, conteudo }),
+    salvarAnotacao: (paginaId, titulo, conteudo) => {
+      setDiarios((atuais) => editarAnotacaoLocal(atuais, paginaId, (a) => ({ ...a, titulo, conteudo })));
+      enviar({ tipo: "salvarPaginaDiario", paginaId, titulo, conteudo });
     },
     excluirAnotacao: (paginaId) => {
       setDiarios((atuais) => editarAnotacaoLocal(atuais, paginaId, () => undefined));
       enviar({ tipo: "excluirPaginaDiario", paginaId });
+    },
+    carregarCompendio: () => {
+      pediuCompendioRef.current = true;
+      enviar({ tipo: "obterCompendio" });
     },
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {

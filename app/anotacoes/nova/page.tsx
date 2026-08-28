@@ -30,8 +30,8 @@ export default function Page() {
 
       <EditorAnotacao
         rotuloSalvar="Criar"
-        onSalvar={(titulo, texto) => {
-          criarAnotacao(titulo, texto);
+        onSalvar={(titulo, conteudo) => {
+          criarAnotacao(titulo, conteudo);
           // Volta para a lista sem esperar: a anotação aparece lá assim que o
           // relay confirmar, e um erro do Foundry vira a faixa vermelha do
           // topo, visível de qualquer tela.

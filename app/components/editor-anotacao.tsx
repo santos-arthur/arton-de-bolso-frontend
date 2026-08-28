@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import EditorRico from "./editor-rico";
 
 /** Mesmo teto do módulo (`TITULO_MAX` em diarios.mjs) — cortar aqui evita uma ida ao Foundry só para levar erro. */
 const TITULO_MAX = 100;
-const TEXTO_MAX = 20000;
 
 /**
- * Formulário de uma anotação: título e corpo. Serve para criar e para editar,
- * porque a única diferença entre os dois casos é o que já vem escrito.
+ * Formulário de uma anotação: título e corpo formatado. Serve para criar e
+ * para editar, porque a única diferença entre os dois casos é o que já vem
+ * escrito.
  *
  * O salvamento é explícito, e não automático a cada tecla: o texto viaja pelo
  * relay até o Foundry e volta pelo stream para todo mundo, e um autosave
@@ -17,22 +18,24 @@ const TEXTO_MAX = 20000;
  */
 export default function EditorAnotacao({
   tituloInicial = "",
-  textoInicial = "",
+  conteudoInicial = "",
   rotuloSalvar = "Salvar",
   onSalvar,
   onCancelar,
   extra
 }: {
   tituloInicial?: string;
-  textoInicial?: string;
+  conteudoInicial?: string;
   rotuloSalvar?: string;
-  onSalvar: (titulo: string, texto: string) => void;
+  onSalvar: (titulo: string, conteudo: string) => void;
   onCancelar: () => void;
   /** Ações que só existem em um dos usos (excluir, na edição). */
   extra?: ReactNode;
 }) {
   const [titulo, setTitulo] = useState(tituloInicial);
-  const [texto, setTexto] = useState(textoInicial);
+  // Guardar o corpo aqui não reescreve o editor: lá dentro o miolo é montado
+  // uma vez e não depende deste estado (ver editor-rico.tsx).
+  const [conteudo, setConteudo] = useState(conteudoInicial);
 
   const tituloLimpo = titulo.trim();
   const podeSalvar = tituloLimpo.length > 0;
@@ -40,7 +43,7 @@ export default function EditorAnotacao({
   function aoSubmeter(evento: FormEvent) {
     evento.preventDefault();
     if (!podeSalvar) return;
-    onSalvar(tituloLimpo, texto);
+    onSalvar(tituloLimpo, conteudo);
   }
 
   return (
@@ -61,16 +64,10 @@ export default function EditorAnotacao({
         />
       </label>
 
-      <label className="flex flex-1 flex-col gap-1.5">
+      <div className="flex flex-1 flex-col gap-1.5">
         <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Anotação</span>
-        <textarea
-          value={texto}
-          onChange={(evento) => setTexto(evento.target.value)}
-          maxLength={TEXTO_MAX}
-          placeholder="Escreva o que quiser lembrar depois."
-          className="min-h-[45vh] flex-1 resize-y rounded-xl border border-borda bg-superficie-alta p-3 text-sm leading-relaxed outline-none transition-colors placeholder:opacity-40 focus:border-acento"
-        />
-      </label>
+        <EditorRico htmlInicial={conteudoInicial} aoMudar={setConteudo} />
+      </div>
 
       <div className="flex flex-row flex-wrap items-center gap-2">
         <button

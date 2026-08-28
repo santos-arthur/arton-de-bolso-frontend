@@ -7,6 +7,7 @@ import { useState } from "react";
 import CabecalhoPagina, { EstadoVazio } from "../../components/cabecalho-pagina";
 import EditorAnotacao from "../../components/editor-anotacao";
 import FolhaModal from "../../components/folha-modal";
+import Prosa from "../../components/prosa";
 import { acharAnotacao, useDiarios } from "../../lib/anotacoes";
 import { useFoundry } from "../../lib/foundry-provider";
 
@@ -69,9 +70,9 @@ export default function Page() {
           // receber outra pelo stream) recomeça o rascunho no texto certo.
           key={anotacao.id}
           tituloInicial={anotacao.titulo}
-          textoInicial={anotacao.texto}
-          onSalvar={(titulo, texto) => {
-            salvarAnotacao(anotacao.id, titulo, texto);
+          conteudoInicial={anotacao.conteudo}
+          onSalvar={(titulo, conteudo) => {
+            salvarAnotacao(anotacao.id, titulo, conteudo);
             setEditando(false);
           }}
           onCancelar={() => setEditando(false)}
@@ -140,12 +141,11 @@ export default function Page() {
         )}
       </div>
 
-      {/* `whitespace-pre-wrap` porque o conteúdo é texto puro: os parágrafos
-          e as linhas em branco são exatamente os que o autor digitou. */}
-      {anotacao.texto ? (
-        <div className="whitespace-pre-wrap break-words rounded-2xl border border-borda bg-superficie-alta p-4 text-sm leading-relaxed">
-          {anotacao.texto}
-        </div>
+      {anotacao.conteudo ? (
+        <Prosa
+          html={anotacao.conteudo}
+          className="break-words rounded-2xl border border-borda bg-superficie-alta p-4 text-sm leading-relaxed"
+        />
       ) : (
         <EstadoVazio>Esta anotação está sem texto.</EstadoVazio>
       )}

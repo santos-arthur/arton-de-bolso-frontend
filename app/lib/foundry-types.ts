@@ -374,13 +374,50 @@ export type UsuarioFoundry = { id: string; nome: string; ocupado: boolean };
 
 /**
  * Uma anotação: uma página de texto dentro do diário (JournalEntry) do
- * jogador. `texto` é texto puro — o módulo converte de e para o HTML da
- * página, ver `diarios.mjs` no projeto irmão.
+ * jogador. `conteudo` é HTML já podado pela allowlist do módulo (ver
+ * `html-seguro.mjs` no projeto irmão) — o mesmo tipo de marcação das
+ * descrições de poderes e magias.
  */
-export type AnotacaoDiario = { id: string; titulo: string; texto: string };
+export type AnotacaoDiario = { id: string; titulo: string; conteudo: string };
 
 /** Diário de um jogador. `meu` = sou o dono e posso escrever; os demais eu só leio. */
 export type Diario = { id: string; nome: string; meu: boolean; paginas: AnotacaoDiario[] };
+
+/**
+ * Item final do compêndio: uma página de journal. Só dois tipos chegam aqui — os
+ * únicos que o app exibe: texto formatado (`conteudo`) e imagem (`src`, já
+ * apontando para o proxy do nosso servidor).
+ */
+export type ItemCompendio = {
+  id: string;
+  titulo: string;
+  tipo: "texto" | "imagem";
+  conteudo: string;
+  src: string;
+  legenda: string;
+  /** Começo do texto (ou a legenda da imagem), para a prévia do cartão. */
+  resumo: string;
+};
+
+/**
+ * Um journal do compêndio. Na tela ele é mais um nível de pasta: agrupa as
+ * páginas, e é a página que se abre para ver.
+ */
+export type JournalCompendio = { id: string; nome: string; paginas: ItemCompendio[] };
+
+/** Uma pasta do compendio, com o que houver dentro dela — subpastas e journals. */
+export type PastaCompendio = {
+  id: string;
+  nome: string;
+  pastas: PastaCompendio[];
+  journals: JournalCompendio[];
+};
+
+/**
+ * O compêndio inteiro que este jogador pode ver: o conteúdo da pasta
+ * "Conteúdos Para Jogadores", já podado do que ele não tem permissão de ver.
+ */
+export type Compendio = { pastas: PastaCompendio[]; journals: JournalCompendio[] };
 
 /** Condição do descanso — define o multiplicador por nível (T20, p. 106). */
 export type CondicaoDescanso = "ruim" | "normal" | "confortavel" | "luxuoso";
@@ -428,9 +465,11 @@ export type MensagemParaFoundry =
   | { tipo: "gastarUso"; uso: GastoDeUso }
   /** Anotações: nada disso depende do personagem aberto — é o diário do usuário. */
   | { tipo: "obterDiarios" }
-  | { tipo: "criarPaginaDiario"; titulo: string; texto: string }
-  | { tipo: "salvarPaginaDiario"; paginaId: string; titulo: string; texto: string }
-  | { tipo: "excluirPaginaDiario"; paginaId: string };
+  | { tipo: "criarPaginaDiario"; titulo: string; conteudo: string }
+  | { tipo: "salvarPaginaDiario"; paginaId: string; titulo: string; conteudo: string }
+  | { tipo: "excluirPaginaDiario"; paginaId: string }
+  /** Compêndio: só leitura — quem libera é o mestre, pela posse do journal no Foundry. */
+  | { tipo: "obterCompendio" };
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =
@@ -438,6 +477,7 @@ export type MensagemDoFoundry =
   | ({ tipo: "personagens" } & ListaPersonagens)
   | { tipo: "semFicha" }
   | { tipo: "diarios"; diarios: Diario[] }
+  | { tipo: "compendio"; compendio: Compendio }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };

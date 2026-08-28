@@ -7,8 +7,11 @@
 
 import { io, type Socket } from "socket.io-client";
 import type {
+  Compendio,
   Diario,
   Ficha,
+  JournalCompendio,
+  PastaCompendio,
   ListaPersonagens,
   MensagemDoFoundry,
   MensagemParaFoundry,
@@ -33,6 +36,8 @@ type SessaoServidor = {
   personagens: ListaPersonagens | null;
   /** Anotações do jogador e dos colegas; null até a tela de anotações pedir pela primeira vez. */
   diarios: Diario[] | null;
+  /** Compêndio liberado pelo mestre; null até a tela do compêndio pedir pela primeira vez. */
+  compendio: Compendio | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -149,6 +154,36 @@ function absolutizarImagensDaFicha(ficha: Ficha): Ficha {
     aprimoramentos: ficha.aprimoramentos.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),
     armas: ficha.armas.map((a) => ({ ...a, img: absolutizarImagem(a.img) })),
     protecoes: ficha.protecoes.map((p) => ({ ...p, img: absolutizarImagem(p.img) }))
+  };
+}
+
+/**
+ * As imagens do compêndio chegam como o Foundry as guarda
+ * ("worlds/x/mapa.webp") e passam pelo mesmo proxy das imagens da ficha — sem
+ * isso o navegador barraria conteúdo `http://` numa página `https://`.
+ * Percorre a árvore inteira: as páginas moram em qualquer profundidade.
+ */
+function absolutizarJournalDoCompendio(journal: JournalCompendio): JournalCompendio {
+  return {
+    ...journal,
+    paginas: journal.paginas.map((pagina) =>
+      pagina.tipo === "imagem" ? { ...pagina, src: absolutizarImagem(pagina.src) } : pagina
+    )
+  };
+}
+
+function absolutizarPastaDoCompendio(pasta: PastaCompendio): PastaCompendio {
+  return {
+    ...pasta,
+    pastas: pasta.pastas.map(absolutizarPastaDoCompendio),
+    journals: pasta.journals.map(absolutizarJournalDoCompendio)
+  };
+}
+
+function absolutizarImagensDoCompendio(compendio: Compendio): Compendio {
+  return {
+    pastas: compendio.pastas.map(absolutizarPastaDoCompendio),
+    journals: compendio.journals.map(absolutizarJournalDoCompendio)
   };
 }
 
@@ -495,6 +530,7 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     ficha: null,
     personagens: null,
     diarios: null,
+    compendio: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -525,6 +561,8 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
       sessao.personagens = absolutizarImagensDasListas(mensagem);
     } else if (mensagem.tipo === "diarios") {
       sessao.diarios = mensagem.diarios;
+    } else if (mensagem.tipo === "compendio") {
+      sessao.compendio = absolutizarImagensDoCompendio(mensagem.compendio);
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -681,6 +719,7 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   // Só depois que a tela de anotações pediu uma vez: até lá não há o que
   // remontar, e a lista nem foi calculada do lado do Foundry.
   if (sessao.diarios) mensagens.push({ tipo: "diarios", diarios: sessao.diarios });
+  if (sessao.compendio) mensagens.push({ tipo: "compendio", compendio: sessao.compendio });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

@@ -45,6 +45,12 @@ política de cookie de navegador).
   [`../arton-de-bolso/README.md`](../arton-de-bolso/README.md#anotações-dos-jogadores).
   Não é seção da ficha: vale sem personagem aberto, e por isso mora no menu
   junto de Início e Configurações.
+- **`app/compendio`** — o material que o mestre libera para a mesa: retratos
+  de NPC, regras específicas, cartas e afins, da pasta "Conteúdos Para
+  Jogadores". A tela navega a árvore do Foundry como ela é (pastas, subpastas,
+  e o journal como mais um nível), até a página, que é o item que se abre.
+  Algo aparece aqui quando o mestre dá Observador no journal e some quando ele
+  tira — não há passo de publicação no app.
 - **[`app/lib/foundry-provider.tsx`](app/lib/foundry-provider.tsx)** — único
   arquivo do lado do navegador que sabe desses endpoints; todo o resto da UI
   usa só `useFoundry()`.

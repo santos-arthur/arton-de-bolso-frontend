@@ -170,6 +170,14 @@ body {
     margin: 0.5rem 0 0.5rem 1.25rem;
     list-style: revert;
   }
+  /* Dica de conteúdo do editor de anotações. Some assim que o navegador põe
+     qualquer nó lá dentro — inclusive o <br> que ele cria ao apagar tudo, e
+     por isso ela não volta depois da primeira digitação. */
+  .editor-rico:empty::before {
+    content: attr(data-placeholder);
+    opacity: 0.4;
+  }
+
   .prosa-foundry :where(table) {
     width: 100%;
     margin: 0.5rem 0;
