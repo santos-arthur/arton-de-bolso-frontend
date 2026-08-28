@@ -361,8 +361,8 @@ export type EfeitoFicha = {
   id: string;
   nome: string;
   img: string;
-  /** Item de onde ele vem; vazio quando foi posto direto na ficha. */
-  origem: string;
+  /** O poder, item ou magia de onde ele veio; null quando foi posto direto na ficha. */
+  origem: OrigemDoEfeito | null;
   descricao: string;
   /** "3 rodadas", "1 minuto" — vazio quando não expira. */
   duracao: string;
@@ -371,6 +371,18 @@ export type EfeitoFicha = {
   /** Grupo na lista: com prazo, permanente, ou o que não está contando. Já chega ordenado por ele. */
   tipo: "temporario" | "passivo" | "inativo";
   mudancas: MudancaDeEfeito[];
+};
+
+/** O item que originou um efeito, com o bastante para a tela mostrá-lo. */
+export type OrigemDoEfeito = {
+  id: string;
+  nome: string;
+  img: string;
+  /** "Poder", "Magia", "Equipamento" — o tipo do item, como o Foundry o nomeia. */
+  tipo: string;
+  /** Ficha técnica na linguagem do tipo: círculo e escola numa magia, preço e espaços num item. */
+  dados: { rotulo: string; valor: string }[];
+  descricao: string;
 };
 
 /**

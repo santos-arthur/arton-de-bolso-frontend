@@ -1,12 +1,14 @@
 "use client";
 
-import { FaChevronDown } from "react-icons/fa6";
+import { FaChevronDown, FaCircleInfo } from "react-icons/fa6";
 import { useMemo, useState } from "react";
+import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
 import Tag from "./tag";
 import { EstadoVazio } from "./cabecalho-pagina";
+import { normalizar } from "./campo-busca";
 import { rotuloDaMudanca } from "../lib/nomes-de-efeitos";
-import type { EfeitoFicha } from "../lib/foundry-types";
+import type { EfeitoFicha, OrigemDoEfeito } from "../lib/foundry-types";
 
 /**
  * Os grupos, na ordem em que o módulo já entrega a lista. Só o de prazo abre
@@ -21,9 +23,55 @@ const GRUPOS: { tipo: EfeitoFicha["tipo"]; titulo: string; abertoPorPadrao: bool
   { tipo: "inativo", titulo: "Inativos", abertoPorPadrao: false }
 ];
 
+/**
+ * De onde o efeito veio: o poder que o ligou, a armadura que o carrega, a
+ * magia que alguém lançou. É a pergunta seguinte a "o que ele muda?" — e a
+ * resposta é a regra inteira, que mora no item, não no efeito.
+ */
+function ModalOrigem({ origem, onFechar }: { origem: OrigemDoEfeito; onFechar: () => void }) {
+  return (
+    <FolhaModal titulo={origem.nome} onFechar={onFechar}>
+      <div className="flex flex-row items-center gap-3 pt-2">
+        {origem.img && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={origem.img} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+        )}
+        {origem.tipo && <Tag>{origem.tipo}</Tag>}
+      </div>
+
+      {origem.dados.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {origem.dados.map((dado) => (
+            <div
+              key={dado.rotulo}
+              className="flex flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2"
+            >
+              <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">
+                {dado.rotulo}
+              </span>
+              <span className="truncate text-sm font-semibold">{dado.valor}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {origem.descricao ? (
+        <Prosa html={origem.descricao} className="text-sm opacity-85" />
+      ) : (
+        <p className="text-sm opacity-60">Este {origem.tipo.toLowerCase()} não tem descrição.</p>
+      )}
+    </FolhaModal>
+  );
+}
+
+/** Compara ignorando acento, caixa e espaços — "Fúria" e "furia" são o mesmo nome. */
+function mesmoNome(a: string, b: string) {
+  return normalizar(a) === normalizar(b);
+}
+
 function Efeito({ efeito }: { efeito: EfeitoFicha }) {
   const [aberto, setAberto] = useState(false);
-  const expansivel = !!efeito.descricao || efeito.mudancas.length > 0;
+  const [vendoOrigem, setVendoOrigem] = useState(false);
+  const expansivel = !!efeito.descricao || efeito.mudancas.length > 0 || !!efeito.origem;
 
   return (
     <li
@@ -54,8 +102,12 @@ function Efeito({ efeito }: { efeito: EfeitoFicha }) {
           </span>
           {/* O estado não vira etiqueta: o grupo em que a linha está já diz se
               o efeito tem prazo ou se não está contando. */}
+          {/* A origem só vira etiqueta quando acrescenta algo: efeito e poder
+              costumam ter o mesmo nome, e repeti-lo do lado seria ruído. */}
           <span className="flex flex-row flex-wrap gap-1">
-            {efeito.origem && <Tag>{efeito.origem}</Tag>}
+            {efeito.origem && !mesmoNome(efeito.origem.nome, efeito.nome) && (
+              <Tag>{efeito.origem.nome}</Tag>
+            )}
             {efeito.duracao && <Tag>{efeito.duracao}</Tag>}
           </span>
         </span>
@@ -86,7 +138,24 @@ function Efeito({ efeito }: { efeito: EfeitoFicha }) {
             </ul>
           )}
           {efeito.descricao && <Prosa html={efeito.descricao} className="text-sm opacity-85" />}
+
+          {/* A regra que criou o efeito mora no item, não aqui: o botão leva a
+              ela sem tirar o jogador da lista. */}
+          {efeito.origem && (
+            <button
+              type="button"
+              onClick={() => setVendoOrigem(true)}
+              className="flex min-h-9 w-fit flex-row items-center gap-1.5 rounded-full border border-borda px-3 text-[11px] font-bold transition-colors hover:bg-foreground/5"
+            >
+              <FaCircleInfo aria-hidden="true" className="size-3!" />
+              Ver origem
+            </button>
+          )}
         </div>
+      )}
+
+      {vendoOrigem && efeito.origem && (
+        <ModalOrigem origem={efeito.origem} onFechar={() => setVendoOrigem(false)} />
       )}
     </li>
   );
