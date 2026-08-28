@@ -1,12 +1,13 @@
 "use client";
 
-import { FaChevronDown, FaCircleInfo } from "react-icons/fa6";
+import { FaChevronDown, FaCircleInfo, FaTrash } from "react-icons/fa6";
 import { useMemo, useState } from "react";
 import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
 import Tag from "./tag";
 import { EstadoVazio } from "./cabecalho-pagina";
 import { normalizar } from "./campo-busca";
+import { useFoundry } from "../lib/foundry-provider";
 import { rotuloDaMudanca } from "../lib/nomes-de-efeitos";
 import type { EfeitoFicha, OrigemDoEfeito } from "../lib/foundry-types";
 
@@ -69,8 +70,18 @@ function mesmoNome(a: string, b: string) {
 }
 
 function Efeito({ efeito }: { efeito: EfeitoFicha }) {
+  const { somenteLeitura, removerEfeito } = useFoundry();
   const [aberto, setAberto] = useState(false);
   const [vendoOrigem, setVendoOrigem] = useState(false);
+
+  /**
+   * Só o que tem prazo se tira daqui. Passivo é consequência de outra coisa —
+   * a armadura vestida, o poder que o personagem tem —, e apagá-lo seria
+   * mentir sobre a ficha em vez de mudá-la; para esses, o que muda o estado é
+   * desequipar ou remover o item. Efeito que mora num item também não sai por
+   * aqui: sairia do item de todo mundo.
+   */
+  const podeRemover = efeito.tipo === "temporario" && efeito.removivel && !somenteLeitura;
   const expansivel = !!efeito.descricao || efeito.mudancas.length > 0 || !!efeito.origem;
 
   return (
@@ -139,18 +150,30 @@ function Efeito({ efeito }: { efeito: EfeitoFicha }) {
           )}
           {efeito.descricao && <Prosa html={efeito.descricao} className="text-sm opacity-85" />}
 
-          {/* A regra que criou o efeito mora no item, não aqui: o botão leva a
-              ela sem tirar o jogador da lista. */}
-          {efeito.origem && (
-            <button
-              type="button"
-              onClick={() => setVendoOrigem(true)}
-              className="flex min-h-9 w-fit flex-row items-center gap-1.5 rounded-full border border-borda px-3 text-[11px] font-bold transition-colors hover:bg-foreground/5"
-            >
-              <FaCircleInfo aria-hidden="true" className="size-3!" />
-              Ver origem
-            </button>
-          )}
+          <div className="flex flex-row flex-wrap items-center gap-2">
+            {/* A regra que criou o efeito mora no item, não aqui: o botão leva
+                a ela sem tirar o jogador da lista. */}
+            {efeito.origem && (
+              <button
+                type="button"
+                onClick={() => setVendoOrigem(true)}
+                className="flex min-h-9 flex-row items-center gap-1.5 rounded-full border border-borda px-3 text-[11px] font-bold transition-colors hover:bg-foreground/5"
+              >
+                <FaCircleInfo aria-hidden="true" className="size-3!" />
+                Ver origem
+              </button>
+            )}
+            {podeRemover && (
+              <button
+                type="button"
+                onClick={() => removerEfeito(efeito.id)}
+                className="flex min-h-9 flex-row items-center gap-1.5 rounded-full border border-borda px-3 text-[11px] font-bold text-red-800 transition-colors hover:bg-red-800/10 dark:text-red-400"
+              >
+                <FaTrash aria-hidden="true" className="size-3!" />
+                Remover
+              </button>
+            )}
+          </div>
         </div>
       )}
 

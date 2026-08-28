@@ -203,6 +203,8 @@ type FoundryContextValue = {
   descansar: (opcoes: DescansoOpcoes) => void;
   /** Cobra um uso: os PM e os itens de uma vez, com aviso no chat da mesa. */
   gastarUso: (uso: GastoDeUso) => void;
+  /** Tira um efeito da ficha — o que o jogador ligou e já acabou. */
+  removerEfeito: (efeitoId: string) => void;
   /** Pede as anotações ao relay — a tela de anotações chama ao abrir. */
   carregarDiarios: () => void;
   criarAnotacao: (titulo: string, conteudo: string) => void;
@@ -572,6 +574,11 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       agir({ tipo: "ajustarDinheiro", moeda, valor }, (f) => ({
         ...f,
         dinheiro: f.dinheiro.map((m) => (m.chave === moeda ? { ...m, valor: Math.max(0, valor) } : m))
+      })),
+    removerEfeito: (efeitoId) =>
+      agir({ tipo: "removerEfeito", efeitoId }, (f) => ({
+        ...f,
+        efeitos: f.efeitos.filter((efeito) => efeito.id !== efeitoId)
       })),
     gastarUso: (uso) =>
       agir({ tipo: "gastarUso", uso }, (f) =>

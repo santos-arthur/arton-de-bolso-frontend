@@ -370,6 +370,8 @@ export type EfeitoFicha = {
   ativo: boolean;
   /** Grupo na lista: com prazo, permanente, ou o que não está contando. Já chega ordenado por ele. */
   tipo: "temporario" | "passivo" | "inativo";
+  /** Mora na ficha, e não num item: só esse o jogador pode tirar. */
+  removivel: boolean;
   mudancas: MudancaDeEfeito[];
 };
 
@@ -550,6 +552,8 @@ export type MensagemParaFoundry =
    * que é quem tem a verdade sobre a mochila.
    */
   | { tipo: "gastarUso"; uso: GastoDeUso }
+  /** Tira da ficha um efeito que mora nela (a Fúria que acabou antes da cena). */
+  | { tipo: "removerEfeito"; efeitoId: string }
   /** Anotações: nada disso depende do personagem aberto — é o diário do usuário. */
   | { tipo: "obterDiarios" }
   | { tipo: "criarPaginaDiario"; titulo: string; conteudo: string }
