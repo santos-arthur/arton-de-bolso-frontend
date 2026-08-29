@@ -176,7 +176,9 @@ export default function MenuLateral() {
         aria-label="Navegação principal"
         className="area-segura-baixo fixed inset-x-0 bottom-0 z-40 border-t border-borda bg-superficie/95 backdrop-blur-md md:hidden"
       >
-        <ul className="flex h-16 flex-row items-stretch">
+        {/* px-3: a barra encosta menos nas laterais e, como as abas dividem o que
+            sobra, os ícones ficam mais próximos uns dos outros. */}
+        <ul className="flex h-16 flex-row items-stretch px-3">
           {secoes.map((item) => {
             const ativo = eDaSecao(pathname, item.href);
             return (
