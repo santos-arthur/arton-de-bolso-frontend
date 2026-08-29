@@ -106,9 +106,9 @@ Todo o código — classes, funções, variáveis, comentários — é escrito e
 
 ### 1. O módulo, no Foundry
 
-Siga o README do repositório `arton-de-bolso`. Em resumo: a pasta do módulo
-vai para `Data/modules/` do Foundry (há um `deploy.sh` que faz a cópia), e
-depois é preciso ativá-lo em **Configurações do Mundo → Gerenciar Módulos**.
+Siga o README do repositório `arton-de-bolso`. Em resumo: instale pelo
+navegador de pacotes do Foundry (ou copie a pasta do módulo para
+`Data/modules/`) e ative-o em **Configurações do Mundo → Gerenciar Módulos**.
 
 Toda vez que o módulo for atualizado, **dê F5 no client do mestre** — é ele que
 executa o relay, e o módulo só recarrega junto com a página.
@@ -293,3 +293,31 @@ conseguindo.
 | Um poder não tem botão de ativar | Falta a tag `ativo` nele |
 | "Meus Personagens" está vazio | Falta Ownership no Actor para o seu usuário |
 | Todo mundo caiu de uma vez | O servidor do front reiniciou. As sessões ficam em memória; é só entrar de novo |
+
+---
+
+## Sugestões e contribuições
+
+**Toda conversa começa numa issue** — um problema que você encontrou, uma
+ideia, uma dúvida sobre alguma decisão, ou qualquer outra coisa. Não existe
+assunto pequeno demais para abrir uma.
+
+**Se for um problema, anexe vídeo ou imagem.** Boa parte do que quebra aqui é
+de tela e de toque, e uma gravação de dez segundos costuma dizer o que três
+parágrafos não dizem. Junte o que ajudar a reproduzir: aparelho, navegador,
+versão do Foundry e o que você estava fazendo na hora.
+
+**Se quiser contribuir com código**, fique à vontade:
+
+1. Abra uma issue descrevendo o que pretende alterar — assim ninguém mexe na
+   mesma coisa em paralelo, e dá para alinhar o rumo antes de você gastar o
+   tempo.
+2. Trabalhe numa branch própria.
+3. Abra o pull request para a `main`.
+
+A gente revisa e **testa em jogo** — é o mesmo critério que vale para o resto
+do projeto: nada entra por ter compilado. Aprovado, **seu nome passa a constar
+entre os desenvolvedores do projeto** e a sua mudança sai na próxima release.
+
+Uma coisa a saber antes de começar: o código deste projeto é escrito em
+**português do Brasil** — nomes de classes, funções, variáveis e comentários.
