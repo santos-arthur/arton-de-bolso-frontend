@@ -87,7 +87,7 @@ function ModalDescanso({ onFechar }: { onFechar: () => void }) {
           <button
             type="button"
             onClick={confirmar}
-            className="min-h-11 rounded-xl bg-acento px-5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="min-h-11 rounded-xl bg-acento px-5 text-sm font-bold text-acento-tinta transition-opacity hover:opacity-90"
           >
             Descansar
           </button>

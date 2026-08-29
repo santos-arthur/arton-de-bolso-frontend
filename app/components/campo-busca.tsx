@@ -69,7 +69,7 @@ export function ChipFiltro({
       aria-pressed={ativo}
       className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
         ativo
-          ? "border-acento bg-acento text-white"
+          ? "border-acento bg-acento text-acento-tinta"
           : "border-borda bg-superficie-alta hover:bg-foreground/5"
       }`}
     >

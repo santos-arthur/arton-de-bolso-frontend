@@ -2,30 +2,118 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* A aparência tem três eixos independentes, e cada um é um atributo no <html>:
+   `data-theme` (claro/escuro), `data-palette` (a família de cinza do fundo) e
+   `data-accent` (a cor de destaque). Quem escreve os três é o
+   <ThemeProvider>, mais o script inline do <head>, que os estampa antes da
+   primeira pintura.
+
+   Cuidado ao mexer: as regras escuras precisam citar `data-palette` junto,
+   senão empatam em especificidade com as claras (ambas seriam 0,2,0) e a
+   ordem no arquivo decidiria quem vence. Com os dois atributos, escuro é
+   sempre 0,3,0 e ganha de qualquer regra clara. */
+
 :root {
-  /* Mesmos tons da primeira versão: o fundo é olive-300 e as barras
-     (menu, cabeçalho da ficha) são um passo mais escuras, como eram. Os
-     cartões vão no sentido contrário, mais claros, para destacarem do fundo. */
+  /* Sem atributo nenhum — SSR antes da hidratação, ou o script bloqueado.
+     Vale o mesmo que Olive + vermelho, que era a única aparência do app. */
   --background: var(--color-olive-300);
   --foreground: var(--color-olive-900);
   --superficie: var(--color-olive-400);
   --superficie-alta: var(--color-olive-200);
   --borda: color-mix(in oklab, var(--color-olive-500) 30%, transparent);
   --acento: var(--color-red-900);
+  --acento-tinta: #fff;
   /* Faz os controles nativos do navegador (select, checkbox, scrollbar etc.)
      usarem a paleta de cores correta do tema atual. */
   color-scheme: light;
 }
 
-[data-theme="dark"] {
+/* ---------- Paletas de fundo ----------
+   As três repetem o mesmo desenho de tons, só trocando a família: o conteúdo
+   é o passo 300, as barras (menu, cabeçalho) são o 400 — mais escuras, como
+   sempre foram — e os cartões vão no sentido contrário, no 200, para
+   destacarem do fundo. No escuro o desenho inverte, sem virar preto puro. */
+
+:root[data-palette="olive"] {
+  --background: var(--color-olive-300);
+  --foreground: var(--color-olive-900);
+  --superficie: var(--color-olive-400);
+  --superficie-alta: var(--color-olive-200);
+  --borda: color-mix(in oklab, var(--color-olive-500) 30%, transparent);
+  color-scheme: light;
+}
+
+:root[data-palette="neutral"] {
+  --background: var(--color-neutral-300);
+  --foreground: var(--color-neutral-900);
+  --superficie: var(--color-neutral-400);
+  --superficie-alta: var(--color-neutral-200);
+  --borda: color-mix(in oklab, var(--color-neutral-500) 30%, transparent);
+  color-scheme: light;
+}
+
+:root[data-palette="slate"] {
+  --background: var(--color-slate-300);
+  --foreground: var(--color-slate-900);
+  --superficie: var(--color-slate-400);
+  --superficie-alta: var(--color-slate-200);
+  --borda: color-mix(in oklab, var(--color-slate-500) 30%, transparent);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"][data-palette="olive"] {
   --background: var(--color-olive-800);
   --foreground: var(--color-olive-200);
   --superficie: var(--color-olive-900);
   --superficie-alta: var(--color-olive-700);
   --borda: color-mix(in oklab, var(--color-olive-400) 22%, transparent);
-  --acento: var(--color-red-500);
   color-scheme: dark;
 }
+
+:root[data-theme="dark"][data-palette="neutral"] {
+  --background: var(--color-neutral-800);
+  --foreground: var(--color-neutral-200);
+  --superficie: var(--color-neutral-900);
+  --superficie-alta: var(--color-neutral-700);
+  --borda: color-mix(in oklab, var(--color-neutral-400) 22%, transparent);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"][data-palette="slate"] {
+  --background: var(--color-slate-800);
+  --foreground: var(--color-slate-200);
+  --superficie: var(--color-slate-900);
+  --superficie-alta: var(--color-slate-700);
+  --borda: color-mix(in oklab, var(--color-slate-400) 22%, transparent);
+  color-scheme: dark;
+}
+
+/* ---------- Cor de destaque ----------
+   Na ordem do círculo cromático, que é a ordem em que aparecem no seletor:
+   vermelho 25° → âmbar 70° → verde 150° → ciano 215° → azul 260° → roxo 304°
+   → rosa 354°. Quem entrar depois entra pelo matiz, não no fim da lista.
+
+   `--acento-tinta` é o que se escreve *em cima* do acento. No claro o acento
+   é o passo 900 e a tinta é sempre branca; no escuro ele é o 500, e os que
+   passam de ~70% de luminosidade (âmbar, verde, ciano) ficam claros demais
+   para texto branco — contraste de ~2:1. Por isso a tinta vem em par com o
+   acento, em vez de `text-white` chumbado no componente. */
+
+:root[data-accent="red"] { --acento: var(--color-red-900); --acento-tinta: #fff; }
+:root[data-accent="amber"] { --acento: var(--color-amber-900); --acento-tinta: #fff; }
+:root[data-accent="green"] { --acento: var(--color-green-900); --acento-tinta: #fff; }
+:root[data-accent="cyan"] { --acento: var(--color-cyan-900); --acento-tinta: #fff; }
+:root[data-accent="blue"] { --acento: var(--color-blue-900); --acento-tinta: #fff; }
+:root[data-accent="purple"] { --acento: var(--color-purple-900); --acento-tinta: #fff; }
+:root[data-accent="pink"] { --acento: var(--color-pink-900); --acento-tinta: #fff; }
+
+:root[data-theme="dark"][data-accent="red"] { --acento: var(--color-red-500); --acento-tinta: #fff; }
+:root[data-theme="dark"][data-accent="amber"] { --acento: var(--color-amber-500); --acento-tinta: var(--color-amber-950); }
+:root[data-theme="dark"][data-accent="green"] { --acento: var(--color-green-500); --acento-tinta: var(--color-green-950); }
+:root[data-theme="dark"][data-accent="cyan"] { --acento: var(--color-cyan-500); --acento-tinta: var(--color-cyan-950); }
+:root[data-theme="dark"][data-accent="blue"] { --acento: var(--color-blue-500); --acento-tinta: #fff; }
+:root[data-theme="dark"][data-accent="purple"] { --acento: var(--color-purple-500); --acento-tinta: #fff; }
+:root[data-theme="dark"][data-accent="pink"] { --acento: var(--color-pink-500); --acento-tinta: #fff; }
 
 @theme inline {
   --color-background: var(--background);
@@ -34,6 +122,7 @@
   --color-superficie-alta: var(--superficie-alta);
   --color-borda: var(--borda);
   --color-acento: var(--acento);
+  --color-acento-tinta: var(--acento-tinta);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-iowan);

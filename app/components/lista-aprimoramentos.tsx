@@ -541,7 +541,7 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
           ? "border border-borda opacity-60"
           : impedido
             ? "border border-borda opacity-50"
-            : "bg-acento text-white hover:opacity-90"
+            : "bg-acento text-acento-tinta hover:opacity-90"
       }`}
     >
       {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCircleMinus aria-hidden="true" className="size-4!" />}

@@ -127,11 +127,11 @@ export default function CabecalhoFicha() {
               type="button"
               onClick={() => setRetratoAberto(true)}
               aria-label={`Ver o retrato de ${nome}`}
-              className="size-16 shrink-0 rounded-xl border border-red-900 bg-cover bg-center transition-colors hover:border-acento sm:size-16"
+              className="size-16 shrink-0 rounded-xl border border-acento/60 bg-cover bg-center transition-colors hover:border-acento sm:size-16"
               style={{ backgroundImage: `url(${img})` }}
             />
           ) : (
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-red-900 sm:size-16">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-acento sm:size-16">
               <FaUser aria-hidden="true" className="size-6!" />
             </div>
           )}

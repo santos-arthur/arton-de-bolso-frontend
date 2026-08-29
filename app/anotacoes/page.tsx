@@ -70,7 +70,7 @@ export default function Page() {
           {diario?.meu ? (
             <Link
               href="/anotacoes/nova"
-              className="flex min-h-11 w-fit flex-row items-center gap-2 rounded-xl bg-acento px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex min-h-11 w-fit flex-row items-center gap-2 rounded-xl bg-acento px-4 text-sm font-bold text-acento-tinta transition-opacity hover:opacity-90"
             >
               <FaPlus aria-hidden="true" className="size-3.5!" />
               Nova anotação

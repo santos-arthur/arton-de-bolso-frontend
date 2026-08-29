@@ -56,11 +56,11 @@ function LinhaPersonagem({
         <span
           role="img"
           aria-hidden="true"
-          className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-red-900"
+          className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-acento"
           style={{ backgroundImage: `url(${personagem.img})` }}
         />
       ) : (
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-red-900">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-acento">
           <FaUser aria-hidden="true" className="size-3.5!" />
         </span>
       )}
@@ -120,7 +120,7 @@ function AcaoPainel({
   ativo?: boolean;
 }) {
   const classe = `flex min-h-11 w-full flex-row items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors ${
-    ativo ? "bg-acento text-white" : "hover:bg-foreground/5"
+    ativo ? "bg-acento text-acento-tinta" : "hover:bg-foreground/5"
   }`;
   const conteudo = (
     <>
@@ -260,11 +260,11 @@ export default function MenuLateral() {
             <span
               role="img"
               aria-hidden="true"
-              className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-red-900"
+              className="size-12 shrink-0 rounded-lg bg-cover bg-center border border-acento"
               style={{ backgroundImage: `url(${ficha.img})` }}
             />
           ) : (
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-red-900">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-acento">
               {ficha ? <FaUser aria-hidden="true" className="size-3.5!" /> : <FaBars aria-hidden="true" className="size-3.5!" />}
             </span>
           )}
@@ -285,7 +285,7 @@ export default function MenuLateral() {
                   title={item.rotulo}
                   aria-current={ativo ? "page" : undefined}
                   className={`flex min-h-11 w-full flex-row items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors xl:justify-start ${
-                    ativo ? "bg-acento text-white" : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+                    ativo ? "bg-acento text-acento-tinta" : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
                   <item.icone aria-hidden="true" className="size-4! shrink-0" />
@@ -305,7 +305,7 @@ export default function MenuLateral() {
               aria-current={acaoAtiva(pathname, item.href) ? "page" : undefined}
               className={`flex min-h-11 w-full flex-row items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors xl:justify-start ${
                 acaoAtiva(pathname, item.href)
-                  ? "bg-acento text-white"
+                  ? "bg-acento text-acento-tinta"
                   : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
               }`}
             >

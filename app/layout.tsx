@@ -99,11 +99,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${iowan.variable} h-full antialiased`}
       data-theme="light"
+      data-palette="olive"
+      data-accent="red"
       suppressHydrationWarning
     >
       <head>
+        {/* Estampa a aparência escolhida antes da primeira pintura — sem
+            isto o app aparece em Olive/vermelho claro e troca de cara na
+            hidratação. Os padrões aqui repetem os do <ThemeProvider> e os do
+            `:root` do globals.css: mudar um exige mudar os três. */}
         <InlineScript
-          html={`(function(){try{var t=localStorage.getItem("theme")||"system";var resolved=t==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;document.documentElement.setAttribute("data-theme",resolved)}catch(e){}})()`}
+          html={`(function(){try{var d=document.documentElement;var t=localStorage.getItem("theme")||"system";var resolved=t==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;d.setAttribute("data-theme",resolved);var p=localStorage.getItem("palette");d.setAttribute("data-palette",["olive","neutral","slate"].indexOf(p)<0?"olive":p);var a=localStorage.getItem("accent");d.setAttribute("data-accent",["red","amber","green","cyan","blue","purple","pink"].indexOf(a)<0?"red":a)}catch(e){}})()`}
         />
         {/* Pinch de dois dedos no Safari iOS: só para com preventDefault —
             a meta viewport não basta. Eventos "gesture*" são do WebKit, os

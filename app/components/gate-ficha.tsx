@@ -37,7 +37,7 @@ export default function GateFicha({ children }: { children: ReactNode }) {
         <p className="max-w-sm text-sm opacity-70">Nenhum personagem aberto.</p>
         <Link
           href="/"
-          className="min-h-11 rounded-xl bg-acento px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          className="min-h-11 rounded-xl bg-acento px-4 py-3 text-sm font-bold text-acento-tinta transition-opacity hover:opacity-90"
         >
           Escolher personagem
         </Link>

@@ -128,7 +128,7 @@ export default function Page() {
           <button
             type="button"
             onClick={() => setEditando(true)}
-            className="flex min-h-11 flex-row items-center gap-2 rounded-xl bg-acento px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="flex min-h-11 flex-row items-center gap-2 rounded-xl bg-acento px-4 text-sm font-bold text-acento-tinta transition-opacity hover:opacity-90"
           >
             <FaPen aria-hidden="true" className="size-3.5!" />
             Editar

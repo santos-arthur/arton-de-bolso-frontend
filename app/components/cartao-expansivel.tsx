@@ -21,7 +21,7 @@ export function AcaoPrincipal({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-acento px-3.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-acento px-3.5 text-[11px] font-bold text-acento-tinta transition-opacity hover:opacity-90"
     >
       <Icone aria-hidden="true" className="size-3!" />
       {children}

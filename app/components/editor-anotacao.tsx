@@ -73,7 +73,7 @@ export default function EditorAnotacao({
         <button
           type="submit"
           disabled={!podeSalvar}
-          className="min-h-11 rounded-xl bg-acento px-4 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="min-h-11 rounded-xl bg-acento px-4 text-sm font-bold text-acento-tinta transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {rotuloSalvar}
         </button>
