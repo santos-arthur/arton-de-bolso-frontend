@@ -159,7 +159,7 @@ export default function FolhaModal({
               desligado para o navegador não disputar o movimento. */}
           <div
             onPointerDown={(evento) => aoPressionar(evento, true)}
-            className="shrink-0 touch-none"
+            className="relative z-10 shrink-0 touch-none bg-superficie"
           >
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-foreground/25 sm:hidden" />
             <div className="flex flex-row items-center justify-between gap-3 px-5 pb-2 pt-3 sm:pt-5">
@@ -177,7 +177,11 @@ export default function FolhaModal({
 
           {/* Só o miolo rola — o título e as ações do rodapé continuam à mão por
               mais longa que seja a lista. pb-8 porque no celular a folha encosta
-              na borda inferior da tela. */}
+              na borda inferior da tela.
+
+              As duas barras precisam de fundo próprio e `z-10`: elas são irmãs
+              deste scroller, e sem isso o conteúdo rolado atravessa por baixo
+              delas no iOS. */}
           <div
             ref={mioloRef}
             className="flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 pb-8"
@@ -185,7 +189,11 @@ export default function FolhaModal({
             {children}
           </div>
 
-          {rodape && <div className="shrink-0 border-t border-borda px-5 py-3">{rodape}</div>}
+          {rodape && (
+            <div className="relative z-10 shrink-0 border-t border-borda bg-superficie px-5 py-3">
+              {rodape}
+            </div>
+          )}
         </div>
       </div>
     </NivelDaFolha.Provider>,

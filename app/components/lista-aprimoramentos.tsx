@@ -381,9 +381,17 @@ function Linha({
 
   // Truque não é "de graça": é outro jeito de lançar a magia, e a palavra na
   // etiqueta é o que o jogador procura na lista.
+  //
+  // Custo negativo é desconto, e precisa aparecer como tal: com `> 0` os
+  // poderes que abatem PM caíam no "sem custo", contradizendo a tabela de
+  // Custo logo acima, que já os mostrava como −1 PM.
   const custo =
     uso.rotuloExclusivo(item) ??
-    (item.custo > 0 ? `${item.custo * Math.max(1, quantidade)} PM` : gastoDeItem ? null : "sem custo");
+    (item.custo !== 0
+      ? `${item.custo * Math.max(1, quantidade)} PM`
+      : gastoDeItem
+        ? null
+        : "sem custo");
   const detalhes = [...efeitos, custo, gastoDeItem].filter(Boolean).join(" · ");
 
   const conteudo = (
@@ -510,9 +518,20 @@ export function ListaAprimoramentos({
  *
  * O botão diz exatamente o que vai sair: PM, itens, ou os dois. Um uso que não
  * cobra nada não tem rodapé nenhum. O ícone é o menos, e não uma moeda, porque
- * o custo aqui quase nunca é dinheiro — o par dele é o `FaCheck` de "Gastou".
+ * o custo aqui quase nunca é dinheiro — o par dele é o `FaCheck` do resolvido.
+ *
+ * `rotuloPago` é a palavra do estado final, que muda com o que se usou: um
+ * poder fica **Ativo** (ele continua valendo na ficha), uma magia ou um item
+ * ficam **Gasto** (saíram e acabou). O quanto saiu continua no rótulo quando
+ * houve custo, porque é a conta que o jogador acabou de conferir.
  */
-export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
+export function RodapeGasto({
+  uso,
+  rotuloPago = "Gasto"
+}: {
+  uso: UsoDeAprimoramentos;
+  rotuloPago?: string;
+}): ReactNode {
   // Sem gasto e sem anúncio não há botão: o painel é só consulta.
   if (!uso.resumoDoGasto && !uso.podeAnunciar) return undefined;
 
@@ -523,7 +542,7 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
   if (uso.somenteLeitura) {
     return (
       <p className="flex min-h-12 flex-row items-center justify-center gap-2 text-sm font-semibold opacity-60">
-        <FaEye aria-hidden="true" className="size-3.5!" />
+        <FaEye aria-hidden="true" className="size-3.5! shrink-0" />
         <span className="numero">Custaria {uso.resumoDoGasto}</span>
       </p>
     );
@@ -538,7 +557,11 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
       type="button"
       onClick={uso.gastar}
       disabled={uso.pago || !!impedido}
-      className={`flex min-h-12 w-full flex-row items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-opacity ${
+      // `disabled:transition-none`: a transição existe para o hover. Sem
+      // desligá-la aqui, ela também pega a virada para pago — e como só a
+      // opacidade anima, o rótulo e o fundo trocam num frame e o botão
+      // escurece 150ms depois, parecendo que a cor chegou atrasada.
+      className={`flex min-h-12 w-full flex-row items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-opacity disabled:transition-none ${
         uso.pago
           ? "border border-borda opacity-60"
           : impedido
@@ -546,15 +569,17 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
             : "bg-acento text-acento-tinta hover:opacity-90"
       }`}
     >
-      {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCircleMinus aria-hidden="true" className="size-4!" />}
-      {/* Sem custo, o botão não fala de gasto: ele anuncia a ativação na mesa. */}
-      {uso.resumoDoGasto
-        ? uso.pago
-          ? `Gastou ${uso.resumoDoGasto}`
-          : (impedido ?? `Gastar ${uso.resumoDoGasto}`)
-        : uso.pago
-          ? "Anunciado na mesa"
-          : "Ativar"}
+      {uso.pago ? (
+        <FaCheck aria-hidden="true" className="size-4! shrink-0" />
+      ) : (
+        <FaCircleMinus aria-hidden="true" className="size-4! shrink-0" />
+      )}
+      {uso.pago
+        ? uso.resumoDoGasto
+          ? `${rotuloPago} · ${uso.resumoDoGasto}`
+          : rotuloPago
+        : // Sem custo o botão não fala de gasto: ele só anuncia a ativação na mesa.
+          (impedido ?? (uso.resumoDoGasto ? `Gastar ${uso.resumoDoGasto}` : "Ativar"))}
     </button>
   );
 }

@@ -295,7 +295,13 @@ export default function PainelDeUso({
   ].filter((item) => item.valor);
 
   return (
-    <FolhaModal titulo={acao.nome} onFechar={onFechar} rodape={<RodapeGasto uso={uso} />}>
+    <FolhaModal
+      titulo={acao.nome}
+      onFechar={onFechar}
+      // Poder fica ligado na ficha depois de ativado; magia e consumível
+      // saem e acabam.
+      rodape={<RodapeGasto uso={uso} rotuloPago={escopo === "power" ? "Ativo" : "Gasto"} />}
+    >
       {/* --- O teste que vem antes de tudo: identificar a magia do
               pergaminho. Quem conhece a magia não vê nada aqui. --- */}
       {acao.teste && (
