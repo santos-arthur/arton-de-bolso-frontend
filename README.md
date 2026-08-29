@@ -119,9 +119,14 @@ executa o relay, e o módulo só recarrega junto com a página.
 npm install
 ```
 
-Aponte para o seu Foundry num arquivo `.env.local`:
+Copie o modelo de configuração e aponte para o seu Foundry:
 
 ```bash
+cp .env.example .env.local
+```
+
+```bash
+# .env.local
 FOUNDRY_URL=http://endereco-do-foundry:30000
 ```
 
