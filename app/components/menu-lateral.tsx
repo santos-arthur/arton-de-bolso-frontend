@@ -272,7 +272,7 @@ export default function MenuLateral() {
           onClick={() => setPainelAberto(true)}
           title={ficha ? `Trocar personagem (${ficha.nome})` : "Escolher personagem"}
           aria-haspopup="dialog"
-          className="mt-1 flex min-h-12 flex-row items-center rounded-xl transition-colors hover:bg-foreground/5 xl:px-2.5"
+          className="mt-1 flex min-h-12 flex-row items-center rounded-xl transition-colors hover:bg-foreground/5 xl:px-2.5 gap-2"
         >
           {ficha?.img ? (
             <span
