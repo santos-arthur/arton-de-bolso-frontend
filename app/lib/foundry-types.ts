@@ -440,6 +440,8 @@ export type PersonagemDisponivel = {
   nivel: number | null;
   raca: string;
   classes: string;
+  /** Todo o dinheiro somado na unidade base (T$) — 1 TO conta como 10. */
+  dinheiroEmTibar: number;
 };
 
 /** As duas listas da home: "meus" = sou OWNER (leio e escrevo); "companheiros" = sou só OBSERVER. */

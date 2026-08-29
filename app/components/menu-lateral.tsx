@@ -3,6 +3,7 @@
 import {
   FaBars,
   FaBookAtlas,
+  FaCoins,
   FaEye,
   FaFeatherPointed,
   FaGear,
@@ -69,9 +70,26 @@ function LinhaPersonagem({
           <span className="min-w-0 truncate text-sm font-bold">{personagem.nome}</span>
           {somenteLeitura && <FaEye aria-hidden="true" className="size-2.5! shrink-0 opacity-40" />}
         </span>
-        {personagem.nivel !== null && (
-          <span className="numero text-[11px] opacity-55">Nível {personagem.nivel}</span>
-        )}
+        {/* Nível e bolso na mesma linha: são as duas coisas que se quer saber
+            de relance antes de abrir a ficha. O total vem em T$ para não
+            obrigar ninguém a converter TO de cabeça.
+
+            O `typeof` não é paranoia com o tipo: front e módulo são
+            implantados em separado, e contra um Foundry que ainda não
+            recarregou o módulo novo o campo simplesmente não vem. Sem a
+            guarda a linha viraria "undefined T$" até o mestre dar F5. */}
+        <span className="numero flex flex-row items-center gap-1.5 text-[11px] opacity-55">
+          {personagem.nivel !== null && <span>Nível {personagem.nivel}</span>}
+          {personagem.nivel !== null && typeof personagem.dinheiroEmTibar === "number" && (
+            <span aria-hidden="true">·</span>
+          )}
+          {typeof personagem.dinheiroEmTibar === "number" && (
+            <span className="flex flex-row items-center gap-1">
+              <FaCoins aria-hidden="true" className="size-2.5! shrink-0" />
+              {personagem.dinheiroEmTibar} T$
+            </span>
+          )}
+        </span>
       </span>
     </button>
   );
