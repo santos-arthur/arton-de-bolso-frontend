@@ -410,7 +410,9 @@ function Linha({
           </button>
         )}
       </span>
-      <span className="numero text-xs font-semibold text-acento">{detalhes}</span>
+      {/* Bold, e não semibold: em 12px no acento sobre fundo escuro o traço
+          fino some no celular. */}
+      <span className="numero text-xs font-bold text-acento">{detalhes}</span>
       {aberto && regra && (
         <span
           className="prosa-foundry border-t border-borda pt-2 text-xs opacity-70"

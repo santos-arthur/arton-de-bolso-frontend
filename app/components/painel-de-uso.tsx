@@ -94,7 +94,9 @@ function Linha({ rotulo, valor, destacado = false }: { rotulo: ReactNode; valor:
       }`}
     >
       <span className="min-w-0 truncate text-sm">{rotulo}</span>
-      <span className="numero shrink-0 text-sm font-semibold">{valor}</span>
+      <span className={`numero shrink-0 text-sm ${destacado ? "font-bold" : "font-semibold"}`}>
+        {valor}
+      </span>
     </div>
   );
 }
