@@ -1,7 +1,7 @@
 "use client";
 
 import { FaBold, FaItalic, FaListOl, FaListUl, FaUnderline } from "react-icons/fa6";
-import { useEffect, useRef, useState, type ClipboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ClipboardEvent } from "react";
 import type { IconType } from "react-icons";
 import { sanitizarHtml } from "../lib/html-seguro";
 
@@ -42,12 +42,53 @@ export default function EditorRico({
   placeholder?: string;
 }) {
   const areaRef = useRef<HTMLDivElement>(null);
+  /** Comandos ligados no ponto onde o cursor está. */
+  const [ativos, setAtivos] = useState<Record<string, boolean>>({});
 
   // Congelado na primeira renderização (inicializador do useState): se este
   // valor mudasse, o React reescreveria o miolo e levaria o cursor junto. Uma
   // anotação diferente entra por uma montagem nova (o `key` no formulário),
   // nunca por uma prop nova.
   const [inicial] = useState(() => ({ __html: sanitizarHtml(htmlInicial) }));
+
+  /**
+   * Lê do navegador o que vale na seleção atual. `queryCommandState` é o par
+   * de `execCommand` — igualmente obsoleto no papel, igualmente o único que
+   * todos implementam —, e é ele que sabe que o cursor está dentro de um <b>
+   * mesmo quando o negrito veio de fora do editor.
+   *
+   * Só conta se a seleção estiver *dentro* da área: com o cursor em outro
+   * campo da página, os botões não representam nada e voltam ao normal.
+   */
+  const sincronizar = useCallback(() => {
+    const area = areaRef.current;
+    const selecao = document.getSelection();
+    if (!area || !selecao?.anchorNode || !area.contains(selecao.anchorNode)) {
+      setAtivos((atual) => (Object.keys(atual).length ? {} : atual));
+      return;
+    }
+
+    const novo: Record<string, boolean> = {};
+    for (const { comando } of COMANDOS) {
+      try {
+        novo[comando] = document.queryCommandState(comando);
+      } catch {
+        // Comando que o navegador não conhece: sem marca, como antes.
+        novo[comando] = false;
+      }
+    }
+    // Só troca o objeto quando algo mudou de verdade: `selectionchange` dispara
+    // a cada movimento do cursor, e re-renderizar em todos custaria caro num
+    // texto longo.
+    setAtivos((atual) =>
+      COMANDOS.every(({ comando }) => atual[comando] === novo[comando]) ? atual : novo
+    );
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", sincronizar);
+    return () => document.removeEventListener("selectionchange", sincronizar);
+  }, [sincronizar]);
 
   useEffect(() => {
     // Sem isto o Chrome formata com `<span style="font-weight:bold">`, que a
@@ -69,6 +110,9 @@ export default function EditorRico({
 
   function avisar() {
     aoMudar(areaRef.current?.innerHTML ?? "");
+    // Ligar o negrito não move o cursor, então `selectionchange` não dispara:
+    // sem esta chamada o botão só acenderia no clique seguinte.
+    sincronizar();
   }
 
   /**
@@ -97,7 +141,13 @@ export default function EditorRico({
             // comando não teria em que trecho agir.
             onMouseDown={(evento) => evento.preventDefault()}
             onClick={() => aplicar(comando)}
-            className="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-foreground/10"
+            aria-pressed={ativos[comando] ?? false}
+            className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
+              // Aceso é o acento chapado, com a tinta que faz par com ele — a
+              // mesma dupla dos outros controles ligados do app. Um `text-acento`
+              // sozinho não daria contraste garantido nos sete acentos.
+              ativos[comando] ? "bg-acento text-acento-tinta" : "hover:bg-foreground/10"
+            }`}
           >
             <Icone aria-hidden="true" className="size-3.5!" />
           </button>
@@ -114,6 +164,10 @@ export default function EditorRico({
         data-placeholder={placeholder}
         onPaste={aoColar}
         onInput={avisar}
+        // Ctrl+B e companhia formatam sem mover o cursor — mesmo caso do
+        // clique no botão.
+        onKeyUp={sincronizar}
+        onFocus={sincronizar}
         className="prosa-foundry editor-rico min-h-[40vh] flex-1 overflow-y-auto p-3 text-sm leading-relaxed outline-none"
         dangerouslySetInnerHTML={inicial}
       />
