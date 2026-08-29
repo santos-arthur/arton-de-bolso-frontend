@@ -14,25 +14,6 @@ mora num repositório separado — ver [Como funciona](#como-funciona).
 
 ---
 
-## Por que existe
-
-A campanha era presencial. Precisei narrar uma aventura dela **on-line**, e
-para isso passei todas as fichas para o Foundry.
-
-Terminada a aventura, os jogadores não quiseram voltar ao papel: tinham
-gostado da ficha digital, dos números que se atualizam sozinhos, de não
-recalcular bônus a cada nível. Só que levar a ficha digital para a mesa
-presencial não funcionava. **Notebook para todo mundo era inviável** — nem
-todos têm, e cinco telas abertas numa mesa de jantar atrapalham mais do que
-ajudam. E a **interface do Foundry no celular é ruim**: ela foi desenhada para
-um mestre com mouse e tela grande, não para um jogador de pé conferindo
-quantos PM sobraram.
-
-O Arton de Bolso é a resposta a isso: a ficha do Foundry continua sendo a
-fonte da verdade, e o celular ganha uma tela feita para o polegar.
-
----
-
 ## O princípio: ele nunca rola dados
 
 Os dados são rolados **fisicamente, na mesa**. O app não rola nada e não
