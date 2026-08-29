@@ -17,7 +17,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Logo from "./logo";
-import { ITENS_NAV, eDaSecao } from "./navegacao";
+import { eDaSecao, secoesDaFicha } from "./navegacao";
 import { useFoundry, usePersonagens } from "../lib/foundry-provider";
 import type { PersonagemDisponivel } from "../lib/foundry-types";
 
@@ -184,7 +184,7 @@ export default function MenuLateral() {
     router.push("/detalhes");
   }
 
-  const secoes = ficha ? ITENS_NAV : [];
+  const secoes = secoesDaFicha(ficha);
   const semPersonagens = listas.meus.length === 0 && listas.companheiros.length === 0;
 
   return (
