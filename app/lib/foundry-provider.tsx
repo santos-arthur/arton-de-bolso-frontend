@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { calcularDescanso } from "./descanso";
+import { eRotaDeFicha } from "../components/navegacao";
 import type {
   Compendio,
   AnotacaoDiario,
@@ -244,6 +245,9 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [compendio, setCompendio] = useState<Compendio | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const pathname = usePathname();
+  /** Última rota para a qual já pedimos a ficha — `null` enquanto não há sessão. */
+  const rotaRevalidadaRef = useRef<string | null>(null);
   // A tela de anotações já pediu os diários nesta aba? O cache do servidor
   // nasce vazio a cada sessão nova, então numa reconexão (ou depois de o
   // processo Node reiniciar) o pedido precisa ser refeito — senão a tela
@@ -454,6 +458,35 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", aoVoltar);
     };
   }, [avisarQueEstouAqui, carregarUsuariosELogin, status]);
+
+  /**
+   * Abrir uma tela repede o estado. O push do relay cobre o que muda enquanto
+   * o app está aberto, mas não o que se perdeu: uma aba congelada pelo iOS, um
+   * relay reiniciado, uma alteração feita no Foundry num intervalo em que o
+   * SSE estava caído. Quem abre a tela de Poderes espera ver os poderes de
+   * agora, não os da última vez que o stream funcionou.
+   *
+   * Não existe pedido por seção — o protocolo tem `obterFicha` e mais nada —,
+   * então vem a ficha inteira. Ela custa entre 4 e 18 KB e o relay já a monta
+   * uma vez só por ator, então trocar de aba não pesa.
+   *
+   * A primeira rota da sessão não conta: `abrirStream` já pediu a ficha ao
+   * abrir, e pedir de novo dobraria a montagem no client do mestre no login.
+   */
+  useEffect(() => {
+    if (status !== "autenticado") {
+      rotaRevalidadaRef.current = null;
+      return;
+    }
+    if (rotaRevalidadaRef.current === pathname) return;
+    const primeira = rotaRevalidadaRef.current === null;
+    rotaRevalidadaRef.current = pathname;
+    if (primeira) return;
+    // A home mostra o elenco e as seções mostram a ficha; `obterFicha` traz os
+    // dois (ver `enviarEstado` no relay). Anotações e compêndio têm pedido
+    // próprio, disparado na montagem dos hooks deles.
+    if (pathname === "/" || eRotaDeFicha(pathname)) enviar({ tipo: "obterFicha" });
+  }, [pathname, status, enviar]);
 
   // Enquanto ninguém está logado, mantém a lista de usuários fresca — é ela
   // que diz quem está "em uso".
