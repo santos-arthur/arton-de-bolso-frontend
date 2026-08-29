@@ -1,6 +1,6 @@
 "use client";
 
-import { FaEye, FaSpinner, FaUser } from "react-icons/fa6";
+import { FaCoins, FaEye, FaSpinner, FaUser } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { EstadoVazio } from "./components/cabecalho-pagina";
@@ -56,6 +56,15 @@ function CardPersonagem({
         {subtitulo && <span className="truncate text-xs opacity-60">{subtitulo}</span>}
         <span className="numero flex flex-row items-center gap-2 text-xs font-semibold opacity-60">
           {personagem.nivel !== null && <span>Nível {personagem.nivel}</span>}
+          {/* Mesma leitura do painel do menu: o total já convertido para T$.
+              O `typeof` cobre o Foundry que ainda não recarregou o módulo com
+              o campo — sem ele a linha viraria "undefined T$". */}
+          {typeof personagem.dinheiroEmTibar === "number" && (
+            <span className="flex flex-row items-center gap-1">
+              <FaCoins aria-hidden="true" className="size-3! shrink-0" />
+              {personagem.dinheiroEmTibar} T$
+            </span>
+          )}
           {aberto && <span className="text-acento">· aberto agora</span>}
         </span>
       </div>
