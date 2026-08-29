@@ -1,11 +1,11 @@
 import {
   FaBolt,
-  FaBoxOpen,
   FaListCheck,
   FaShieldHalved,
   FaUser,
   FaWandSparkles
 } from "react-icons/fa6";
+import { BsFillBackpackFill } from "react-icons/bs";
 import type { IconType } from "react-icons";
 
 /**
@@ -17,7 +17,7 @@ export const ITENS_NAV: { rotulo: string; curto: string; href: string; icone: Ic
   { rotulo: "Combate", curto: "Combate", href: "/combate", icone: FaShieldHalved },
   { rotulo: "Perícias", curto: "Perícias", href: "/pericias", icone: FaListCheck },
   { rotulo: "Poderes", curto: "Poderes", href: "/poderes", icone: FaBolt },
-  { rotulo: "Inventário", curto: "Mochila", href: "/inventario", icone: FaBoxOpen },
+  { rotulo: "Inventário", curto: "Mochila", href: "/inventario", icone: BsFillBackpackFill },
   { rotulo: "Magias", curto: "Magias", href: "/magias", icone: FaWandSparkles }
 ];
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { FaHandFist, FaKhanda } from "react-icons/fa6";
+import { FaHandFist } from "react-icons/fa6";
+import { RiSwordFill } from "react-icons/ri";
 import { useState } from "react";
 import CartaoExpansivel, { AcaoPrincipal, AcaoSecundaria } from "./cartao-expansivel";
 import ModalAtaque from "./modal-ataque";
@@ -49,7 +50,7 @@ export default function LinhaArma({ arma }: { arma: Arma }) {
         }
         acao={
           arma.equipado && ataque ? (
-            <AcaoPrincipal icone={FaKhanda} onClick={() => setAtacando(true)}>
+            <AcaoPrincipal icone={RiSwordFill} onClick={() => setAtacando(true)}>
               Atacar
             </AcaoPrincipal>
           ) : undefined

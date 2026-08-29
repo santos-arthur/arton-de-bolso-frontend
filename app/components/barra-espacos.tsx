@@ -1,6 +1,6 @@
 "use client";
 
-import { GiBackpack } from "react-icons/gi";
+import { BsFillBackpackFill } from "react-icons/bs";
 import type { Carga } from "../lib/foundry-types";
 
 /** "7,5" e não "7,50"; "15" e não "15,0". */
@@ -27,7 +27,7 @@ export default function BarraEspacos({ carga }: { carga: Carga }) {
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-row items-baseline justify-between gap-3">
         <span className="flex flex-row items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider opacity-55">
-          <GiBackpack aria-hidden="true" className="size-3.5!" />
+          <BsFillBackpackFill aria-hidden="true" className="size-3.5!" />
           Espaços
         </span>
         <span className={`numero text-xs font-semibold ${sobrecarregado ? "text-red-600 dark:text-red-400" : "opacity-60"}`}>

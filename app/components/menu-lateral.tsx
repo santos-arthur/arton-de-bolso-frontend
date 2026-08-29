@@ -3,8 +3,8 @@
 import {
   FaBars,
   FaBookAtlas,
-  FaBookOpen,
   FaEye,
+  FaFeatherPointed,
   FaGear,
   FaHouse,
   FaRightFromBracket,
@@ -85,7 +85,7 @@ function LinhaPersonagem({
  */
 const ACOES_DO_APP = [
   { icone: FaHouse, rotulo: "Início", href: "/" },
-  { icone: FaBookOpen, rotulo: "Anotações", href: "/anotacoes" },
+  { icone: FaFeatherPointed, rotulo: "Anotações", href: "/anotacoes" },
   { icone: FaBookAtlas, rotulo: "Compêndio", href: "/compendio" },
   { icone: FaGear, rotulo: "Configurações", href: "/configuracoes" }
 ] as const;
@@ -400,7 +400,7 @@ export default function MenuLateral() {
                 onClick={() => setPainelAberto(false)}
               />
               <AcaoPainel
-                Icone={FaBookOpen}
+                Icone={FaFeatherPointed}
                 rotulo="Anotações"
                 href="/anotacoes"
                 ativo={acaoAtiva(pathname, "/anotacoes")}

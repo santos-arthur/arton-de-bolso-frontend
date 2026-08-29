@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { GiChest } from "react-icons/gi";
+import { PiTreasureChest } from "react-icons/pi";
 import BarraEspacos from "../components/barra-espacos";
 import CabecalhoPagina, { TituloSecao } from "../components/cabecalho-pagina";
 import ListaInventario, { recortarInventario } from "../components/lista-inventario";
@@ -93,7 +93,7 @@ export default function Page() {
         className="flex flex-row items-center justify-between gap-3 rounded-2xl border border-borda bg-superficie-alta px-3 py-2.5 transition-colors hover:bg-foreground/5"
       >
         <span className="flex flex-row items-center gap-2 text-sm font-bold">
-          <GiChest aria-hidden="true" className="size-4! opacity-70" />
+          <PiTreasureChest aria-hidden="true" className="size-4! opacity-70" />
           Baú
         </span>
         <span className="numero text-xs opacity-60">

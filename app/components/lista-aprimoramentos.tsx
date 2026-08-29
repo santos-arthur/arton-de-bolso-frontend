@@ -1,6 +1,6 @@
 "use client";
 
-import { FaCheck, FaChevronDown, FaCoins, FaEye, FaMinus, FaPlus } from "react-icons/fa6";
+import { FaCheck, FaChevronDown, FaCircleMinus, FaEye, FaMinus, FaPlus } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
 import { bonusDe, formulasDe, multiplicarFormula } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
@@ -507,7 +507,8 @@ export function ListaAprimoramentos({
  * Rodapé de confirmação — vira aviso quando a ficha é só de leitura.
  *
  * O botão diz exatamente o que vai sair: PM, itens, ou os dois. Um uso que não
- * cobra nada não tem rodapé nenhum.
+ * cobra nada não tem rodapé nenhum. O ícone é o menos, e não uma moeda, porque
+ * o custo aqui quase nunca é dinheiro — o par dele é o `FaCheck` de "Gastou".
  */
 export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
   // Sem gasto e sem anúncio não há botão: o painel é só consulta.
@@ -543,7 +544,7 @@ export function RodapeGasto({ uso }: { uso: UsoDeAprimoramentos }): ReactNode {
             : "bg-acento text-white hover:opacity-90"
       }`}
     >
-      {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCoins aria-hidden="true" className="size-4!" />}
+      {uso.pago ? <FaCheck aria-hidden="true" className="size-4!" /> : <FaCircleMinus aria-hidden="true" className="size-4!" />}
       {/* Sem custo, o botão não fala de gasto: ele anuncia a ativação na mesa. */}
       {uso.resumoDoGasto
         ? uso.pago

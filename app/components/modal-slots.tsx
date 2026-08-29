@@ -1,7 +1,7 @@
 "use client";
 
 import type { IconType } from "react-icons";
-import { FaHandBackFist, FaShirt } from "react-icons/fa6";
+import { FaHandFist, FaShirt } from "react-icons/fa6";
 import FolhaModal from "./folha-modal";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Arma, ItemInventario, SlotEquipado } from "../lib/foundry-types";
@@ -98,7 +98,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
                   <Slot
                     key={indice}
                     rotulo={`Mão ${indice}`}
-                    Icone={FaHandBackFist}
+                    Icone={FaHandFist}
                     ocupante={ocupante}
                     ehOItem={ocupante?.id === item.id}
                     onClick={() => escolher("hand", indice)}
@@ -108,7 +108,7 @@ export default function ModalSlots({ item, onFechar }: { item: Equipavel; onFech
             <div className="col-span-2">
               <Slot
                 rotulo="Duas mãos"
-                Icone={FaHandBackFist}
+                Icone={FaHandFist}
                 ocupante={mapa.get("mao-12")}
                 ehOItem={mapa.get("mao-12")?.id === item.id}
                 onClick={() => escolher("hand", 12)}

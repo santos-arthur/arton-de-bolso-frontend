@@ -1,7 +1,8 @@
 "use client";
 
 import { FaCoins, FaHandFist, FaHandSparkles, FaMinus, FaPlus } from "react-icons/fa6";
-import { GiBackpack, GiChest } from "react-icons/gi";
+import { BsFillBackpackFill } from "react-icons/bs";
+import { PiTreasureChest } from "react-icons/pi";
 import { useState } from "react";
 import CartaoExpansivel, { AcaoPrincipal, AcaoSecundaria } from "./cartao-expansivel";
 import ModalConsumivel from "./modal-consumivel";
@@ -63,7 +64,7 @@ function Ficha({ item }: { item: ItemInventario }) {
           {numero.format(item.preco)} T$
         </span>
         <span className={dado}>
-          <GiBackpack aria-hidden="true" className="size-3.5! opacity-70" />
+          <BsFillBackpackFill aria-hidden="true" className="size-3.5! opacity-70" />
           {numero.format(item.espacos)} {item.espacos === 1 ? "espaço" : "espaços"}
         </span>
       </span>
@@ -146,7 +147,7 @@ export default function LinhaItem({
                     </AcaoSecundaria>
                   )}
                   <AcaoSecundaria
-                    icone={item.carregado ? GiChest : GiBackpack}
+                    icone={item.carregado ? PiTreasureChest : BsFillBackpackFill}
                     ligado={!item.carregado}
                     onClick={() => alternarCarregado(item.id)}
                   >
