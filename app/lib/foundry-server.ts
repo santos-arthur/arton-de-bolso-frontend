@@ -249,10 +249,23 @@ async function criarSessaoAnonima(): Promise<string> {
   return sessionId;
 }
 
+/**
+ * A sessão vai no **cookie** do handshake, e não numa query string.
+ *
+ * É assim que o Foundry a lê desde a v14 (`activate` em
+ * `dist/server/sockets.mjs`: `cookie.parse(handshake.headers.cookie)`). Até a
+ * v13 o `?session=` era aceito, e é por isso que a migração quebrou a tela de
+ * entrada sem erro nenhum: sem sessão reconhecida, o servidor responde
+ * `session: null` e **não registra os listeners** das telas — o `getJoinData`
+ * simplesmente nunca chama de volta, e a lista de usuários chega vazia.
+ *
+ * Só funciona porque quem conecta é o processo Node deste front: navegador
+ * nenhum deixaria mandar `Cookie` à mão.
+ */
 function conectarSocket(sessionId: string): Socket {
   return io(FOUNDRY_URL, {
     path: SOCKET_PATH,
-    query: { session: sessionId },
+    extraHeaders: { Cookie: `session=${sessionId}` },
     transports: ["websocket", "polling"]
   });
 }
@@ -436,14 +449,34 @@ async function concluirLogin(
   try {
     respostaLogin = await buscarComTimeout(`${FOUNDRY_URL}/join`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: `session=${sessionId}` },
-      body: JSON.stringify({ action: "join", userid, password: senha })
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `session=${sessionId}`,
+        // Os dois headers existem por causa da proteção contra CSRF que a v14
+        // pôs na frente de **todo** POST (ver o middleware em
+        // `dist/server/express.mjs`): ela recusa com HTTP 400 o que não vier
+        // de mesma origem, e uma requisição feita do Node não manda nem
+        // `Origin` nem `Sec-Fetch-Site`. O `Sec-Fetch-Site` é o que decide
+        // quando os dois estão presentes, e é imune a proxy que reescreva o
+        // Host; o `Origin` fica como rede de segurança.
+        Origin: FOUNDRY_URL,
+        "Sec-Fetch-Site": "same-origin"
+      },
+      // `userId`, e não `userid`: o Foundry renomeou o campo na v14
+      // (`authenticateUser` em `dist/sessions.mjs`).
+      body: JSON.stringify({ action: "join", userId: userid, password: senha })
     });
   } catch (erro) {
     return { sucesso: false, erro: (erro as Error).message };
   }
   const dados = await respostaLogin.json().catch(() => null);
   if (dados?.status !== "success") {
+    // 401 é o Foundry dizendo "não é essa senha"; qualquer outro código é o
+    // servidor recusando a requisição em si, e chamar isso de senha errada
+    // manda o jogador procurar o problema no lugar errado.
+    if (respostaLogin.status !== 401) {
+      return { sucesso: false, erro: `O Foundry recusou o pedido de login (HTTP ${respostaLogin.status}).` };
+    }
     return { sucesso: false, erro: "Usuário ou senha inválidos." };
   }
 
