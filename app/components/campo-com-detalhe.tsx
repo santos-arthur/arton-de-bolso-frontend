@@ -31,7 +31,7 @@ function ListaDetalhe({
       <div className={`flex flex-col ${grande ? "" : "gap-1"}`}>
       {itens.map((item, indice) => (
         <div
-          key={item.rotulo}
+          key={`${item.rotulo}-${indice}`}
           className={`flex flex-row items-center justify-between gap-4 ${
             grande ? "border-b border-borda/60 py-2.5 last:border-b-0" : ""
           }`}

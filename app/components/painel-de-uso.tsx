@@ -371,8 +371,8 @@ export default function PainelDeUso({
           <Titulo>{rolagem.efeito || rolagem.nome}</Titulo>
           <div className="flex flex-col">
             <div className="flex flex-col">
-              {rolagem.itens.map((item) => (
-                <Linha key={item.rotulo} rotulo={item.rotulo} valor={item.dado ?? formatar(item.valor)} />
+              {rolagem.itens.map((item, indice) => (
+                <Linha key={`${item.rotulo}-${indice}`} rotulo={item.rotulo} valor={item.dado ?? formatar(item.valor)} />
               ))}
               {uso.escolhidos.map((item) => {
                 const valor = bonusDe(item, "dano");
@@ -406,8 +406,8 @@ export default function PainelDeUso({
 
       {fichaTecnica.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          {fichaTecnica.map((item) => (
-            <Dado key={item.rotulo} rotulo={item.rotulo} mudou={item.mudou}>
+          {fichaTecnica.map((item, indice) => (
+            <Dado key={`${item.rotulo}-${indice}`} rotulo={item.rotulo} mudou={item.mudou}>
               {item.valor}
             </Dado>
           ))}

@@ -532,6 +532,44 @@ export type GastoDeUso = {
   efeitos?: string[];
 };
 
+/** PV ou PM de um combatente aliado. */
+export type RecursoDeCombate = { atual: number; max: number; temp: number };
+
+/**
+ * Uma linha da ordem de iniciativa. O que vem preenchido depende de quem é:
+ * aliado traz PV e PM com números; inimigo, no máximo a proporção de vida
+ * (`vidaFracao`), e só quando o mestre liga a opção no módulo.
+ */
+export type Combatente = {
+  id: string;
+  /** Ator do mundo por trás dele — é assim que a tela reconhece a ficha aberta. */
+  atorId: string | null;
+  nome: string;
+  img: string;
+  /** Null enquanto ninguém rolou a iniciativa dele. */
+  iniciativa: number | null;
+  aliado: boolean;
+  derrotado: boolean;
+  ehAtual: boolean;
+  ehProximo: boolean;
+  pv: RecursoDeCombate | null;
+  pm: RecursoDeCombate | null;
+  /** 0 a 1, sem números — a barra do inimigo. */
+  vidaFracao: number | null;
+};
+
+/** O encontro em andamento. `ativo: false` é a mesa fora de combate. */
+export type EstadoCombate = {
+  ativo: boolean;
+  rodada: number;
+  /** O mestre já apertou "iniciar": antes disso há ordem, mas não há turno. */
+  comecou: boolean;
+  combatentes: Combatente[];
+};
+
+/** Um aprimoramento marcado no modal de iniciativa, com quantas vezes foi aplicado. */
+export type AprimoramentoAplicado = { id: string; vezes: number };
+
 export type MensagemParaFoundry =
   | { tipo: "obterFicha" }
   | { tipo: "obterPersonagens" }
@@ -562,7 +600,14 @@ export type MensagemParaFoundry =
   | { tipo: "salvarPaginaDiario"; paginaId: string; titulo: string; conteudo: string }
   | { tipo: "excluirPaginaDiario"; paginaId: string }
   /** Compêndio: só leitura — quem libera é o mestre, pela posse do journal no Foundry. */
-  | { tipo: "obterCompendio" };
+  | { tipo: "obterCompendio" }
+  /** Combate: pedir também inscreve no push de cada virada de turno. */
+  | { tipo: "obterCombate" }
+  /**
+   * Grava a iniciativa do personagem no encontro. O `d20` é o dado que rolou
+   * na mesa; o bônus da perícia e o dos aprimoramentos quem soma é o Foundry.
+   */
+  | { tipo: "definirIniciativa"; d20: number; aprimoramentos?: AprimoramentoAplicado[] };
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =
@@ -571,6 +616,7 @@ export type MensagemDoFoundry =
   | { tipo: "semFicha" }
   | { tipo: "diarios"; diarios: Diario[] }
   | { tipo: "compendio"; compendio: Compendio }
+  | { tipo: "combate"; combate: EstadoCombate }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };

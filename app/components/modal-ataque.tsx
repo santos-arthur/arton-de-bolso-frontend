@@ -96,8 +96,8 @@ export default function ModalAtaque({ arma: atual, onFechar }: { arma: Arma; onF
         {arma.ataque && (
           <div className="flex flex-col">
             <div className="flex flex-col">
-              {arma.ataque.itens.map((item) => (
-                <Linha key={item.rotulo} rotulo={item.rotulo} valor={formatar(item.valor)} />
+              {arma.ataque.itens.map((item, indice) => (
+                <Linha key={`${item.rotulo}-${indice}`} rotulo={item.rotulo} valor={formatar(item.valor)} />
               ))}
               {uso.escolhidos.map((item) => {
                 const valor = bonusDe(item, "ataque");
@@ -128,9 +128,9 @@ export default function ModalAtaque({ arma: atual, onFechar }: { arma: Arma; onF
           <Titulo>Dano{dano.tipo ? ` · ${dano.tipo}` : ""}</Titulo>
           <div className="flex flex-col">
             <div className="flex flex-col">
-            {dano.itens.map((item) => (
+            {dano.itens.map((item, indice) => (
               <Linha
-                key={item.rotulo}
+                key={`${item.rotulo}-${indice}`}
                 rotulo={item.rotulo}
                 valor={item.dado ?? formatar(item.valor)}
               />

@@ -9,6 +9,7 @@ import { io, type Socket } from "socket.io-client";
 import type {
   Compendio,
   Diario,
+  EstadoCombate,
   Ficha,
   JournalCompendio,
   PastaCompendio,
@@ -38,6 +39,8 @@ type SessaoServidor = {
   diarios: Diario[] | null;
   /** Compêndio liberado pelo mestre; null até a tela do compêndio pedir pela primeira vez. */
   compendio: Compendio | null;
+  /** Ordem de combate; null até a tela de combate pedir pela primeira vez. */
+  combate: EstadoCombate | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -198,6 +201,13 @@ function absolutizarImagensDoCompendio(compendio: Compendio): Compendio {
   return {
     pastas: compendio.pastas.map(absolutizarPastaDoCompendio),
     journals: compendio.journals.map(absolutizarJournalDoCompendio)
+  };
+}
+
+function absolutizarImagensDoCombate(combate: EstadoCombate): EstadoCombate {
+  return {
+    ...combate,
+    combatentes: combate.combatentes.map((c) => ({ ...c, img: absolutizarImagem(c.img) }))
   };
 }
 
@@ -578,6 +588,7 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     personagens: null,
     diarios: null,
     compendio: null,
+    combate: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -610,6 +621,8 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
       sessao.diarios = mensagem.diarios;
     } else if (mensagem.tipo === "compendio") {
       sessao.compendio = absolutizarImagensDoCompendio(mensagem.compendio);
+    } else if (mensagem.tipo === "combate") {
+      sessao.combate = absolutizarImagensDoCombate(mensagem.combate);
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -767,6 +780,7 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   // remontar, e a lista nem foi calculada do lado do Foundry.
   if (sessao.diarios) mensagens.push({ tipo: "diarios", diarios: sessao.diarios });
   if (sessao.compendio) mensagens.push({ tipo: "compendio", compendio: sessao.compendio });
+  if (sessao.combate) mensagens.push({ tipo: "combate", combate: sessao.combate });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

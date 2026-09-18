@@ -6,6 +6,7 @@ import LinhaArma from "../components/linha-arma";
 import LinhaItem from "../components/linha-item";
 import LinhaProtecao from "../components/linha-protecao";
 import PaginaFicha from "../components/pagina-ficha";
+import SecaoCombate from "../components/secao-combate";
 import Tag from "../components/tag";
 import { useFoundry } from "../lib/foundry-provider";
 import type { ItemInventario } from "../lib/foundry-types";
@@ -17,7 +18,7 @@ import type { ItemInventario } from "../lib/foundry-types";
  */
 /** Mesmo cartão nos dois casos: com detalhe (é um botão) e sem (é uma caixa). */
 const CARTAO_DESLOCAMENTO =
-  "flex w-full min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left";
+  "flex h-full w-full min-w-0 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2 text-left";
 
 export default function Page() {
   const { ficha, somenteLeitura, alternarEquipado } = useFoundry();
@@ -50,10 +51,15 @@ export default function Page() {
     <>
       <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">Deslocamento</span>
       <span className="numero text-base font-bold">
-        {movimento.valor ?? "—"}
-        {movimento.unidade ? ` ${movimento.unidade.toLowerCase()}` : ""}
+        <span className="whitespace-nowrap">
+          {movimento.valor ?? "—"}
+          {movimento.unidade ? ` ${movimento.unidade.toLowerCase()}` : ""}
+        </span>
         {movimento.unidade === "Metros" && movimento.valor !== null && (
-          <span className="text-xs font-normal opacity-60"> · {(movimento.valor / 1.5).toFixed(0)} quadrados</span>
+          <span className="whitespace-nowrap text-xs font-normal opacity-60">
+            {" · "}
+            {(movimento.valor / 1.5).toFixed(0)} quadrados
+          </span>
         )}
       </span>
     </>
@@ -62,6 +68,9 @@ export default function Page() {
   return (
     <PaginaFicha>
       <CabecalhoPagina titulo="Combate" />
+
+      {/* Só aparece quando há encontro em andamento — ver SecaoCombate. */}
+      <SecaoCombate />
 
       <div className="flex flex-row flex-wrap gap-2">
         {/* Deslocamento muda com armadura, carga e condição — daí o detalhe,
@@ -72,17 +81,22 @@ export default function Page() {
             titulo="Deslocamento"
             itens={movimento.itens}
             total={movimento.valor ?? 0}
-            classeContainer="relative flex min-w-0 flex-1"
+            classeContainer="relative flex min-w-0 flex-[3] basis-44"
             classeGatilho={CARTAO_DESLOCAMENTO}
           >
             {visorDeslocamento}
           </CampoComDetalhe>
         ) : (
-          <div className={CARTAO_DESLOCAMENTO}>{visorDeslocamento}</div>
+          <div className="relative flex min-w-0 flex-[3] basis-44">
+            <div className={CARTAO_DESLOCAMENTO}>{visorDeslocamento}</div>
+          </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2">
+        {/* Tamanho é uma palavra curta ("Médio"): fica com a fatia menor, e o
+            deslocamento — que carrega metros e quadrados na mesma linha —
+            com o dobro dela. */}
+        <div className="flex min-w-0 flex-1 basis-24 flex-col gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-2">
           <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">Tamanho</span>
-          <span className="text-base font-bold">{tamanho || "—"}</span>
+          <span className="truncate text-base font-bold">{tamanho || "—"}</span>
         </div>
       </div>
 

@@ -5,9 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { calcularDescanso } from "./descanso";
 import { eRotaDeFicha } from "../components/navegacao";
 import type {
+  AprimoramentoAplicado,
   Compendio,
   AnotacaoDiario,
   Diario,
+  EstadoCombate,
   Ficha,
   GastoDeUso,
   ListaPersonagens,
@@ -174,6 +176,8 @@ type FoundryContextValue = {
   diarios: Diario[] | null;
   /** O que o mestre liberou para este jogador; null enquanto ninguém pediu. */
   compendio: Compendio | null;
+  /** A ordem de combate; null enquanto a tela de combate não pediu. */
+  combate: EstadoCombate | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -213,6 +217,10 @@ type FoundryContextValue = {
   excluirAnotacao: (paginaId: string) => void;
   /** Pede o compêndio ao relay — a tela do compêndio chama ao abrir. */
   carregarCompendio: () => void;
+  /** Pede a ordem de combate — a tela de Combate chama ao abrir, e passa a receber cada virada de turno. */
+  carregarCombate: () => void;
+  /** Grava a iniciativa do personagem: o d20 que rolou na mesa e os aprimoramentos marcados. */
+  definirIniciativa: (d20: number, aprimoramentos: AprimoramentoAplicado[]) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -243,6 +251,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [personagens, setPersonagens] = useState<ListaPersonagens | null>(null);
   const [diarios, setDiarios] = useState<Diario[] | null>(null);
   const [compendio, setCompendio] = useState<Compendio | null>(null);
+  const [combate, setCombate] = useState<EstadoCombate | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const pathname = usePathname();
@@ -254,6 +263,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   // fica em branco até o jogador navegar de novo.
   const pediuDiariosRef = useRef(false);
   const pediuCompendioRef = useRef(false);
+  const pediuCombateRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -340,6 +350,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       enviar({ tipo: "obterFicha" });
       if (pediuDiariosRef.current) enviar({ tipo: "obterDiarios" });
       if (pediuCompendioRef.current) enviar({ tipo: "obterCompendio" });
+      if (pediuCombateRef.current) enviar({ tipo: "obterCombate" });
     };
 
     stream.onmessage = (evento) => {
@@ -364,6 +375,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setDiarios(mensagem.diarios);
       } else if (mensagem.tipo === "compendio") {
         setCompendio(mensagem.compendio);
+      } else if (mensagem.tipo === "combate") {
+        setCombate(mensagem.combate);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
@@ -372,6 +385,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setPersonagens(null);
         setDiarios(null);
         setCompendio(null);
+        setCombate(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -398,6 +412,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setPersonagens(null);
             setDiarios(null);
             setCompendio(null);
+            setCombate(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -447,6 +462,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setPersonagens(null);
             setDiarios(null);
             setCompendio(null);
+            setCombate(null);
             carregarUsuariosELogin();
           }
         })
@@ -539,8 +555,10 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setPersonagens(null);
     setDiarios(null);
     setCompendio(null);
+    setCombate(null);
     pediuDiariosRef.current = false;
     pediuCompendioRef.current = false;
+    pediuCombateRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -571,6 +589,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     personagens,
     diarios,
     compendio,
+    combate,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -637,6 +656,15 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       pediuCompendioRef.current = true;
       enviar({ tipo: "obterCompendio" });
     },
+    carregarCombate: () => {
+      pediuCombateRef.current = true;
+      enviar({ tipo: "obterCombate" });
+    },
+    // Sem palpite otimista: o total depende da perícia e dos aprimoramentos
+    // resolvidos no Foundry, e mostrar um número que pode não ser o gravado
+    // seria pior do que esperar meio segundo pelo push.
+    definirIniciativa: (d20, aprimoramentos) =>
+      enviar({ tipo: "definirIniciativa", d20, aprimoramentos }),
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);

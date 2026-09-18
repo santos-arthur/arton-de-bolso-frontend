@@ -48,9 +48,9 @@ export default function ModalFormulaPericia({
                 nível, o `last:border-b-0` se aplicaria a ele e a última linha
                 mantinha a borda, duplicando com a borda do Total. */}
             <div className="flex flex-col">
-            {formula.partes.map((parte) => (
+            {formula.partes.map((parte, indice) => (
               <div
-                key={parte.rotulo}
+                key={`${parte.rotulo}-${indice}`}
                 className="flex flex-row items-center justify-between gap-4 border-b border-borda/60 py-2.5 last:border-b-0"
               >
                 <span className="min-w-0 truncate opacity-80">{parte.rotulo}</span>
