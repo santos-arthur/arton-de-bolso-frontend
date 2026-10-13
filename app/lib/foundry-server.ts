@@ -20,7 +20,9 @@ import type {
   UsuarioFoundry
 } from "./foundry-types";
 
-const FOUNDRY_URL = process.env.FOUNDRY_URL ?? "http://localhost:30000";
+// Sem barra no fim: as rotas são montadas como `${FOUNDRY_URL}/join`, e um
+// `//join` cai no 404 do Foundry.
+const FOUNDRY_URL = (process.env.FOUNDRY_URL ?? "http://localhost:30000").replace(/\/+$/, "");
 const SOCKET_PATH = process.env.FOUNDRY_SOCKET_PATH ?? "/socket.io";
 const MODULE_EVENTO = "module.arton-de-bolso";
 const TEMPO_LIMITE_MS = 10000;
