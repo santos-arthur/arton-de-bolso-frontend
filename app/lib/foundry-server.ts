@@ -10,6 +10,7 @@ import type {
   Compendio,
   Diario,
   EstadoCombate,
+  EstadoBases,
   EstadoNegocios,
   Ficha,
   JournalCompendio,
@@ -46,6 +47,7 @@ type SessaoServidor = {
   combate: EstadoCombate | null;
   /** Negócios do personagem aberto; null até a tela de negócios pedir pela primeira vez. */
   negocios: EstadoNegocios | null;
+  bases: EstadoBases | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -123,6 +125,22 @@ function lerSetCookie(resposta: Response): string[] {
  * misto, e some tudo sem erro visível na tela. Passando pelo nosso servidor,
  * a imagem chega na mesma origem e no mesmo esquema da página.
  */
+/** Base, cômodos, mobílias e residentes: todos com ícone do Foundry. */
+function absolutizarImagensDasBases(estado: EstadoBases): EstadoBases {
+  const mobilia = <T extends { img: string }>(m: T): T => ({ ...m, img: absolutizarImagem(m.img) });
+  return {
+    ...estado,
+    bases: estado.bases.map((base) => ({
+      ...base,
+      img: absolutizarImagem(base.img),
+      residentes: base.residentes.map(mobilia),
+      comodos: base.comodos.map((c) => ({ ...mobilia(c), mobilias: c.mobilias.map(mobilia) })),
+      soltas: base.soltas.map(mobilia),
+      exteriores: base.exteriores.map(mobilia)
+    }))
+  };
+}
+
 function absolutizarImagem(caminho: string | undefined | null): string {
   if (!caminho) return "";
   // Já é HTTPS de outro lugar: não tem o que consertar, e mandar pro proxy
@@ -595,6 +613,7 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     compendio: null,
     combate: null,
     negocios: null,
+    bases: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -634,6 +653,8 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
         ...mensagem.negocios,
         negocios: mensagem.negocios.negocios.map((n) => ({ ...n, img: absolutizarImagem(n.img) }))
       };
+    } else if (mensagem.tipo === "bases") {
+      sessao.bases = absolutizarImagensDasBases(mensagem.bases);
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -793,6 +814,7 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   if (sessao.compendio) mensagens.push({ tipo: "compendio", compendio: sessao.compendio });
   if (sessao.combate) mensagens.push({ tipo: "combate", combate: sessao.combate });
   if (sessao.negocios) mensagens.push({ tipo: "negocios", negocios: sessao.negocios });
+  if (sessao.bases) mensagens.push({ tipo: "bases", bases: sessao.bases });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

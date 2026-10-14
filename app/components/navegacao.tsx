@@ -1,5 +1,6 @@
 import {
   FaBolt,
+  FaHouseChimney,
   FaListCheck,
   FaShieldHalved,
   FaStore,
@@ -47,7 +48,7 @@ export function eDaSecao(pathname: string, href: string) {
 }
 
 /**
- * Telas que dependem de um módulo irmão (t20-negocios; depois bases e
+ * Telas que dependem de um módulo irmão (t20-bases, t20-negocios; depois
  * domínios). São da ficha — mostram o que pertence ao personagem aberto —,
  * mas ficam fora da barra de baixo do celular, que já está no limite com as
  * seis seções: no celular moram no painel do Menu; no rail, logo abaixo das
@@ -58,7 +59,10 @@ export const ITENS_DE_MODULO: {
   href: string;
   icone: IconType;
   modulo: keyof NonNullable<Ficha["modulos"]>;
-}[] = [{ rotulo: "Negócios", href: "/negocios", icone: FaStore, modulo: "negocios" }];
+}[] = [
+  { rotulo: "Bases", href: "/bases", icone: FaHouseChimney, modulo: "bases" },
+  { rotulo: "Negócios", href: "/negocios", icone: FaStore, modulo: "negocios" }
+];
 
 /** As telas de módulo liberadas para esta ficha — só as dos módulos ativos no mundo. */
 export function modulosDaFicha(ficha: Ficha | null) {

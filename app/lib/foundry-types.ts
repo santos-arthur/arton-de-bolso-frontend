@@ -437,7 +437,7 @@ export type Ficha = {
   modulos?: ModulosDisponiveis;
 };
 
-export type ModulosDisponiveis = { negocios: boolean };
+export type ModulosDisponiveis = { negocios: boolean; bases?: boolean };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */
 export type PersonagemDisponivel = {
@@ -614,6 +614,82 @@ export type EstadoNegocios = {
   tibaresNaMao: number | null;
 };
 
+/** Mobília de uma base. `escolha` = o patamar ou a perícia escolhidos ao instalar. */
+export type MobiliaDeBase = { id: string; nome: string; img: string; efeito: string; escolha: string };
+
+/** Cômodo de uma base. Danificado, ele e as mobílias dele param de dar bônus. */
+export type ComodoDeBase = {
+  id: string;
+  nome: string;
+  img: string;
+  efeito: string;
+  danificado: boolean;
+  /** Suíte: só beneficia os `ocupantes` (nomes). */
+  suite: boolean;
+  ocupantes: string[];
+  mobilias: MobiliaDeBase[];
+};
+
+/** Uma fonte de bônus da base para o personagem aberto. */
+export type BeneficioDeBase = { nome: string; efeito: string; naFicha: boolean; naRolagem: boolean };
+
+/** O que a base dá ao personagem aberto — só vem quando ele é residente. */
+export type BeneficiosDeBase = {
+  /** Aplicados sozinhos: na ficha ou oferecidos no diálogo de rolagem. */
+  automaticos: BeneficioDeBase[];
+  /** O que depende da mesa lembrar. */
+  lembretes: BeneficioDeBase[];
+  /** Fontes que não valem para ele agora, com o motivo. */
+  bloqueados: { nome: string; motivo: string }[];
+};
+
+/**
+ * Como o Empreendimento rende: pelo teste de Inteligência (d20 + INT +
+ * capacidade de cômodos), ou — com a regra de negócios ligada no mundo —
+ * como um negócio do t20-negocios.
+ */
+export type EmpreendimentoDeBase =
+  | { modo: "teste"; bonusCapacidade: number; bonusInteligencia: number; podeRolar: boolean }
+  | { modo: "negocio"; moduloNegociosAtivo: boolean; negocio: { id: string; nome: string; nivel: number } | null };
+
+/** Uma base do sistema Tormenta20, lida pelo módulo `t20-bases`. */
+export type Base = {
+  id: string;
+  nome: string;
+  img: string;
+  /** Já foi construída, comprada ou recebida — antes disso é só um esboço do mestre. */
+  adquirida: boolean;
+  porte: string;
+  posicaoPorte: number;
+  totalPortes: number;
+  /** Quantos cômodos o porte comporta, e quantos estão construídos. */
+  capacidade: number;
+  usados: number;
+  tipo: string;
+  efeitoTipo: string;
+  /** Segurança efetiva, de 0 a 20. */
+  seguranca: number;
+  /** T$ pagos no início de cada aventura. */
+  manutencao: number;
+  custoReparo: number;
+  proprietario: string | null;
+  souProprietario: boolean;
+  souResidente: boolean;
+  residentes: { id: string; nome: string; img: string }[];
+  comodos: ComodoDeBase[];
+  /** Mobílias guardadas, sem cômodo — não dão nada até serem instaladas. */
+  soltas: MobiliaDeBase[];
+  exteriores: MobiliaDeBase[];
+  beneficios: BeneficiosDeBase | null;
+  empreendimento: EmpreendimentoDeBase | null;
+  registro: { tipo: string; texto: string; timestamp: number }[];
+  /** Quem pede administra a base — só ele paga manutenção, repara e apura. */
+  podeAdministrar: boolean;
+};
+
+/** A tela de bases: `disponivel: false` = o módulo não está ativo no mundo. */
+export type EstadoBases = { disponivel: boolean; bases: Base[] };
+
 /** Um aprimoramento marcado no modal de iniciativa, com quantas vezes foi aplicado. */
 export type AprimoramentoAplicado = { id: string; vezes: number };
 
@@ -663,7 +739,17 @@ export type MensagemParaFoundry =
    */
   | { tipo: "renderNegocio"; negocioId: string; pericia?: string; d20?: number }
   /** Move T$ entre o cofre do negócio e a bolsa do personagem (só T$, nunca TO). */
-  | { tipo: "movimentarCofre"; negocioId: string; operacao: OperacaoCofre; quantia: number };
+  | { tipo: "movimentarCofre"; negocioId: string; operacao: OperacaoCofre; quantia: number }
+  /** Bases do personagem aberto: pedir também inscreve no push. */
+  | { tipo: "obterBases" }
+  /**
+   * Início de aventura: paga a manutenção, ou não paga e um cômodo se
+   * danifica — o `danificarId`, ou `"sorteio"`.
+   */
+  | { tipo: "iniciarAventuraBase"; baseId: string; pagar: boolean; danificarId?: string | null }
+  | { tipo: "repararComodo"; baseId: string; comodoId: string }
+  /** Rendimento do Empreendimento: o `d20` é o da mesa; INT e capacidade quem soma é o Foundry. */
+  | { tipo: "apurarEmpreendimento"; baseId: string; d20: number; dedicado: boolean };
 
 export type OperacaoCofre = "sacar" | "depositar";
 
@@ -676,6 +762,7 @@ export type MensagemDoFoundry =
   | { tipo: "compendio"; compendio: Compendio }
   | { tipo: "combate"; combate: EstadoCombate }
   | { tipo: "negocios"; negocios: EstadoNegocios }
+  | { tipo: "bases"; bases: EstadoBases }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };

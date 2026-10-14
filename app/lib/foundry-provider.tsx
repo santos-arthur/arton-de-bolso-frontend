@@ -9,6 +9,7 @@ import type {
   Compendio,
   AnotacaoDiario,
   Diario,
+  EstadoBases,
   EstadoCombate,
   EstadoNegocios,
   OperacaoCofre,
@@ -204,6 +205,8 @@ type FoundryContextValue = {
   combate: EstadoCombate | null;
   /** Negócios do personagem aberto; null enquanto a tela de negócios não pediu. */
   negocios: EstadoNegocios | null;
+  /** Bases do personagem aberto; null enquanto a tela de bases não pediu. */
+  bases: EstadoBases | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -253,6 +256,13 @@ type FoundryContextValue = {
   renderNegocio: (negocioId: string, teste?: { pericia: string; d20: number }) => void;
   /** Saca do cofre para a ficha, ou deposita da ficha no cofre. */
   movimentarCofre: (negocioId: string, operacao: OperacaoCofre, quantia: number) => void;
+  /** Pede as bases do personagem aberto — a tela de Bases chama ao abrir. */
+  carregarBases: () => void;
+  /** Início de aventura: paga a manutenção, ou não paga e danifica um cômodo (id ou `"sorteio"`). */
+  iniciarAventuraBase: (baseId: string, pagar: boolean, danificarId?: string | null) => void;
+  repararComodo: (baseId: string, comodoId: string) => void;
+  /** Rendimento do Empreendimento com o d20 da mesa; `dedicado` dobra. */
+  apurarEmpreendimento: (baseId: string, d20: number, dedicado: boolean) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -285,6 +295,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [compendio, setCompendio] = useState<Compendio | null>(null);
   const [combate, setCombate] = useState<EstadoCombate | null>(null);
   const [negocios, setNegocios] = useState<EstadoNegocios | null>(null);
+  const [bases, setBases] = useState<EstadoBases | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const pathname = usePathname();
@@ -298,6 +309,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const pediuCompendioRef = useRef(false);
   const pediuCombateRef = useRef(false);
   const pediuNegociosRef = useRef(false);
+  const pediuBasesRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -386,6 +398,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       if (pediuCompendioRef.current) enviar({ tipo: "obterCompendio" });
       if (pediuCombateRef.current) enviar({ tipo: "obterCombate" });
       if (pediuNegociosRef.current) enviar({ tipo: "obterNegocios" });
+      if (pediuBasesRef.current) enviar({ tipo: "obterBases" });
     };
 
     stream.onmessage = (evento) => {
@@ -414,6 +427,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setCombate(mensagem.combate);
       } else if (mensagem.tipo === "negocios") {
         setNegocios(mensagem.negocios);
+      } else if (mensagem.tipo === "bases") {
+        setBases(mensagem.bases);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
@@ -424,6 +439,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setCompendio(null);
         setCombate(null);
         setNegocios(null);
+        setBases(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -452,6 +468,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setCompendio(null);
             setCombate(null);
             setNegocios(null);
+            setBases(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -503,6 +520,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setCompendio(null);
             setCombate(null);
             setNegocios(null);
+            setBases(null);
             carregarUsuariosELogin();
           }
         })
@@ -597,10 +615,12 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setCompendio(null);
     setCombate(null);
     setNegocios(null);
+    setBases(null);
     pediuDiariosRef.current = false;
     pediuCompendioRef.current = false;
     pediuCombateRef.current = false;
     pediuNegociosRef.current = false;
+    pediuBasesRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -633,6 +653,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     compendio,
     combate,
     negocios,
+    bases,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -744,6 +765,34 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       );
       enviar({ tipo: "movimentarCofre", negocioId, operacao, quantia });
     },
+    carregarBases: () => {
+      pediuBasesRef.current = true;
+      enviar({ tipo: "obterBases" });
+    },
+    // Sem palpite: o cômodo sorteado e o card do chat só o Foundry sabe.
+    iniciarAventuraBase: (baseId, pagar, danificarId) =>
+      enviar({ tipo: "iniciarAventuraBase", baseId, pagar, danificarId: danificarId ?? null }),
+    // Com palpite: o cômodo volta a valer na hora; um erro ressincroniza.
+    repararComodo: (baseId, comodoId) => {
+      setBases((atual) =>
+        atual
+          ? {
+              ...atual,
+              bases: atual.bases.map((base) =>
+                base.id === baseId
+                  ? {
+                      ...base,
+                      comodos: base.comodos.map((c) => (c.id === comodoId ? { ...c, danificado: false } : c))
+                    }
+                  : base
+              )
+            }
+          : atual
+      );
+      enviar({ tipo: "repararComodo", baseId, comodoId });
+    },
+    apurarEmpreendimento: (baseId, d20, dedicado) =>
+      enviar({ tipo: "apurarEmpreendimento", baseId, d20, dedicado }),
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);
