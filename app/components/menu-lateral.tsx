@@ -17,7 +17,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Logo from "./logo";
-import { eDaSecao, secoesDaFicha } from "./navegacao";
+import { eDaSecao, modulosDaFicha, secoesDaFicha } from "./navegacao";
 import { useFoundry, usePersonagens } from "../lib/foundry-provider";
 import type { PersonagemDisponivel } from "../lib/foundry-types";
 
@@ -185,6 +185,7 @@ export default function MenuLateral() {
   }
 
   const secoes = secoesDaFicha(ficha);
+  const modulos = modulosDaFicha(ficha);
   const semPersonagens = listas.meus.length === 0 && listas.companheiros.length === 0;
 
   return (
@@ -314,6 +315,28 @@ export default function MenuLateral() {
           </div>
         )}
 
+        {modulos.length > 0 && (
+          <div className="flex flex-col gap-1 border-t border-borda pt-2">
+            {modulos.map((item) => {
+              const ativo = eDaSecao(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.rotulo}
+                  aria-current={ativo ? "page" : undefined}
+                  className={`flex min-h-11 w-full flex-row items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors xl:justify-start ${
+                    ativo ? "bg-acento text-acento-tinta" : "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
+                  }`}
+                >
+                  <item.icone aria-hidden="true" className="size-4! shrink-0" />
+                  <span className="hidden truncate xl:inline">{item.rotulo}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         <div className="mt-auto flex flex-col gap-1 border-t border-borda pt-2">
           {ACOES_DO_APP.map((item) => (
             <Link
@@ -406,6 +429,22 @@ export default function MenuLateral() {
                   </Grupo>
                 )}
               </>
+            )}
+
+            {/* Telas de módulo do personagem aberto: no celular, só aqui. */}
+            {modulos.length > 0 && (
+              <Grupo titulo={ficha?.nome ?? "Personagem"}>
+                {modulos.map((item) => (
+                  <AcaoPainel
+                    key={item.href}
+                    Icone={item.icone}
+                    rotulo={item.rotulo}
+                    href={item.href}
+                    ativo={eDaSecao(pathname, item.href)}
+                    onClick={() => setPainelAberto(false)}
+                  />
+                ))}
+              </Grupo>
             )}
 
             {/* No celular estas ações não estão em lugar nenhum além daqui. */}

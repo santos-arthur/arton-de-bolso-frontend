@@ -10,6 +10,8 @@ import type {
   AnotacaoDiario,
   Diario,
   EstadoCombate,
+  EstadoNegocios,
+  OperacaoCofre,
   Ficha,
   GastoDeUso,
   ListaPersonagens,
@@ -142,6 +144,28 @@ function gastarItensLocal(ficha: Ficha, itens: GastoDeUso["itens"]): Ficha {
  * exclui a página. O push que chega logo em seguida substitui isto pelo
  * estado real.
  */
+/**
+ * Palpite local sobre um negócio: soma `deltaCofre` ao cofre dele e
+ * `deltaNaMao` aos T$ do personagem. O push do relay confirma (ou corrige)
+ * logo depois — sem isto, a tela esperava o Foundry gravar a ficha, gravar o
+ * negócio e remontar as duas antes de mostrar o número novo.
+ */
+function editarCofreLocal(
+  estado: EstadoNegocios | null,
+  negocioId: string,
+  deltaCofre: number,
+  deltaNaMao = 0
+): EstadoNegocios | null {
+  if (!estado) return estado;
+  return {
+    ...estado,
+    tibaresNaMao: estado.tibaresNaMao === null ? null : Math.max(0, estado.tibaresNaMao + deltaNaMao),
+    negocios: estado.negocios.map((negocio) =>
+      negocio.id === negocioId ? { ...negocio, cofre: Math.max(0, negocio.cofre + deltaCofre) } : negocio
+    )
+  };
+}
+
 function editarAnotacaoLocal(
   diarios: Diario[] | null,
   paginaId: string,
@@ -178,6 +202,8 @@ type FoundryContextValue = {
   compendio: Compendio | null;
   /** A ordem de combate; null enquanto a tela de combate não pediu. */
   combate: EstadoCombate | null;
+  /** Negócios do personagem aberto; null enquanto a tela de negócios não pediu. */
+  negocios: EstadoNegocios | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -221,6 +247,12 @@ type FoundryContextValue = {
   carregarCombate: () => void;
   /** Grava a iniciativa do personagem: o d20 que rolou na mesa e os aprimoramentos marcados. */
   definirIniciativa: (d20: number, aprimoramentos: AprimoramentoAplicado[]) => void;
+  /** Pede os negócios do personagem aberto — a tela de Negócios chama ao abrir. */
+  carregarNegocios: () => void;
+  /** Rende um negócio: sem perícia, o básico; com perícia, o d20 da mesa vira o teste do mês dedicado. */
+  renderNegocio: (negocioId: string, teste?: { pericia: string; d20: number }) => void;
+  /** Saca do cofre para a ficha, ou deposita da ficha no cofre. */
+  movimentarCofre: (negocioId: string, operacao: OperacaoCofre, quantia: number) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -252,6 +284,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [diarios, setDiarios] = useState<Diario[] | null>(null);
   const [compendio, setCompendio] = useState<Compendio | null>(null);
   const [combate, setCombate] = useState<EstadoCombate | null>(null);
+  const [negocios, setNegocios] = useState<EstadoNegocios | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const pathname = usePathname();
@@ -264,6 +297,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const pediuDiariosRef = useRef(false);
   const pediuCompendioRef = useRef(false);
   const pediuCombateRef = useRef(false);
+  const pediuNegociosRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -351,6 +385,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       if (pediuDiariosRef.current) enviar({ tipo: "obterDiarios" });
       if (pediuCompendioRef.current) enviar({ tipo: "obterCompendio" });
       if (pediuCombateRef.current) enviar({ tipo: "obterCombate" });
+      if (pediuNegociosRef.current) enviar({ tipo: "obterNegocios" });
     };
 
     stream.onmessage = (evento) => {
@@ -377,6 +412,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setCompendio(mensagem.compendio);
       } else if (mensagem.tipo === "combate") {
         setCombate(mensagem.combate);
+      } else if (mensagem.tipo === "negocios") {
+        setNegocios(mensagem.negocios);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
@@ -386,6 +423,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setDiarios(null);
         setCompendio(null);
         setCombate(null);
+        setNegocios(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -413,6 +451,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setDiarios(null);
             setCompendio(null);
             setCombate(null);
+            setNegocios(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -463,6 +502,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setDiarios(null);
             setCompendio(null);
             setCombate(null);
+            setNegocios(null);
             carregarUsuariosELogin();
           }
         })
@@ -556,9 +596,11 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setDiarios(null);
     setCompendio(null);
     setCombate(null);
+    setNegocios(null);
     pediuDiariosRef.current = false;
     pediuCompendioRef.current = false;
     pediuCombateRef.current = false;
+    pediuNegociosRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -590,6 +632,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     diarios,
     compendio,
     combate,
+    negocios,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -665,6 +708,42 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     // seria pior do que esperar meio segundo pelo push.
     definirIniciativa: (d20, aprimoramentos) =>
       enviar({ tipo: "definirIniciativa", d20, aprimoramentos }),
+    carregarNegocios: () => {
+      pediuNegociosRef.current = true;
+      enviar({ tipo: "obterNegocios" });
+    },
+    // Com palpite: a conta é a mesma que o módulo faz, com o bônus que o
+    // próprio relay mandou. Se o Foundry discordar, o push corrige; se
+    // recusar, o `erro` ressincroniza.
+    renderNegocio: (negocioId, teste) => {
+      setNegocios((atual) => {
+        const negocio = atual?.negocios.find((n) => n.id === negocioId);
+        if (!negocio) return atual;
+        const bonus = teste ? (atual?.pericias.find((p) => p.chave === teste.pericia)?.bonus ?? 0) : 0;
+        const valor = teste
+          ? (teste.d20 + bonus) * negocio.fatorDedicado * negocio.nivel
+          : negocio.rendimentoBase;
+        return editarCofreLocal(atual, negocioId, valor);
+      });
+      enviar({ tipo: "renderNegocio", negocioId, ...(teste ?? {}) });
+    },
+    movimentarCofre: (negocioId, operacao, quantia) => {
+      // Sacar tira do cofre e põe na bolsa; depositar, o contrário.
+      const delta = operacao === "sacar" ? -quantia : quantia;
+      setNegocios((atual) => editarCofreLocal(atual, negocioId, delta, -delta));
+      // A bolsa também aparece na ficha (Detalhes, menu): os T$ são a moeda `tp`.
+      setFicha((atual) =>
+        atual
+          ? {
+              ...atual,
+              dinheiro: atual.dinheiro.map((m) =>
+                m.chave === "tp" ? { ...m, valor: Math.max(0, m.valor - delta) } : m
+              )
+            }
+          : atual
+      );
+      enviar({ tipo: "movimentarCofre", negocioId, operacao, quantia });
+    },
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);

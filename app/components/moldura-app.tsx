@@ -18,6 +18,7 @@ const TITULOS: Record<string, string> = {
   "/inventario": "Inventário",
   "/inventario/bau": "Baú",
   "/magias": "Magias",
+  "/negocios": "Negócios",
   "/anotacoes": "Anotações",
   "/anotacoes/nova": "Nova anotação",
   "/compendio": "Compêndio",

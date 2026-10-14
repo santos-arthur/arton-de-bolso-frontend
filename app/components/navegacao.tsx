@@ -2,6 +2,7 @@ import {
   FaBolt,
   FaListCheck,
   FaShieldHalved,
+  FaStore,
   FaUser,
   FaWandSparkles
 } from "react-icons/fa6";
@@ -45,7 +46,27 @@ export function eDaSecao(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/**
+ * Telas que dependem de um módulo irmão (t20-negocios; depois bases e
+ * domínios). São da ficha — mostram o que pertence ao personagem aberto —,
+ * mas ficam fora da barra de baixo do celular, que já está no limite com as
+ * seis seções: no celular moram no painel do Menu; no rail, logo abaixo das
+ * seções.
+ */
+export const ITENS_DE_MODULO: {
+  rotulo: string;
+  href: string;
+  icone: IconType;
+  modulo: keyof NonNullable<Ficha["modulos"]>;
+}[] = [{ rotulo: "Negócios", href: "/negocios", icone: FaStore, modulo: "negocios" }];
+
+/** As telas de módulo liberadas para esta ficha — só as dos módulos ativos no mundo. */
+export function modulosDaFicha(ficha: Ficha | null) {
+  if (!ficha?.modulos) return [];
+  return ITENS_DE_MODULO.filter((item) => ficha.modulos?.[item.modulo]);
+}
+
 /** Rotas em que o cabeçalho da ficha faz sentido — fora delas (home, configurações) ele some. */
 export function eRotaDeFicha(pathname: string) {
-  return ITENS_NAV.some((item) => eDaSecao(pathname, item.href));
+  return [...ITENS_NAV, ...ITENS_DE_MODULO].some((item) => eDaSecao(pathname, item.href));
 }

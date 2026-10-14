@@ -10,6 +10,7 @@ import type {
   Compendio,
   Diario,
   EstadoCombate,
+  EstadoNegocios,
   Ficha,
   JournalCompendio,
   PastaCompendio,
@@ -43,6 +44,8 @@ type SessaoServidor = {
   compendio: Compendio | null;
   /** Ordem de combate; null até a tela de combate pedir pela primeira vez. */
   combate: EstadoCombate | null;
+  /** Negócios do personagem aberto; null até a tela de negócios pedir pela primeira vez. */
+  negocios: EstadoNegocios | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -591,6 +594,7 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     diarios: null,
     compendio: null,
     combate: null,
+    negocios: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -625,6 +629,11 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
       sessao.compendio = absolutizarImagensDoCompendio(mensagem.compendio);
     } else if (mensagem.tipo === "combate") {
       sessao.combate = absolutizarImagensDoCombate(mensagem.combate);
+    } else if (mensagem.tipo === "negocios") {
+      sessao.negocios = {
+        ...mensagem.negocios,
+        negocios: mensagem.negocios.negocios.map((n) => ({ ...n, img: absolutizarImagem(n.img) }))
+      };
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -783,6 +792,7 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   if (sessao.diarios) mensagens.push({ tipo: "diarios", diarios: sessao.diarios });
   if (sessao.compendio) mensagens.push({ tipo: "compendio", compendio: sessao.compendio });
   if (sessao.combate) mensagens.push({ tipo: "combate", combate: sessao.combate });
+  if (sessao.negocios) mensagens.push({ tipo: "negocios", negocios: sessao.negocios });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

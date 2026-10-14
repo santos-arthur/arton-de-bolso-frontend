@@ -430,7 +430,14 @@ export type Ficha = {
   armas: Arma[];
   protecoes: Protecao[];
   configEquipamento: ConfigEquipamento;
+  /**
+   * Módulos irmãos ativos no mundo — cada um libera uma tela. Opcional porque
+   * um módulo Arton de Bolso mais antigo não manda o campo.
+   */
+  modulos?: ModulosDisponiveis;
 };
+
+export type ModulosDisponiveis = { negocios: boolean };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */
 export type PersonagemDisponivel = {
@@ -567,6 +574,46 @@ export type EstadoCombate = {
   combatentes: Combatente[];
 };
 
+/** Perícia com que se administra um negócio (Nobreza ou um Ofício), com o bônus da ficha aberta. */
+export type PericiaDeNegocio = { chave: string; rotulo: string; bonus: number };
+
+/** Um ativo contratado — a melhoria do negócio. `copiado` = veio pela Espionagem Industrial. */
+export type AtivoDeNegocio = { id: string; nome: string; resumo: string; escolha: string; copiado: boolean };
+
+/** Linha do histórico do negócio, mais recente primeiro. `valor` em T$ (negativo é gasto). */
+export type RegistroDeNegocio = { tipo: string; texto: string; valor: number | null; timestamp: number };
+
+/** Um negócio do módulo `t20-negocios` — um Actor próprio, ligado ao personagem. */
+export type Negocio = {
+  id: string;
+  nome: string;
+  img: string;
+  ramo: string;
+  local: string;
+  nivel: number;
+  nivelMaximo: number;
+  porte: string;
+  /** O caixa do negócio em T$ — o rendimento cai aqui, não na ficha. */
+  cofre: number;
+  rendimentoBase: number;
+  /** O mês dedicado rende `total do teste × fatorDedicado × nível`. */
+  fatorDedicado: number;
+  emporio: boolean;
+  ativos: AtivoDeNegocio[];
+  registro: RegistroDeNegocio[];
+  /** Quem pede é dono do negócio — só ele rende. */
+  podeRender: boolean;
+};
+
+/** A tela de negócios: `disponivel: false` = o módulo não está ativo no mundo. */
+export type EstadoNegocios = {
+  disponivel: boolean;
+  negocios: Negocio[];
+  pericias: PericiaDeNegocio[];
+  /** T$ do personagem aberto — o teto do depósito. Null quando a ficha não tem o campo. */
+  tibaresNaMao: number | null;
+};
+
 /** Um aprimoramento marcado no modal de iniciativa, com quantas vezes foi aplicado. */
 export type AprimoramentoAplicado = { id: string; vezes: number };
 
@@ -607,7 +654,18 @@ export type MensagemParaFoundry =
    * Grava a iniciativa do personagem no encontro. O `d20` é o dado que rolou
    * na mesa; o bônus da perícia e o dos aprimoramentos quem soma é o Foundry.
    */
-  | { tipo: "definirIniciativa"; d20: number; aprimoramentos?: AprimoramentoAplicado[] };
+  | { tipo: "definirIniciativa"; d20: number; aprimoramentos?: AprimoramentoAplicado[] }
+  /** Negócios do personagem aberto: pedir também inscreve no push. */
+  | { tipo: "obterNegocios" }
+  /**
+   * Apura o rendimento. Sem `pericia`, o básico; com ela, o mês dedicado — o
+   * `d20` é o dado da mesa, e o bônus da perícia quem soma é o Foundry.
+   */
+  | { tipo: "renderNegocio"; negocioId: string; pericia?: string; d20?: number }
+  /** Move T$ entre o cofre do negócio e a bolsa do personagem (só T$, nunca TO). */
+  | { tipo: "movimentarCofre"; negocioId: string; operacao: OperacaoCofre; quantia: number };
+
+export type OperacaoCofre = "sacar" | "depositar";
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
 export type MensagemDoFoundry =
@@ -617,6 +675,7 @@ export type MensagemDoFoundry =
   | { tipo: "diarios"; diarios: Diario[] }
   | { tipo: "compendio"; compendio: Compendio }
   | { tipo: "combate"; combate: EstadoCombate }
+  | { tipo: "negocios"; negocios: EstadoNegocios }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };
