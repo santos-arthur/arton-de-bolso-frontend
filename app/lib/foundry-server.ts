@@ -651,7 +651,11 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     } else if (mensagem.tipo === "negocios") {
       sessao.negocios = {
         ...mensagem.negocios,
-        negocios: mensagem.negocios.negocios.map((n) => ({ ...n, img: absolutizarImagem(n.img) }))
+        negocios: mensagem.negocios.negocios.map((n) => ({
+          ...n,
+          img: absolutizarImagem(n.img),
+          frequentadores: (n.frequentadores ?? []).map((f) => ({ ...f, img: absolutizarImagem(f.img) }))
+        }))
       };
     } else if (mensagem.tipo === "bases") {
       sessao.bases = absolutizarImagensDasBases(mensagem.bases);

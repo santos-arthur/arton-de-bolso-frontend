@@ -160,9 +160,17 @@ function editarCofreLocal(
   if (!estado) return estado;
   return {
     ...estado,
-    tibaresNaMao: estado.tibaresNaMao === null ? null : Math.max(0, estado.tibaresNaMao + deltaNaMao),
     negocios: estado.negocios.map((negocio) =>
-      negocio.id === negocioId ? { ...negocio, cofre: Math.max(0, negocio.cofre + deltaCofre) } : negocio
+      negocio.id === negocioId
+        ? {
+            ...negocio,
+            cofre: Math.max(0, negocio.cofre + deltaCofre),
+            tibaresDoProprietario:
+              negocio.tibaresDoProprietario === null
+                ? null
+                : Math.max(0, negocio.tibaresDoProprietario + deltaNaMao)
+          }
+        : negocio
     )
   };
 }
@@ -752,6 +760,11 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       // Sacar tira do cofre e põe na bolsa; depositar, o contrário.
       const delta = operacao === "sacar" ? -quantia : quantia;
       setNegocios((atual) => editarCofreLocal(atual, negocioId, delta, -delta));
+      // O dinheiro é do proprietário: só mexe na ficha aberta se for ela.
+      if (!negocios?.negocios.find((n) => n.id === negocioId)?.doPersonagem) {
+        enviar({ tipo: "movimentarCofre", negocioId, operacao, quantia });
+        return;
+      }
       // A bolsa também aparece na ficha (Detalhes, menu): os T$ são a moeda `tp`.
       setFicha((atual) =>
         atual

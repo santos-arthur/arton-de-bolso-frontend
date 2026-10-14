@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { FaArrowDown, FaArrowUp, FaCoins, FaDiceD20, FaStore } from "react-icons/fa6";
 import CabecalhoPagina, { Cartao, EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import ListaBeneficios from "../components/lista-beneficios";
+import ListaPessoas from "../components/lista-pessoas";
 import ModalCofreNegocio from "../components/modal-cofre-negocio";
 import ModalRenderNegocio from "../components/modal-render-negocio";
 import PaginaFicha from "../components/pagina-ficha";
@@ -19,13 +21,11 @@ const REGISTRO_RESUMIDO = 3;
 function CartaoNegocio({
   negocio,
   pericias,
-  tibaresNaMao,
   nomePersonagem,
   somenteLeitura
 }: {
   negocio: Negocio;
   pericias: PericiaDeNegocio[];
-  tibaresNaMao: number | null;
   nomePersonagem: string;
   somenteLeitura: boolean;
 }) {
@@ -35,6 +35,7 @@ function CartaoNegocio({
   const podeRender = negocio.podeRender && !somenteLeitura;
   const registro = registroAberto ? negocio.registro : negocio.registro.slice(0, REGISTRO_RESUMIDO);
   const subtitulo = [negocio.ramo, negocio.local].filter(Boolean).join(" · ");
+  const dono = negocio.proprietario ?? nomePersonagem;
 
   return (
     <Cartao className="flex flex-col gap-4 p-4">
@@ -57,6 +58,12 @@ function CartaoNegocio({
             {negocio.porte} · nível {negocio.nivel}/{negocio.nivelMaximo}
           </span>
           {subtitulo && <span className="truncate text-xs opacity-60">{subtitulo}</span>}
+          {!negocio.doPersonagem && (
+            <span className="truncate text-xs opacity-60">
+              De {negocio.proprietario ?? "outro personagem"}
+              {negocio.podeRender ? "" : " · só leitura"}
+            </span>
+          )}
         </div>
       </div>
 
@@ -113,6 +120,15 @@ function CartaoNegocio({
         </div>
       )}
 
+      {negocio.beneficios && (
+        <ListaBeneficios
+          titulo="O que o negócio te dá"
+          automaticos={negocio.beneficios.automaticos}
+          lembretes={negocio.beneficios.lembretes}
+          bloqueados={negocio.beneficios.bloqueados}
+        />
+      )}
+
       <div className="flex flex-col gap-2">
         <TituloSecao>
           Ativos · {negocio.ativos.length}/{negocio.nivel}
@@ -135,7 +151,10 @@ function CartaoNegocio({
         )}
       </div>
 
-      {negocio.registro.length > 0 && (
+      <ListaPessoas titulo="Frequentam" pessoas={negocio.frequentadores ?? []} />
+
+      {/* O histórico é de quem administra; quem só lê precisa dos bônus, não do caixa. */}
+      {podeRender && negocio.registro.length > 0 && (
         <div className="flex flex-col gap-2">
           <TituloSecao>Histórico</TituloSecao>
           <ul className="flex flex-col">
@@ -181,8 +200,8 @@ function CartaoNegocio({
         <ModalCofreNegocio
           negocio={negocio}
           operacao={movendo}
-          tibaresNaMao={tibaresNaMao}
-          nomePersonagem={nomePersonagem}
+          tibaresNaMao={negocio.tibaresDoProprietario}
+          nomePersonagem={dono}
           onFechar={() => setMovendo(null)}
         />
       )}
@@ -222,7 +241,6 @@ export default function Page() {
               key={negocio.id}
               negocio={negocio}
               pericias={estado.pericias}
-              tibaresNaMao={estado.tibaresNaMao ?? null}
               nomePersonagem={ficha.nome}
               somenteLeitura={somenteLeitura}
             />

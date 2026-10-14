@@ -583,6 +583,22 @@ export type AtivoDeNegocio = { id: string; nome: string; resumo: string; escolha
 /** Linha do histórico do negócio, mais recente primeiro. `valor` em T$ (negativo é gasto). */
 export type RegistroDeNegocio = { tipo: string; texto: string; valor: number | null; timestamp: number };
 
+/** Um ativo que beneficia o personagem; `escolha` = a decisão feita ao contratar. */
+export type BeneficioDeNegocio = {
+  nome: string;
+  efeito: string;
+  escolha: string;
+  naFicha: boolean;
+  naRolagem: boolean;
+};
+
+export type BeneficiosDeNegocio = {
+  automaticos: BeneficioDeNegocio[];
+  lembretes: BeneficioDeNegocio[];
+  /** Ativos condicionais (conjurador, devoto) que ele não cumpre, com o que exigem. */
+  bloqueados: { nome: string; motivo: string }[];
+};
+
 /** Um negócio do módulo `t20-negocios` — um Actor próprio, ligado ao personagem. */
 export type Negocio = {
   id: string;
@@ -601,7 +617,17 @@ export type Negocio = {
   emporio: boolean;
   ativos: AtivoDeNegocio[];
   registro: RegistroDeNegocio[];
-  /** Quem pede é dono do negócio — só ele rende. */
+  /** Nome do personagem dono — é dele o dinheiro do saque e do depósito. */
+  proprietario: string | null;
+  /** O dono é o personagem aberto; falso = negócio de outro, compartilhado pelo mestre. */
+  doPersonagem: boolean;
+  /** T$ do proprietário — o teto do depósito. Null quando não dá para ler. */
+  tibaresDoProprietario: number | null;
+  /** O que o negócio dá ao personagem aberto — só quando ele é beneficiário. */
+  beneficios: BeneficiosDeNegocio | null;
+  /** Os beneficiários: quem frequenta o negócio e recebe os bônus dele. */
+  frequentadores: { id: string; nome: string; img: string }[];
+  /** Quem pede é jogador do proprietário — só ele rende e movimenta o cofre. */
   podeRender: boolean;
 };
 

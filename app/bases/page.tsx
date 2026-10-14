@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { FaDiceD20, FaFlag, FaHammer, FaHouseChimney, FaStore } from "react-icons/fa6";
 import CabecalhoPagina, { Cartao, EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
+import ListaBeneficios from "../components/lista-beneficios";
+import ListaPessoas from "../components/lista-pessoas";
 import { ModalEmpreendimento, ModalInicioAventura, ModalRepararComodo } from "../components/modais-base";
 import PaginaFicha from "../components/pagina-ficha";
 import { useBases } from "../lib/bases";
 import { useFoundry } from "../lib/foundry-provider";
-import type { Base, BeneficioDeBase, ComodoDeBase, MobiliaDeBase } from "../lib/foundry-types";
+import type { Base, ComodoDeBase, MobiliaDeBase } from "../lib/foundry-types";
 import { tibares } from "../lib/negocios";
 
 const BOTAO =
@@ -95,38 +97,13 @@ function LinhaComodo({
         )}
       </div>
       {comodo.mobilias.length > 0 && (
-        <ul className="ml-[52px] flex flex-col gap-1.5">
+        <ul className="ml-13 flex flex-col gap-1.5">
           {comodo.mobilias.map((m) => (
             <Mobilia key={m.id} mobilia={m} />
           ))}
         </ul>
       )}
     </li>
-  );
-}
-
-function ListaBeneficios({ titulo, itens }: { titulo: string; itens: BeneficioDeBase[] }) {
-  if (!itens.length) return null;
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-bold opacity-70">{titulo}</span>
-      <ul className="flex flex-col gap-1.5">
-        {itens.map((b, i) => (
-          <li key={`${b.nome}-${i}`} className="flex flex-col">
-            <span className="text-sm font-semibold">
-              {b.nome}
-              {(b.naFicha || b.naRolagem) && (
-                <span className="font-normal opacity-60">
-                  {" · "}
-                  {[b.naFicha && "na ficha", b.naRolagem && "nas rolagens"].filter(Boolean).join(" e ")}
-                </span>
-              )}
-            </span>
-            {b.efeito && <span className="text-xs opacity-60">{b.efeito}</span>}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
@@ -213,32 +190,19 @@ function CartaoBase({ base, somenteLeitura }: { base: Base; somenteLeitura: bool
       )}
 
       {base.beneficios && (
-        <div className="flex flex-col gap-3">
-          <TituloSecao>O que a base te dá</TituloSecao>
-          {danificados > 0 && (
-            <span className="text-xs text-red-700 dark:text-red-400">
-              {danificados === 1 ? "Um cômodo danificado não está" : `${danificados} cômodos danificados não estão`}{" "}
-              dando bônus.
-            </span>
-          )}
-          <ListaBeneficios titulo="Aplicado sozinho" itens={base.beneficios.automaticos} />
-          <ListaBeneficios titulo="Para lembrar na mesa" itens={base.beneficios.lembretes} />
-          {base.beneficios.bloqueados.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold opacity-70">Não vale para você agora</span>
-              <ul className="flex flex-col gap-1">
-                {base.beneficios.bloqueados.map((b, i) => (
-                  <li key={`${b.nome}-${i}`} className="text-sm">
-                    {b.nome} <span className="text-xs opacity-60">· {b.motivo}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {!base.beneficios.automaticos.length &&
-            !base.beneficios.lembretes.length &&
-            !base.beneficios.bloqueados.length && <span className="text-sm opacity-60">Nada por enquanto.</span>}
-        </div>
+        <ListaBeneficios
+          titulo="O que a base te dá"
+          automaticos={base.beneficios.automaticos}
+          lembretes={base.beneficios.lembretes}
+          bloqueados={base.beneficios.bloqueados}
+          aviso={
+            danificados === 0
+              ? null
+              : danificados === 1
+                ? "Um cômodo danificado não está dando bônus."
+                : `${danificados} cômodos danificados não estão dando bônus.`
+          }
+        />
       )}
 
       {base.adquirida && (
@@ -286,33 +250,10 @@ function CartaoBase({ base, somenteLeitura }: { base: Base; somenteLeitura: bool
         </div>
       )}
 
-      {base.residentes.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <TituloSecao>Residentes · {base.residentes.length}</TituloSecao>
-          <ul className="flex flex-row flex-wrap gap-2">
-            {base.residentes.map((r) => (
-              <li
-                key={r.id}
-                className="flex flex-row items-center gap-2 rounded-full border border-borda py-1 pl-1 pr-3 text-sm"
-              >
-                {r.img ? (
-                  <span
-                    role="img"
-                    aria-hidden="true"
-                    className="size-6 shrink-0 rounded-full bg-cover bg-center"
-                    style={{ backgroundImage: `url(${r.img})` }}
-                  />
-                ) : (
-                  <span className="size-6 shrink-0 rounded-full border border-borda" />
-                )}
-                {r.nome}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <ListaPessoas titulo="Residentes" pessoas={base.residentes} />
 
-      {base.registro.length > 0 && (
+      {/* O histórico é de quem administra; quem só mora precisa dos bônus. */}
+      {administra && base.registro.length > 0 && (
         <div className="flex flex-col gap-2">
           <TituloSecao>Histórico</TituloSecao>
           <ul className="flex flex-col">
