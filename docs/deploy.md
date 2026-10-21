@@ -13,7 +13,7 @@ para o Traefik, que escolhe o container pelo host.
 ```bash
 mkdir -p /home/arthur/homelab/rpg
 cd /home/arthur/homelab/rpg
-git clone https://github.com/santos-arthur/design-telas-arton-de-bolso.git arton-de-bolso
+git clone https://github.com/santos-arthur/arton-de-bolso-frontend.git arton-de-bolso
 cd arton-de-bolso
 
 # Onde o Foundry responde. É o servidor Node do app que fala com ele, não o
