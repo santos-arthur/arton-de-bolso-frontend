@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   // falando com o Foundry (rodando à parte) via app/lib/foundry-server.ts —
   // ver docs/arquitetura.md. Nada de export estático aqui: precisamos de
   // Route Handlers dinâmicos (login, SSE) com estado no processo.
+  //
+  // `standalone` gera em .next/standalone um server.js com só o que o
+  // servidor usa de node_modules — é o que a imagem Docker copia (ver
+  // Dockerfile). Não muda nada para `npm run dev`.
+  output: "standalone",
 
   // Em desenvolvimento o Next só aceita requisições vindas do host em que
   // subiu (localhost) — sem isto, abrir o app pelo túnel do Cloudflare

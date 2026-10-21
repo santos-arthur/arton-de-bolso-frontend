@@ -1,0 +1,31 @@
+# Produção: VM Debian do homelab (Proxmox), atrás do Traefik — ver
+# docs/deploy.md. O Traefik descobre o container pelas labels na rede externa
+# `web` e roteia rpg.arthursantos.com.br até ele; o TLS fica com o Cloudflare
+# Tunnel, que entrega HTTP puro ao Traefik.
+#
+# FOUNDRY_URL vem de um `.env` (não versionado) ao lado deste arquivo, que o
+# compose lê sozinho.
+#
+# Uma réplica só: as sessões vivem na memória do processo Node.
+
+services:
+  arton-de-bolso:
+    build: .
+    image: arton-de-bolso-frontend:latest
+    container_name: arton-de-bolso
+    restart: unless-stopped
+    environment:
+      FOUNDRY_URL: ${FOUNDRY_URL:?defina FOUNDRY_URL}
+      FOUNDRY_SOCKET_PATH: ${FOUNDRY_SOCKET_PATH:-/socket.io}
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.arton-de-bolso.rule=Host(`rpg.arthursantos.com.br`)"
+      - "traefik.http.routers.arton-de-bolso.entrypoints=web"
+      - "traefik.http.services.arton-de-bolso.loadbalancer.server.port=3000"
+      - "traefik.docker.network=web"
+
+networks:
+  web:
+    external: true
