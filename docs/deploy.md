@@ -7,14 +7,8 @@ pelas labels do `compose.yaml` na rede `web` e roteia
 
 ## Primeira vez
 
-### Na Cloudflare
-
-No painel Zero Trust, no túnel que já atende `arthursantos.com.br`: **Public
-Hostname → Add** com `rpg.arthursantos.com.br` apontando para o **mesmo
-serviço** que o `arthursantos.com.br` usa (o Traefik). A Cloudflare cria o DNS
-sozinha.
-
-### Na VM
+Na Cloudflare não há nada a fazer: o túnel já manda `*.arthursantos.com.br`
+para o Traefik, que escolhe o container pelo host.
 
 ```bash
 mkdir -p /home/arthur/homelab/rpg
