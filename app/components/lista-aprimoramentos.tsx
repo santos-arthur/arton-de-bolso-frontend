@@ -2,7 +2,7 @@
 
 import { FaCheck, FaChevronDown, FaCircleMinus, FaEye, FaMinus, FaPlus } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
-import { bonusDe, formulasDe, multiplicarFormula } from "../lib/aprimoramentos";
+import { bonusDe, formulasComTipoDe, multiplicarFormula, textoDaFormula } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Aprimoramento, ConsumoDeItem } from "../lib/foundry-types";
 
@@ -75,6 +75,9 @@ export function useCongelado<T>(valor: T, congelar: boolean): T {
 
 export type UsoDeAprimoramentos = ReturnType<typeof useAprimoramentos>;
 
+/** Referência estável para o padrão de `fixos`: um `[]` novo a cada render não muda nada, mas confunde quem compara. */
+const SEM_FIXOS: Aprimoramento[] = [];
+
 /**
  * Estado de uso dos aprimoramentos de um teste, ataque ou conjuração — e do
  * que esse uso vai cobrar em PM e em itens.
@@ -116,6 +119,12 @@ export function useAprimoramentos(
     origemId?: string;
     /** Ids dos efeitos que a ativação vai ligar na ficha. */
     efeitos?: string[];
+    /**
+     * Aprimoramentos que valem neste uso sem escolha: entram uma vez, não se
+     * desmarcam e não aparecem na lista — é a melhoria da munição escolhida,
+     * que vem com a flecha. Somam nos bônus e vão no anúncio como os outros.
+     */
+    fixos?: Aprimoramento[];
     exclusivos?: {
       quando: (item: Aprimoramento) => boolean;
       /** O que o exclusivo desliga. Fora disso, tudo segue disponível. */
@@ -131,6 +140,7 @@ export function useAprimoramentos(
     consumo = null,
     origemId,
     efeitos,
+    fixos = SEM_FIXOS,
     exclusivos
   } = opcoes;
   const { ficha, somenteLeitura, gastarUso } = useFoundry();
@@ -152,16 +162,19 @@ export function useAprimoramentos(
   const [pagoCom, setPagoCom] = useState<{
     aplicaveis: Aprimoramento[];
     consumo: ConsumoDeItem | null;
+    fixos: Aprimoramento[];
   } | null>(null);
   const pago = !!pagoCom;
 
   // Depois do gasto, tudo se calcula sobre o retrato de então.
   const emUso = pagoCom?.aplicaveis ?? aplicaveis;
   const consumoEmUso = pagoCom ? pagoCom.consumo : consumo;
+  const fixosEmUso = pagoCom?.fixos ?? fixos;
+  const ehFixo = (item: Aprimoramento) => fixosEmUso.some((fixo) => fixo.id === item.id);
 
   const pmAtual = ficha?.pm.atual ?? 0;
-  const quantidadeDe = (item: Aprimoramento) => vezes[item.id] ?? 0;
-  const escolhidos = emUso.filter((item) => quantidadeDe(item) > 0);
+  const quantidadeDe = (item: Aprimoramento) => (ehFixo(item) ? 1 : (vezes[item.id] ?? 0));
+  const escolhidos = [...fixosEmUso, ...emUso.filter((item) => quantidadeDe(item) > 0)];
 
   const exclusivo = exclusivos ? (escolhidos.find(exclusivos.quando) ?? null) : null;
 
@@ -200,7 +213,7 @@ export function useAprimoramentos(
   // extrato do que se gastou, e nada mais se marca ou desmarca — ou um
   // exclusivo está em uso e este é um dos que ele desliga.
   const travado = (item: Aprimoramento) =>
-    pago || (!!exclusivo && item.id !== exclusivo.id && !!exclusivos?.exclui(item));
+    pago || ehFixo(item) || (!!exclusivo && item.id !== exclusivo.id && !!exclusivos?.exclui(item));
 
   function definir(item: Aprimoramento, quantidade: number) {
     if (travado(item)) return;
@@ -234,9 +247,12 @@ export function useAprimoramentos(
    */
   function formulasExtras(chave: string) {
     return escolhidos.flatMap((item) =>
-      formulasDe(item, chave).map((formula, indice) => ({
+      formulasComTipoDe(item, chave).map((extra, indice) => ({
         id: `${item.id}-${chave}-${indice}`,
-        formula: multiplicarFormula(formula, quantidadeDe(item))
+        formula: multiplicarFormula(extra.formula, quantidadeDe(item)),
+        /** Tipo de dano próprio ("perda"); vazio = mesmo tipo da rolagem base. */
+        tipo: extra.tipo,
+        rotuloTipo: extra.rotuloTipo
       }))
     );
   }
@@ -263,9 +279,10 @@ export function useAprimoramentos(
       // Só os ids: quem sabe o nome de cada aprimoramento (e o que cada
       // efeito faz) é o Foundry.
       aprimoramentos: escolhidos.map((item) => item.id),
+      aplicados: escolhidos.map((item) => ({ id: item.id, vezes: quantidadeDe(item) })),
       efeitos
     });
-    setPagoCom({ aplicaveis, consumo });
+    setPagoCom({ aplicaveis, consumo, fixos });
   }
 
   return {
@@ -363,11 +380,12 @@ function Linha({
   const efeitos = chaves
     .flatMap(({ chave, rotulo }) => {
       const numero = bonusDe(item, chave);
-      const formulas = formulasDe(item, chave);
+      const formulas = formulasComTipoDe(item, chave);
       const partes: string[] = [];
       if (numero !== null) partes.push(`${numero >= 0 ? "+" : ""}${numero * Math.max(1, quantidade)} ${rotulo}`);
-      for (const formula of formulas) {
-        partes.push(`+${multiplicarFormula(formula, Math.max(1, quantidade))} ${rotulo}`);
+      for (const extra of formulas) {
+        const formula = multiplicarFormula(extra.formula, Math.max(1, quantidade));
+        partes.push(`${textoDaFormula({ ...extra, formula })} ${rotulo}`);
       }
       return partes;
     })

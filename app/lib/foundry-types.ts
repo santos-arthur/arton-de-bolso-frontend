@@ -81,6 +81,16 @@ export type ModificadorAprimoramento = {
   formula: string;
   /** Modo do Active Effect: 5 substitui o campo, o resto soma. */
   modo: number;
+  /** Tipo de dano da fórmula ("perda", "fogo"), quando ela declara um. Dano de outro tipo se rola à parte. */
+  tipoDano?: string;
+  /** O tipo de dano como o sistema o nomeia ("Perda"). */
+  rotuloTipoDano?: string;
+  /**
+   * Modificador geral da ficha (`system.modificadores.dano.ad`...) traduzido:
+   * em que chave do painel ele entra e em que contexto vale. Presente, a
+   * `chave` crua não serve a painel nenhum — ver `noContexto`.
+   */
+  mapeamentos?: { chave: string; contexto: string[] }[];
 };
 
 /**
@@ -123,6 +133,12 @@ export type Aprimoramento = {
   aumenta: boolean;
   /** Já vem marcado: é algo que o personagem tem ligado sempre, não uma escolha do momento. */
   ativoPorPadrao: boolean;
+  /**
+   * Mora numa munição (a melhoria da flecha). Não se marca à parte: vale
+   * quando aquela munição é a escolhida no ataque. Opcional porque um módulo
+   * mais antigo não manda o campo.
+   */
+  municao?: boolean;
 };
 
 /** Ataque de uma arma, decomposto — o total que se soma ao 1d20. */
@@ -153,6 +169,18 @@ export type Arma = {
   duasMaos: boolean;
   descricao: string;
   alcance: string;
+  /**
+   * Propósito no sistema: "corpo-a-corpo", "corpo-a-corpo-arremesso",
+   * "disparo" ou "arremesso". Opcional porque um módulo mais antigo não manda.
+   */
+  proposito?: string;
+  /** Chave da perícia do ataque ("luta", "pont"): decide corpo a corpo ou à distância nos bônus da ficha. */
+  periciaAtaque?: string;
+  /**
+   * Munições que a arma de disparo pode gastar, cada uma com a quantidade por
+   * disparo. Vazia (ou ausente) fora das armas de disparo.
+   */
+  municoes?: ConsumoDeItem[];
   ataque: AtaqueArma | null;
   dano: DanoArma[];
   critico: { margem: number; multiplicador: number; texto: string };
@@ -320,6 +348,8 @@ export type RolagemMagia = {
   formula: string;
   /** O que a fórmula faz com os pontos; vazio quando a magia não diz. */
   efeito: string;
+  /** A rolagem cura (PV, PM, temporários) em vez de causar dano. */
+  cura?: boolean;
   fixo: number;
   itens: ItemDetalhe[];
 };
@@ -535,6 +565,12 @@ export type GastoDeUso = {
   origemId?: string;
   /** Ids dos aprimoramentos marcados; o Foundry resolve os nomes para o anúncio. */
   aprimoramentos?: string[];
+  /**
+   * Os mesmos, com quantas vezes cada um foi aplicado. É o que escala o
+   * efeito ligado na ativação ("efeito.dano" em escada: 1d8, 1d12...).
+   * Campo à parte para um módulo antigo seguir lendo `aprimoramentos`.
+   */
+  aplicados?: AprimoramentoAplicado[];
   /** Ids dos efeitos a ligar na ficha — só faz sentido junto de `origemId`. */
   efeitos?: string[];
 };

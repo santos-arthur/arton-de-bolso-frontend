@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
 import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
-import { aprimoramentosDe, bonusDe, somarTermos } from "../lib/aprimoramentos";
+import { aprimoramentosDe, bonusDe, noContexto, somarTermos } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type {
   Aprimoramento,
@@ -247,9 +247,19 @@ export default function PainelDeUso({
   const [efeitosEscolhidos, setEfeitosEscolhidos] = useState(() =>
     efeitosDaAcao.filter((efeito) => efeito.marcado).map((efeito) => efeito.id)
   );
-  const todos = ficha?.aprimoramentos;
+  // Contexto dos modificadores gerais: "Dano de Magias" só na magia, os de
+  // cura só no que cura, e os de dano só no que causa dano.
+  const naturezaDaRolagem = atual.rolagens[0] ? (atual.rolagens[0].cura ? "cura" : "dano") : null;
+  const todos = useMemo(
+    () =>
+      noContexto(ficha?.aprimoramentos ?? [], [
+        ...(escopo === "spell" ? ["magia"] : []),
+        ...(naturezaDaRolagem ? [naturezaDaRolagem] : [])
+      ]),
+    [ficha?.aprimoramentos, escopo, naturezaDaRolagem]
+  );
   const aplicaveis = useMemo(
-    () => aprimoramentosDe(todos ?? [], escopo, atual.nome, atual.id),
+    () => aprimoramentosDe(todos, escopo, atual.nome, atual.id),
     [todos, escopo, atual.nome, atual.id]
   );
 

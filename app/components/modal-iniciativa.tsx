@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { FaDiceD20 } from "react-icons/fa6";
 import FolhaModal from "./folha-modal";
 import { ListaAprimoramentos, useAprimoramentos } from "./lista-aprimoramentos";
-import { aprimoramentosDe, bonusDe } from "../lib/aprimoramentos";
+import { aprimoramentosDe, bonusDe, noContexto } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { FormulaPericia } from "../lib/foundry-types";
 
@@ -44,7 +44,7 @@ export default function ModalIniciativa({
 
   const rotulo = formula?.label ?? "Iniciativa";
   const aplicaveis = useMemo(
-    () => aprimoramentosDe(ficha?.aprimoramentos ?? [], "skill", rotulo),
+    () => aprimoramentosDe(noContexto(ficha?.aprimoramentos ?? [], ["teste"]), "skill", rotulo),
     [ficha?.aprimoramentos, rotulo]
   );
   const uso = useAprimoramentos(aplicaveis, { acao: rotulo });

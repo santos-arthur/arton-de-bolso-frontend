@@ -1,5 +1,32 @@
 import { normalizar } from "../components/campo-busca";
-import type { Aprimoramento, EscopoAprimoramento } from "./foundry-types";
+import type { Aprimoramento, EscopoAprimoramento, ModificadorAprimoramento } from "./foundry-types";
+
+/**
+ * Os aprimoramentos como um painel específico os enxerga.
+ *
+ * Um modificador geral da ficha ("Dano A Distância", "Testes de Perícias")
+ * chega com `mapeamentos`: a chave do painel em que entra e as etiquetas de
+ * contexto que precisam estar presentes. Aqui ele vira a chave do painel
+ * quando o contexto bate, e some quando não bate — o bônus de dano à
+ * distância não existe num golpe de espada. O resto passa como veio.
+ *
+ * Feito uma vez, na entrada do painel, para tudo o que vem depois (a lista,
+ * os totais, a decomposição) ler a mesma coisa.
+ */
+export function noContexto(todos: Aprimoramento[], etiquetas: string[]): Aprimoramento[] {
+  const presentes = new Set(etiquetas);
+  return todos.map((aprimoramento) => {
+    if (!aprimoramento.modificadores.some((m) => m.mapeamentos)) return aprimoramento;
+    const modificadores = aprimoramento.modificadores.flatMap((m): ModificadorAprimoramento[] =>
+      m.mapeamentos
+        ? m.mapeamentos
+            .filter((mapa) => mapa.contexto.every((etiqueta) => presentes.has(etiqueta)))
+            .map((mapa) => ({ ...m, chave: mapa.chave, mapeamentos: undefined }))
+        : [m]
+    );
+    return { ...aprimoramento, modificadores };
+  });
+}
 
 /**
  * Filtra os aprimoramentos aplicáveis a um uso específico.
@@ -28,6 +55,9 @@ export function aprimoramentosDe(
       // frasco na mochila não há o que marcar. O item continua na ficha com
       // quantidade 0 — some daqui, não de lá.
       if (a.consumo && a.consumo.disponivel <= 0) return false;
+      // A melhoria da munição vem com a munição escolhida no ataque, nunca
+      // como opção solta — senão a flecha Pungente apareceria até na espada.
+      if (a.municao) return false;
       if (!a.escopos.includes(escopo) && !doProprioItem(a)) return false;
       if (!a.restritoA.length) return true;
       if (!alvo) return true;
@@ -106,9 +136,22 @@ export function multiplicarFormula(formula: string, vezes: number): string {
 
 /** As fórmulas de uma chave que não resolvem para número (dados, por exemplo). */
 export function formulasDe(aprimoramento: Aprimoramento, chave: string): string[] {
+  return formulasComTipoDe(aprimoramento, chave).map((f) => f.formula);
+}
+
+/** Como `formulasDe`, com o tipo de dano de cada fórmula quando ela declara um. */
+export function formulasComTipoDe(
+  aprimoramento: Aprimoramento,
+  chave: string
+): { formula: string; tipo: string; rotuloTipo: string }[] {
   return aprimoramento.modificadores
     .filter((m) => m.chave.toLowerCase() === chave && m.valor === null && m.formula)
-    .map((m) => m.formula);
+    .map((m) => ({ formula: m.formula, tipo: m.tipoDano ?? "", rotuloTipo: m.rotuloTipoDano ?? m.tipoDano ?? "" }));
+}
+
+/** "+1d12" ou "+1d12 perda": a fórmula extra como se lê numa linha. */
+export function textoDaFormula({ formula, rotuloTipo }: { formula: string; rotuloTipo?: string }) {
+  return `+${formula}${rotuloTipo ? ` ${rotuloTipo.toLocaleLowerCase("pt-BR")}` : ""}`;
 }
 
 /**
