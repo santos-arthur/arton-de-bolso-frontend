@@ -389,6 +389,84 @@ export type Magia = {
   rolagens: RolagemMagia[];
   /** Material que a conjuração gasta, quando a magia declara consumo no Foundry. */
   consumo: ConsumoDeItem | null;
+  /**
+   * Preenchido quando a magia é uma engenhoca do módulo t20-engenhocas.
+   * Ausente em módulo antigo, null em magia comum (ou sem o módulo).
+   */
+  engenhoca?: InfoEngenhoca | null;
+};
+
+/** Uma CD montada parcela por parcela, com os rótulos já traduzidos no Foundry. */
+export type CdEmPartes = { total: number; partes: { rotulo: string; valor: number }[] };
+
+/**
+ * O que a engenhoca tem além da magia — tudo vindo das regras do módulo
+ * t20-engenhocas, montado no Foundry.
+ */
+export type InfoEngenhoca = {
+  /** O teste de ativação está ligado no mundo. Desligado, usar é só usar (sem os PM da magia). */
+  teste: boolean;
+  /** O GM Tools automatiza as engenhocas deste personagem: ativa-se pelo Foundry. */
+  gmtools: boolean;
+  enguicada: boolean;
+  ativacoesHoje: number;
+  /** PM da magia simulada — entra na CD, nunca no custo. */
+  pmMagia: number;
+  /** CD de ativação sem os aprimoramentos, que o app soma conforme o jogador marca. */
+  cdAtivacao: CdEmPartes;
+  rotuloCdAprimoramentos: string;
+  /** CD para resistir: 10 + metade do nível + Inteligência (+ Estabilizador). */
+  cdResistencia: CdEmPartes;
+  /** Máximo de PM em aprimoramentos: a Inteligência. */
+  limiteAprimoramentos: number;
+  /** Aparato Comutador: −1 PM nos aprimoramentos (no custo, na CD e no limite). */
+  comutador: boolean;
+  supressor: boolean;
+  /** Supressor de Segurança ainda sem uso nesta cena: a próxima falha não enguiça. */
+  supressorDisponivel: boolean;
+  /** O que o Giroscópio devolve ao teste (a penalidade de armadura); 0 sem ele. */
+  giroscopio: number;
+  aparatos: { id: string; nome: string; efeito: string }[];
+  execucao: string;
+  execucaoRapida: string;
+  sustentada: boolean;
+  /** Chave da perícia do teste: Ofício (engenhoqueiro). */
+  pericia: string;
+  /** Nome da perícia como o sistema compara com a restrição dos aprimoramentos ("Ofício: Engenhoqueiro"). Ausente em módulo antigo. */
+  rotuloDoTeste?: string;
+  /** O que a ativação soma ao d20 antes dos aprimoramentos e poderes. Ausente em módulo antigo. */
+  bonusDoTeste?: number;
+  /** Resultado natural que falha sozinho (1 com Engenhocaria Goblinoide); 0 = nenhum. */
+  falhaAte: number;
+  danoDaExplosao: string;
+  poderes: {
+    invencaoPotente: boolean;
+    forcarCalibragem: boolean;
+    /** Já filtrado: 7º nível de inventor e ativação que seria ação padrão. */
+    ativacaoRapida: boolean;
+    chutesEPalavroes: boolean;
+    goblinoide: boolean;
+  };
+};
+
+/** Pedido de ativação de engenhoca: como foi o teste na mesa e as escolhas — as contas são do Foundry. */
+export type AtivacaoDeEngenhoca = {
+  magiaId: string;
+  /** O teste de Ofício passou na mesa. Falhou: a engenhoca enguiça (salvo o Supressor). */
+  sucesso: boolean;
+  /** Engenhocaria Goblinoide: falhou por 5 ou mais (ou tirou 1) e ela explode. */
+  explodiu?: boolean;
+  /** Chutes e Palavrões: rolou o teste de novo (1 PM). */
+  rerrolou?: boolean;
+  /** Aprimoramentos da magia (cobrados só se ativar). */
+  aplicados: AprimoramentoAplicado[];
+  /** Aprimoramentos do teste de Ofício (cobrados sempre). */
+  aplicadosNoTeste: AprimoramentoAplicado[];
+  /** Itens dos aprimoramentos da magia (gastos só se ativar). */
+  itens: { itemId: string; quantidade: number }[];
+  /** Itens dos aprimoramentos do teste (gastos sempre). */
+  itensDoTeste: { itemId: string; quantidade: number }[];
+  poderes: { invencaoPotente: boolean; forcarCalibragem: boolean; ativacaoRapida: boolean };
 };
 
 /**
@@ -464,6 +542,8 @@ export type Ficha = {
   carga: Carga;
   poderes: Poder[];
   magias: Magia[];
+  /** Engenhocas mantidas e o limite (null quando o mundo não limita). Null sem engenhoca ou sem o módulo. */
+  engenhocas?: { ocupadas: number; limite: number | null } | null;
   aprimoramentos: Aprimoramento[];
   /** Efeitos que valem na ficha, os ativos primeiro. Sem os de uso. */
   efeitos: EfeitoFicha[];
@@ -477,7 +557,7 @@ export type Ficha = {
   modulos?: ModulosDisponiveis;
 };
 
-export type ModulosDisponiveis = { negocios: boolean; bases?: boolean };
+export type ModulosDisponiveis = { negocios: boolean; bases?: boolean; engenhocas?: boolean };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */
 export type PersonagemDisponivel = {
@@ -821,7 +901,9 @@ export type MensagemParaFoundry =
   | { tipo: "iniciarAventuraBase"; baseId: string; pagar: boolean; danificarId?: string | null }
   | { tipo: "repararComodo"; baseId: string; comodoId: string }
   /** Rendimento do Empreendimento: o `d20` é o da mesa; INT e capacidade quem soma é o Foundry. */
-  | { tipo: "apurarEmpreendimento"; baseId: string; d20: number; dedicado: boolean };
+  | { tipo: "apurarEmpreendimento"; baseId: string; d20: number; dedicado: boolean }
+  | ({ tipo: "ativarEngenhoca" } & AtivacaoDeEngenhoca)
+  | { tipo: "consertarEngenhoca"; magiaId: string };
 
 export type OperacaoCofre = "sacar" | "depositar";
 

@@ -3,7 +3,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
-import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
+import {
+  ListaAprimoramentos,
+  RodapeGasto,
+  useAprimoramentos,
+  useCongelado,
+  type UsoDeAprimoramentos
+} from "./lista-aprimoramentos";
 import {
   aprimoramentosDe,
   baseDaRolagem,
@@ -20,6 +26,7 @@ import type {
   ConsumoDeItem,
   EfeitoDeAtivacao,
   EscopoAprimoramento,
+  GastoDeUso,
   RolagemMagia,
   TesteDeUso
 } from "../lib/foundry-types";
@@ -92,7 +99,7 @@ function comAprimoramentos(base: string, chave: string, escolhidos: Aprimorament
   return { valor, mudou };
 }
 
-function Linha({ rotulo, valor, destacado = false }: { rotulo: ReactNode; valor: ReactNode; destacado?: boolean }) {
+export function Linha({ rotulo, valor, destacado = false }: { rotulo: ReactNode; valor: ReactNode; destacado?: boolean }) {
   return (
     <div
       className={`flex flex-row items-center justify-between gap-4 border-b border-borda/60 py-2 last:border-b-0 ${
@@ -107,7 +114,7 @@ function Linha({ rotulo, valor, destacado = false }: { rotulo: ReactNode; valor:
   );
 }
 
-function Total({ valor }: { valor: ReactNode }) {
+export function Total({ valor }: { valor: ReactNode }) {
   return (
     <div className="mt-1 flex flex-row items-center justify-between gap-4 border-t-2 border-borda pt-2 font-bold">
       <span>Total</span>
@@ -117,7 +124,7 @@ function Total({ valor }: { valor: ReactNode }) {
 }
 
 /** O que se joga na mesa. */
-function Caixa({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+export function Caixa({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-0.5 rounded-xl border border-borda bg-superficie-alta px-3 py-3 text-center">
       <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">{rotulo}</span>
@@ -126,7 +133,7 @@ function Caixa({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   );
 }
 
-function Titulo({ children }: { children: ReactNode }) {
+export function Titulo({ children }: { children: ReactNode }) {
   return <span className="text-[11px] font-bold uppercase tracking-wider opacity-55">{children}</span>;
 }
 
@@ -224,6 +231,9 @@ export default function PainelDeUso({
   exclusivos,
   rotulos = {},
   anunciarNaMesa = false,
+  gastarCom,
+  substituto,
+  rodape,
   onFechar
 }: {
   acao: AcaoDeUso;
@@ -244,6 +254,17 @@ export default function PainelDeUso({
    * `anunciarExecucao` no módulo.
    */
   anunciarNaMesa?: boolean;
+  /** Destino do gasto no lugar do `gastarUso` — ver a opção de mesmo nome em `useAprimoramentos`. */
+  gastarCom?: (gasto: GastoDeUso) => void;
+  /**
+   * Um segundo passo no lugar do corpo do painel — o teste de ativação da
+   * engenhoca. Devolvendo algo, ele ocupa a folha; devolvendo null, volta o
+   * painel. O estado dos aprimoramentos fica de pé entre um e outro, porque
+   * o painel não desmonta.
+   */
+  substituto?: (uso: UsoDeAprimoramentos) => ReactNode;
+  /** Rodapé no lugar do botão de gasto. */
+  rodape?: (uso: UsoDeAprimoramentos) => ReactNode;
   onFechar: () => void;
 }) {
   const { ficha } = useFoundry();
@@ -276,7 +297,8 @@ export default function PainelDeUso({
     consumo: atual.consumo,
     origemId: anunciarNaMesa ? atual.id : undefined,
     efeitos: efeitosEscolhidos,
-    exclusivos
+    exclusivos,
+    gastarCom
   });
   // Pago o uso, o painel vira extrato: nem o que chega da ficha nova mexe
   // mais no que está na tela.
@@ -336,8 +358,10 @@ export default function PainelDeUso({
       onFechar={onFechar}
       // Poder fica ligado na ficha depois de ativado; magia e consumível
       // saem e acabam.
-      rodape={<RodapeGasto uso={uso} rotuloPago={escopo === "power" ? "Ativo" : "Gasto"} />}
+      rodape={rodape ? rodape(uso) : <RodapeGasto uso={uso} rotuloPago={escopo === "power" ? "Ativo" : "Gasto"} />}
     >
+      {substituto?.(uso) ?? (
+      <>
       {/* --- O teste que vem antes de tudo: identificar a magia do
               pergaminho. Quem conhece a magia não vê nada aqui. --- */}
       {acao.teste && (
@@ -481,6 +505,8 @@ export default function PainelDeUso({
           descrição de reserva dos poderes é a regra do poder todo. O botão de
           cada linha abre só o texto do próprio aprimoramento. */}
       <ListaAprimoramentos uso={uso} chaves={CHAVES} contexto={contexto} comRegra={false} />
+      </>
+      )}
     </FolhaModal>
   );
 }

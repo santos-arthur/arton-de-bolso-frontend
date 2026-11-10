@@ -1,5 +1,6 @@
 import {
   FaBolt,
+  FaGear,
   FaHouseChimney,
   FaListCheck,
   FaShieldHalved,
@@ -21,7 +22,8 @@ export const ITENS_NAV: { rotulo: string; curto: string; href: string; icone: Ic
   { rotulo: "Perícias", curto: "Perícias", href: "/pericias", icone: FaListCheck },
   { rotulo: "Poderes", curto: "Poderes", href: "/poderes", icone: FaBolt },
   { rotulo: "Inventário", curto: "Mochila", href: "/inventario", icone: BsFillBackpackFill },
-  { rotulo: "Magias", curto: "Magias", href: "/magias", icone: FaWandSparkles }
+  { rotulo: "Magias", curto: "Magias", href: "/magias", icone: FaWandSparkles },
+  { rotulo: "Engenhocas", curto: "Engenhocas", href: "/engenhocas", icone: FaGear }
 ];
 
 /**
@@ -35,7 +37,15 @@ export const ITENS_NAV: { rotulo: string; curto: string; href: string; icone: Ic
  */
 export function secoesDaFicha(ficha: Ficha | null) {
   if (!ficha) return [];
-  return ITENS_NAV.filter((item) => item.href !== "/magias" || ficha.magias.length > 0);
+  // Engenhoca é magia no sistema, mas tem aba própria: um inventor sem magia
+  // nenhuma não ganha a aba Magias por causa delas, e quem não tem engenhoca
+  // não ganha a aba Engenhocas. `engenhoca` só vem preenchida com o módulo
+  // t20-engenhocas ativo — sem ele, elas voltam a ser magias comuns.
+  return ITENS_NAV.filter((item) => {
+    if (item.href === "/magias") return ficha.magias.some((m) => !m.engenhoca);
+    if (item.href === "/engenhocas") return ficha.magias.some((m) => m.engenhoca);
+    return true;
+  });
 }
 
 /**

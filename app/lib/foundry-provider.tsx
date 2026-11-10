@@ -6,6 +6,7 @@ import { calcularDescanso } from "./descanso";
 import { eRotaDeFicha } from "../components/navegacao";
 import type {
   AprimoramentoAplicado,
+  AtivacaoDeEngenhoca,
   Compendio,
   AnotacaoDiario,
   Diario,
@@ -271,6 +272,10 @@ type FoundryContextValue = {
   repararComodo: (baseId: string, comodoId: string) => void;
   /** Rendimento do Empreendimento com o d20 da mesa; `dedicado` dobra. */
   apurarEmpreendimento: (baseId: string, d20: number, dedicado: boolean) => void;
+  /** Teste de ativação de uma engenhoca com o d20 da mesa — quem decide e cobra é o Foundry. */
+  ativarEngenhoca: (pedido: AtivacaoDeEngenhoca) => void;
+  /** Conserta a engenhoca enguiçada (1 hora de trabalho). */
+  consertarEngenhoca: (magiaId: string) => void;
 };
 
 const FoundryContext = createContext<FoundryContextValue | null>(null);
@@ -806,6 +811,10 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     },
     apurarEmpreendimento: (baseId, d20, dedicado) =>
       enviar({ tipo: "apurarEmpreendimento", baseId, d20, dedicado }),
+    // Sem palpite otimista: passar ou falhar, o que se cobra e o enguiço
+    // saem da conta do Foundry, e o push traz tudo junto.
+    ativarEngenhoca: (pedido) => enviar({ tipo: "ativarEngenhoca", ...pedido }),
+    consertarEngenhoca: (magiaId) => enviar({ tipo: "consertarEngenhoca", magiaId }),
     descansar: (opcoes) =>
       agir({ tipo: "descansar", opcoes }, (f) => {
         const ganho = calcularDescanso(f.nivel ?? 0, opcoes);

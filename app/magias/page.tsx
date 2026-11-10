@@ -19,12 +19,16 @@ export default function Page() {
   const { ficha, somenteLeitura, alternarPreparada } = useFoundry();
   const [busca, setBusca] = useState("");
   const [conjurando, setConjurando] = useState<Magia | null>(null);
-  // Vem repetida em cada magia porque é do conjurador; qualquer uma serve.
-  const cd = ficha?.magias?.[0]?.cd ?? null;
+  // Vem repetida em cada magia porque é do conjurador; qualquer uma serve —
+  // menos as engenhocas, cuja CD é a do inventor (com Inteligência).
+  const cd = ficha?.magias?.find((m) => !m.engenhoca)?.cd ?? null;
   const [circulo, setCirculo] = useState<number | null>(null);
   const [soPreparadas, setSoPreparadas] = useState(false);
 
-  const magias = ficha?.magias ?? SEM_MAGIAS;
+  const todas = ficha?.magias ?? SEM_MAGIAS;
+  // As engenhocas do módulo t20-engenhocas moram na aba Engenhocas: não se
+  // conjuram, se ativam — com teste, enguiço e conserto.
+  const magias = useMemo(() => todas.filter((m) => !m.engenhoca), [todas]);
   // Conjurador espontâneo (druida, bardo) não prepara magia nenhuma: some o
   // filtro e some a estrela, em vez de mostrar um controle que nunca muda.
   const preparaMagias = magias.some((m) => m.preparavel);

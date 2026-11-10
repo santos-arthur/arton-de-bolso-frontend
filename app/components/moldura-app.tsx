@@ -20,6 +20,7 @@ const TITULOS: Record<string, string> = {
   "/magias": "Magias",
   "/bases": "Bases",
   "/negocios": "Negócios",
+  "/engenhocas": "Engenhocas",
   "/anotacoes": "Anotações",
   "/anotacoes/nova": "Nova anotação",
   "/compendio": "Compêndio",

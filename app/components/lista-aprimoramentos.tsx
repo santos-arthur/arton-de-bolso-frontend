@@ -4,7 +4,7 @@ import { FaCheck, FaChevronDown, FaCircleMinus, FaEye, FaMinus, FaPlus } from "r
 import { useState, type ReactNode } from "react";
 import { bonusDe, formulasComTipoDe, multiplicarFormula, textoDaFormula, trocasNaBaseDe } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
-import type { Aprimoramento, ConsumoDeItem } from "../lib/foundry-types";
+import type { Aprimoramento, ConsumoDeItem, GastoDeUso } from "../lib/foundry-types";
 
 /** Um item do gasto, já com o total de unidades deste uso. */
 export type ItemGasto = { itemId: string; nome: string; quantidade: number; disponivel: number };
@@ -131,6 +131,13 @@ export function useAprimoramentos(
       exclui: (item: Aprimoramento) => boolean;
       rotulo: string;
     };
+    /**
+     * Para onde vai o gasto, no lugar do `gastarUso`. Quem passa decide o que
+     * fazer com ele — a engenhoca o manda junto do teste de ativação, que é
+     * quem cobra. Com destino próprio, um uso de custo zero também vai: a
+     * ativação acontece mesmo sem aprimoramento nenhum.
+     */
+    gastarCom?: (gasto: GastoDeUso) => void;
   } = {}
 ) {
   const {
@@ -141,7 +148,8 @@ export function useAprimoramentos(
     origemId,
     efeitos,
     fixos = SEM_FIXOS,
-    exclusivos
+    exclusivos,
+    gastarCom
   } = opcoes;
   const { ficha, somenteLeitura, gastarUso } = useFoundry();
   // Quem já vem ligado na ficha entra marcado: o jogador não precisa lembrar
@@ -270,8 +278,8 @@ export function useAprimoramentos(
    */
   function gastar() {
     if (somenteLeitura || pago || semPM || faltando) return;
-    if (custoTotal === 0 && !itensGastos.length && !podeAnunciar) return;
-    gastarUso({
+    if (!gastarCom && custoTotal === 0 && !itensGastos.length && !podeAnunciar) return;
+    (gastarCom ?? gastarUso)({
       acao,
       pm: custoTotal,
       itens: itensGastos.map(({ itemId, quantidade }) => ({ itemId, quantidade })),
