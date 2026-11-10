@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import CabecalhoPagina, { EstadoVazio, TituloSecao } from "../components/cabecalho-pagina";
 import CampoBusca, { ChipFiltro, normalizar } from "../components/campo-busca";
 import CartaoExpansivel, { AcaoPrincipal, AcaoSecundaria } from "../components/cartao-expansivel";
+import AprimoramentosDaMagia, { aprimoramentosDaMagia } from "../components/aprimoramentos-da-magia";
 import ModalMagia from "../components/modal-magia";
 import PaginaFicha from "../components/pagina-ficha";
 import Tag from "../components/tag";
@@ -96,6 +97,11 @@ export default function Page() {
                   nome={magia.nome}
                   img={magia.img}
                   descricao={magia.descricao}
+                  complemento={
+                    aprimoramentosDaMagia(ficha.aprimoramentos ?? [], magia.id).length ? (
+                      <AprimoramentosDaMagia magiaId={magia.id} />
+                    ) : undefined
+                  }
                   destacado={magia.preparavel && magia.preparada}
                   etiquetas={
                     <>

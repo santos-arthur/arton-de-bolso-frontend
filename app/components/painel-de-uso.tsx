@@ -4,7 +4,16 @@ import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
 import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
-import { aprimoramentosDe, baseDaRolagem, bonusDe, MODO_SUBSTITUI, noContexto, somarTermos, trocasNaBaseDe } from "../lib/aprimoramentos";
+import {
+  aprimoramentosDe,
+  baseDaRolagem,
+  bonusDe,
+  MODO_SUBSTITUI,
+  noContexto,
+  somarTermos,
+  textoDaFormula,
+  trocasNaBaseDe
+} from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type {
   Aprimoramento,
@@ -285,10 +294,20 @@ export default function PainelDeUso({
     "dano"
   );
 
+  // Extra de outro tipo — "4d8[curapv]" numa magia de luz — é outra rolagem:
+  // somá-lo ao dano faria a cura dos aliados virar dano nos inimigos. Sem o
+  // tipo da base (módulo antigo), nada se separa.
+  const deOutroTipo = (extra: { tipo: string }) => !!extra.tipo && !!rolagem?.tipo && extra.tipo !== rolagem.tipo;
+  const extrasDeDano = uso.formulasExtras("dano");
+  const outrosTipos = [...new Set(extrasDeDano.filter(deOutroTipo).map((e) => e.tipo))].map((tipo) => {
+    const doTipo = extrasDeDano.filter((e) => e.tipo === tipo);
+    return { tipo, rotulo: doTipo[0].rotuloTipo || tipo, formula: somarTermos(doTipo.map((e) => e.formula)) };
+  });
+
   const formula = rolagem
     ? somarTermos([
         base.mudou && baseOriginal ? rolagem.formula.replace(baseOriginal, base.formula) : rolagem.formula,
-        ...uso.formulasExtras("dano").map((e) => e.formula),
+        ...extrasDeDano.filter((e) => !deOutroTipo(e)).map((e) => e.formula),
         String(uso.bonusTotal("dano"))
       ])
     : null;
@@ -398,7 +417,7 @@ export default function PainelDeUso({
               {uso.escolhidos.map((item) => {
                 const valor = bonusDe(item, "dano");
                 const vezes = uso.quantidadeDe(item);
-                const extras = uso.formulasExtras("dano").filter((e) => e.id.startsWith(`${item.id}-`));
+                const extras = extrasDeDano.filter((e) => e.id.startsWith(`${item.id}-`));
                 const trocas = trocasNaBaseDe(item, "dano", vezes);
                 if (valor === null && !extras.length && !trocas.length) return null;
                 return (
@@ -408,7 +427,7 @@ export default function PainelDeUso({
                     rotulo={`${item.nome}${vezes > 1 ? ` ×${vezes}` : ""}`}
                     valor={[
                       valor !== null ? formatar(valor * vezes) : null,
-                      ...extras.map((e) => `+${e.formula}`),
+                      ...extras.map((e) => (deOutroTipo(e) ? textoDaFormula(e) : `+${e.formula}`)),
                       ...trocas
                     ]
                       .filter(Boolean)
@@ -426,6 +445,11 @@ export default function PainelDeUso({
       {(formula || resistencia.valor) && (
         <div className="flex flex-row gap-2">
           {formula && <Caixa rotulo="Role na mesa">{formula}</Caixa>}
+          {outrosTipos.map((extra) => (
+            <Caixa key={extra.tipo} rotulo={`E à parte · ${extra.rotulo}`}>
+              {extra.formula}
+            </Caixa>
+          ))}
           {resistencia.valor && cd !== null && <Caixa rotulo={resistencia.valor}>CD {cd}</Caixa>}
         </div>
       )}
@@ -453,9 +477,9 @@ export default function PainelDeUso({
         />
       )}
 
-      {/* Sem as regras: aqui a lista é de escolha rápida — o que marcar antes
-          de usar —, e a descrição dos poderes que aparecem nela é a regra do
-          poder inteiro, que já mora na página de Poderes. */}
+      {/* Sem as regras inteiras: aqui a lista é de escolha rápida, e a
+          descrição de reserva dos poderes é a regra do poder todo. O botão de
+          cada linha abre só o texto do próprio aprimoramento. */}
       <ListaAprimoramentos uso={uso} chaves={CHAVES} contexto={contexto} comRegra={false} />
     </FolhaModal>
   );

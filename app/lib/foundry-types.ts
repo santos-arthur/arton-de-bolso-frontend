@@ -358,6 +358,8 @@ export type RolagemMagia = {
   efeito: string;
   /** A rolagem cura (PV, PM, temporários) em vez de causar dano. */
   cura?: boolean;
+  /** Tipo da parte principal ("luz", "curapv"); extras de outro tipo se rolam à parte. */
+  tipo?: string;
   fixo: number;
   itens: ItemDetalhe[];
 };

@@ -372,7 +372,10 @@ function Linha({
   comRegra: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
-  const regra = comRegra ? item.descricao : "";
+  // Sem a regra inteira (a magia, cuja descrição de fallback seria o texto da
+  // magia toda), o botão abre só o texto do próprio aprimoramento — "aumenta
+  // o dano em +1d6" —, quando o efeito tem um.
+  const regra = comRegra ? item.descricao : (item.resumo ?? "");
   const quantidade = uso.quantidadeDe(item);
   const travado = uso.travado(item);
   const marcado = quantidade > 0;
@@ -437,15 +440,6 @@ function Linha({
           </button>
         )}
       </span>
-      {/* Sem a regra inteira (a magia, cujos aprimoramentos levam todos o
-          nome dela), o texto curto do próprio aprimoramento é o que diz o que
-          cada linha faz — "muda o alcance para curto". */}
-      {!comRegra && item.resumo && (
-        <span
-          className="prosa-foundry text-xs opacity-75"
-          dangerouslySetInnerHTML={{ __html: item.resumo }}
-        />
-      )}
       {/* Bold, e não semibold: em 12px no acento sobre fundo escuro o traço
           fino some no celular. */}
       <span className="numero text-xs font-bold text-acento">{detalhes}</span>
@@ -504,10 +498,11 @@ function Linha({
 /**
  * A lista em si, com o rótulo da seção.
  *
- * `comRegra` liga o dropdown que abre a descrição do efeito. Ele vale onde o
- * texto explica o próprio aprimoramento, mas o que vem de um poder traz a
- * regra inteira do poder — parágrafos que o jogador já leu na página de
- * Poderes e que, no meio de conjurar, só afastam o que ele veio ver.
+ * `comRegra` faz o dropdown abrir a descrição completa (com a do item de
+ * origem como reserva). Desligado, o dropdown abre só o texto do próprio
+ * efeito, quando ele tem um: o que vem de um poder traria a regra inteira do
+ * poder — parágrafos que o jogador já leu na página de Poderes e que, no meio
+ * de conjurar, só afastam o que ele veio ver.
  */
 export function ListaAprimoramentos({
   uso,

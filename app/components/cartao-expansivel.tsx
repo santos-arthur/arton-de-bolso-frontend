@@ -87,6 +87,7 @@ export default function CartaoExpansivel({
   etiquetas,
   acao,
   acoes,
+  complemento,
   destacado = false
 }: {
   nome: string;
@@ -97,10 +98,12 @@ export default function CartaoExpansivel({
   acao?: ReactNode;
   /** O que aparece dentro do cartão aberto, acima da descrição. */
   acoes?: ReactNode;
+  /** O que segue a descrição, no mesmo bloco: os aprimoramentos da magia. */
+  complemento?: ReactNode;
   destacado?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
-  const temDescricao = !!descricao;
+  const temDescricao = !!descricao || !!complemento;
   // Com ações dentro, o cartão abre mesmo sem descrição — é onde os
   // controles do item moram.
   const expansivel = temDescricao || !!acoes;
@@ -146,10 +149,12 @@ export default function CartaoExpansivel({
       )}
 
       {aberto && temDescricao && (
-        <div
-          className="prosa-foundry border-t border-borda px-3 py-2.5 text-sm opacity-85"
-          dangerouslySetInnerHTML={{ __html: descricao }}
-        />
+        <div className="flex flex-col gap-3 border-t border-borda px-3 py-2.5">
+          {descricao && (
+            <div className="prosa-foundry text-sm opacity-85" dangerouslySetInnerHTML={{ __html: descricao }} />
+          )}
+          {complemento}
+        </div>
       )}
     </li>
   );
