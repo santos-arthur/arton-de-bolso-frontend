@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import FolhaModal from "./folha-modal";
 import Prosa from "./prosa";
 import { ListaAprimoramentos, RodapeGasto, useAprimoramentos, useCongelado } from "./lista-aprimoramentos";
-import { aprimoramentosDe, bonusDe, noContexto, somarTermos } from "../lib/aprimoramentos";
+import { aprimoramentosDe, baseDaRolagem, bonusDe, MODO_SUBSTITUI, noContexto, somarTermos, trocasNaBaseDe } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type {
   Aprimoramento,
@@ -28,9 +28,6 @@ const CHAVES = [
   { chave: "dano", rotulo: "no efeito" },
   { chave: "cd", rotulo: "na CD" }
 ];
-
-/** Modo do Active Effect que troca o valor do campo em vez de somar a ele. */
-const SUBSTITUI = 5;
 
 /**
  * O que se usa, no formato que este painel mostra. Magia e consumível caem no
@@ -75,7 +72,7 @@ function comAprimoramentos(base: string, chave: string, escolhidos: Aprimorament
   for (const item of escolhidos) {
     for (const modificador of item.modificadores) {
       if (modificador.chave.toLowerCase() !== chave) continue;
-      if (modificador.modo === SUBSTITUI) valor = modificador.formula;
+      if (modificador.modo === MODO_SUBSTITUI) valor = modificador.formula;
       // Somar num campo de texto ("+1 alvo") é acréscimo, não troca — mas em
       // campo vazio (a condição, que a magia não tem) o "+" não faz sentido.
       else valor = valor ? `${valor} +${modificador.formula}` : modificador.formula;
@@ -278,9 +275,19 @@ export default function PainelDeUso({
   const rolagem = acao.rolagens[0];
   const cd = acao.cd === null ? null : acao.cd + uso.bonusTotal("cd");
 
+  // A parte de dados da magia, com o que os aprimoramentos mexem nela: "três
+  // setas" troca 2d4+2 por 3d4+3, "dados viram d10" troca as faces.
+  const indiceDaBase = rolagem ? rolagem.itens.findIndex((item) => item.dado) : -1;
+  const baseOriginal = indiceDaBase >= 0 ? (rolagem?.itens[indiceDaBase].dado ?? "") : "";
+  const base = baseDaRolagem(
+    baseOriginal,
+    uso.escolhidos.map((item) => ({ item, vezes: uso.quantidadeDe(item) })),
+    "dano"
+  );
+
   const formula = rolagem
     ? somarTermos([
-        rolagem.formula,
+        base.mudou && baseOriginal ? rolagem.formula.replace(baseOriginal, base.formula) : rolagem.formula,
         ...uso.formulasExtras("dano").map((e) => e.formula),
         String(uso.bonusTotal("dano"))
       ])
@@ -381,20 +388,29 @@ export default function PainelDeUso({
           <Titulo>{rolagem.efeito || rolagem.nome}</Titulo>
           <div className="flex flex-col">
             <div className="flex flex-col">
-              {rolagem.itens.map((item, indice) => (
-                <Linha key={`${item.rotulo}-${indice}`} rotulo={item.rotulo} valor={item.dado ?? formatar(item.valor)} />
-              ))}
+              {rolagem.itens.map((item, indice) =>
+                indice === indiceDaBase && base.mudou && baseOriginal ? (
+                  <Linha key={`${item.rotulo}-${indice}`} destacado rotulo={item.rotulo} valor={base.formula} />
+                ) : (
+                  <Linha key={`${item.rotulo}-${indice}`} rotulo={item.rotulo} valor={item.dado ?? formatar(item.valor)} />
+                )
+              )}
               {uso.escolhidos.map((item) => {
                 const valor = bonusDe(item, "dano");
                 const vezes = uso.quantidadeDe(item);
                 const extras = uso.formulasExtras("dano").filter((e) => e.id.startsWith(`${item.id}-`));
-                if (valor === null && !extras.length) return null;
+                const trocas = trocasNaBaseDe(item, "dano", vezes);
+                if (valor === null && !extras.length && !trocas.length) return null;
                 return (
                   <Linha
                     key={item.id}
                     destacado
                     rotulo={`${item.nome}${vezes > 1 ? ` ×${vezes}` : ""}`}
-                    valor={[valor !== null ? formatar(valor * vezes) : null, ...extras.map((e) => `+${e.formula}`)]
+                    valor={[
+                      valor !== null ? formatar(valor * vezes) : null,
+                      ...extras.map((e) => `+${e.formula}`),
+                      ...trocas
+                    ]
                       .filter(Boolean)
                       .join(" ")}
                   />

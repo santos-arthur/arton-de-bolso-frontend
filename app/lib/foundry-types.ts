@@ -79,7 +79,10 @@ export type ModificadorAprimoramento = {
   valor: number | null;
   /** A fórmula crua ("@int", "1d8"), para exibir quando não resolve. */
   formula: string;
-  /** Modo do Active Effect: 5 substitui o campo, o resto soma. */
+  /**
+   * Modo do Active Effect: 5 substitui o campo, 0 (`custom`) mexe na base da
+   * rolagem (troca as faces ou acrescenta dados a ela), o resto soma.
+   */
   modo: number;
   /** Tipo de dano da fórmula ("perda", "fogo"), quando ela declara um. Dano de outro tipo se rola à parte. */
   tipoDano?: string;
@@ -122,6 +125,11 @@ export type Aprimoramento = {
   nome: string;
   img: string;
   descricao: string;
+  /**
+   * O texto do próprio aprimoramento ("aumenta o dano em +1d6"), sem cair na
+   * descrição do item. Vazio quando o efeito não tem — ou em módulo antigo.
+   */
+  resumo?: string;
   /** Em PM. Negativo reduz o custo do que está sendo usado (ex.: −1 numa magia). */
   custo: number;
   escopos: EscopoAprimoramento[];

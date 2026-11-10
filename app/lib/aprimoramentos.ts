@@ -95,10 +95,37 @@ export const daPropriaMagia = (item: Aprimoramento) => item.escopos.includes("se
 /** A regra do truque, pronta para o hook de uso — vale na magia e no pergaminho dela. */
 export const TRUQUE = { quando: ehTruque, exclui: daPropriaMagia, rotulo: "Truque" };
 
+/** Modo do Active Effect que troca o valor do campo em vez de somar a ele. */
+export const MODO_SUBSTITUI = 5;
+/** `custom`: na rolagem, mexe na base em vez de somar uma parte nova. */
+export const MODO_PERSONALIZADO = 0;
+
+/**
+ * O modificador é desta chave? "dano:fogo" conta como "dano": o sistema usa o
+ * sufixo para escolher, entre as partes da rolagem, a do tipo certo — e as
+ * magias daqui têm uma parte só.
+ */
+function daChave(m: ModificadorAprimoramento, chave: string) {
+  return m.chave.toLowerCase().replace(/:\w+$/, "") === chave;
+}
+
+/**
+ * Mexe na base da rolagem em vez de somar ao lado dela: o `override` ("muda o
+ * número de setas para três" → 3d4+3) e o `custom` ("d10" troca as faces;
+ * "1d8+1" acrescenta dados à base, com as faces dela). Ver `applyRollChanges`
+ * e `applyRollModifiers` no sistema.
+ */
+function mexeNaBase(m: ModificadorAprimoramento) {
+  // Só no dano: é a única rolagem que o painel reconstrói pela base. Nas
+  // outras chaves o modificador segue o caminho de sempre.
+  if (!daChave(m, "dano")) return false;
+  return m.modo === MODO_SUBSTITUI || (m.modo === MODO_PERSONALIZADO && /^\d*d\d+([+-]\d+)?$/i.test(m.formula.trim()));
+}
+
 /** Soma dos modificadores de uma chave ("roll" num teste, "ataque" num golpe). */
 export function bonusDe(aprimoramento: Aprimoramento, chave: string): number | null {
   const aplicaveis = aprimoramento.modificadores.filter(
-    (m) => m.chave.toLowerCase() === chave && m.valor !== null
+    (m) => daChave(m, chave) && m.valor !== null && !mexeNaBase(m)
   );
   if (!aplicaveis.length) return null;
   return aplicaveis.reduce((soma, m) => soma + (m.valor ?? 0), 0);
@@ -145,8 +172,66 @@ export function formulasComTipoDe(
   chave: string
 ): { formula: string; tipo: string; rotuloTipo: string }[] {
   return aprimoramento.modificadores
-    .filter((m) => m.chave.toLowerCase() === chave && m.valor === null && m.formula)
+    .filter((m) => daChave(m, chave) && m.valor === null && m.formula && !mexeNaBase(m))
     .map((m) => ({ formula: m.formula, tipo: m.tipoDano ?? "", rotuloTipo: m.rotuloTipoDano ?? m.tipoDano ?? "" }));
+}
+
+/**
+ * O que um aprimoramento faz com a base da rolagem, em texto curto para a
+ * linha da lista: "dano passa a 3d4+3", "dados viram d10", "+1d8+1".
+ */
+export function trocasNaBaseDe(aprimoramento: Aprimoramento, chave: string, vezes: number): string[] {
+  return aprimoramento.modificadores
+    .filter((m) => daChave(m, chave) && mexeNaBase(m))
+    .map((m) => {
+      const formula = m.formula.trim();
+      if (m.modo === MODO_SUBSTITUI) return `passa a ${formula}`;
+      if (/^d\d+$/i.test(formula)) return `dados viram ${formula}`;
+      return `+${multiplicarFormula(formula, vezes)}`;
+    });
+}
+
+/**
+ * Aplica na base da rolagem ("2d8+2") o que os aprimoramentos escolhidos
+ * mudam nela, na ordem em que o sistema aplica: a troca inteira primeiro,
+ * depois as faces, depois os dados e o fixo acrescentados — que são somados à
+ * base, com as faces dela, e multiplicados pelas vezes que se aplicou.
+ */
+export function baseDaRolagem(
+  base: string,
+  escolhidos: { item: Aprimoramento; vezes: number }[],
+  chave: string
+): { formula: string; mudou: boolean } {
+  let formula = base;
+  let mudou = false;
+  let dados = 0;
+  let fixo = 0;
+  let faces: string | null = null;
+
+  for (const { item, vezes } of escolhidos) {
+    for (const m of item.modificadores) {
+      if (!daChave(m, chave) || !mexeNaBase(m)) continue;
+      const valor = m.formula.trim();
+      mudou = true;
+      if (m.modo === MODO_SUBSTITUI) {
+        formula = valor;
+        continue;
+      }
+      if (/^d\d+$/i.test(valor)) {
+        faces = valor;
+        continue;
+      }
+      const partes = valor.match(/^(\d*)d\d+([+-]\d+)?$/i);
+      if (!partes) continue;
+      dados += (Number(partes[1]) || 1) * vezes;
+      fixo += (Number(partes[2]) || 0) * vezes;
+    }
+  }
+
+  if (faces) formula = formula.replace(/d\d+/i, faces);
+  if (dados) formula = formula.replace(/(\d*)d(\d+)/i, (_t, q: string, f: string) => `${(Number(q) || 1) + dados}d${f}`);
+  if (fixo) formula = somarTermos([formula, String(fixo)]).replace(/\s+/g, "");
+  return { formula, mudou };
 }
 
 /** "+1d12" ou "+1d12 perda": a fórmula extra como se lê numa linha. */

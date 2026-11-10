@@ -2,7 +2,7 @@
 
 import { FaCheck, FaChevronDown, FaCircleMinus, FaEye, FaMinus, FaPlus } from "react-icons/fa6";
 import { useState, type ReactNode } from "react";
-import { bonusDe, formulasComTipoDe, multiplicarFormula, textoDaFormula } from "../lib/aprimoramentos";
+import { bonusDe, formulasComTipoDe, multiplicarFormula, textoDaFormula, trocasNaBaseDe } from "../lib/aprimoramentos";
 import { useFoundry } from "../lib/foundry-provider";
 import type { Aprimoramento, ConsumoDeItem } from "../lib/foundry-types";
 
@@ -387,6 +387,7 @@ function Linha({
         const formula = multiplicarFormula(extra.formula, Math.max(1, quantidade));
         partes.push(`${textoDaFormula({ ...extra, formula })} ${rotulo}`);
       }
+      for (const troca of trocasNaBaseDe(item, chave, Math.max(1, quantidade))) partes.push(`${troca} ${rotulo}`);
       return partes;
     })
     .filter(Boolean);
@@ -436,6 +437,15 @@ function Linha({
           </button>
         )}
       </span>
+      {/* Sem a regra inteira (a magia, cujos aprimoramentos levam todos o
+          nome dela), o texto curto do próprio aprimoramento é o que diz o que
+          cada linha faz — "muda o alcance para curto". */}
+      {!comRegra && item.resumo && (
+        <span
+          className="prosa-foundry text-xs opacity-75"
+          dangerouslySetInnerHTML={{ __html: item.resumo }}
+        />
+      )}
       {/* Bold, e não semibold: em 12px no acento sobre fundo escuro o traço
           fino some no celular. */}
       <span className="numero text-xs font-bold text-acento">{detalhes}</span>
