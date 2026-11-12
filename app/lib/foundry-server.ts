@@ -11,6 +11,8 @@ import type {
   Diario,
   EstadoCombate,
   EstadoBases,
+  EstadoLoja,
+  EstadoPedidosLoja,
   EstadoNegocios,
   Ficha,
   JournalCompendio,
@@ -48,6 +50,10 @@ type SessaoServidor = {
   /** Negócios do personagem aberto; null até a tela de negócios pedir pela primeira vez. */
   negocios: EstadoNegocios | null;
   bases: EstadoBases | null;
+  /** Catálogo da loja; null até a tela da loja pedir. Grande: o SSE só o reenvia quando muda. */
+  loja: EstadoLoja | null;
+  /** Pedidos de compra do personagem aberto; null até a tela da loja pedir. */
+  pedidosLoja: EstadoPedidosLoja | null;
   erro: string | null;
   ouvintes: Set<() => void>;
   /** Último "ainda estou aqui" vindo do navegador — ver `registrarAlive`. */
@@ -614,6 +620,8 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
     combate: null,
     negocios: null,
     bases: null,
+    loja: null,
+    pedidosLoja: null,
     erro: null,
     ouvintes: new Set(),
     ultimoAlive: Date.now()
@@ -659,6 +667,18 @@ function criarSessaoLocal(sessaoId: string, foundryUserId: string, socket: Socke
       };
     } else if (mensagem.tipo === "bases") {
       sessao.bases = absolutizarImagensDasBases(mensagem.bases);
+    } else if (mensagem.tipo === "loja") {
+      sessao.loja = {
+        ...mensagem.loja,
+        itens: mensagem.loja.itens.map((item) => ({ ...item, img: absolutizarImagem(item.img) }))
+      };
+    } else if (mensagem.tipo === "pedidosLoja") {
+      sessao.pedidosLoja = {
+        pedidos: mensagem.pedidosLoja.pedidos.map((pedido) => ({
+          ...pedido,
+          linhas: pedido.linhas.map((linha) => ({ ...linha, img: absolutizarImagem(linha.img) }))
+        }))
+      };
     } else if (mensagem.tipo === "erro") {
       sessao.erro = mensagem.mensagem;
     }
@@ -819,6 +839,8 @@ export function estadosAtuais(sessaoId: string): MensagemDoFoundry[] {
   if (sessao.combate) mensagens.push({ tipo: "combate", combate: sessao.combate });
   if (sessao.negocios) mensagens.push({ tipo: "negocios", negocios: sessao.negocios });
   if (sessao.bases) mensagens.push({ tipo: "bases", bases: sessao.bases });
+  if (sessao.loja) mensagens.push({ tipo: "loja", loja: sessao.loja });
+  if (sessao.pedidosLoja) mensagens.push({ tipo: "pedidosLoja", pedidosLoja: sessao.pedidosLoja });
   if (sessao.erro) mensagens.push({ tipo: "erro", mensagem: sessao.erro });
   return mensagens;
 }

@@ -44,6 +44,10 @@ export async function GET() {
         }
       };
 
+      // O catálogo da loja é o maior estado da sessão e quase nunca muda:
+      // vai uma vez por conexão e de novo só quando chega outro do Foundry
+      // (é outro objeto). O resto segue indo inteiro a cada atualização.
+      let lojaEnviada: unknown = null;
       const enviarEstado = () => {
         // A sessão some do mapa quando o Foundry a invalida (mundo relançado,
         // expirou). Fechar o stream faz o navegador reagir e voltar pro login.
@@ -54,6 +58,10 @@ export async function GET() {
           return encerrar();
         }
         for (const estado of estadosAtuais(sessaoId!)) {
+          if (estado.tipo === "loja") {
+            if (estado.loja === lojaEnviada) continue;
+            lojaEnviada = estado.loja;
+          }
           controller.enqueue(codificador.encode(linhaSSE(estado)));
         }
       };

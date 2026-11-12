@@ -1,4 +1,5 @@
 import {
+  FaBagShopping,
   FaBolt,
   FaGear,
   FaHouseChimney,
@@ -71,7 +72,8 @@ export const ITENS_DE_MODULO: {
   modulo: keyof NonNullable<Ficha["modulos"]>;
 }[] = [
   { rotulo: "Bases", href: "/bases", icone: FaHouseChimney, modulo: "bases" },
-  { rotulo: "Negócios", href: "/negocios", icone: FaStore, modulo: "negocios" }
+  { rotulo: "Negócios", href: "/negocios", icone: FaStore, modulo: "negocios" },
+  { rotulo: "Loja", href: "/loja", icone: FaBagShopping, modulo: "loja" }
 ];
 
 /** As telas de módulo liberadas para esta ficha — só as dos módulos ativos no mundo. */

@@ -11,6 +11,8 @@ import type {
   AnotacaoDiario,
   Diario,
   EstadoBases,
+  EstadoLoja,
+  EstadoPedidosLoja,
   EstadoCombate,
   EstadoNegocios,
   OperacaoCofre,
@@ -216,6 +218,10 @@ type FoundryContextValue = {
   negocios: EstadoNegocios | null;
   /** Bases do personagem aberto; null enquanto a tela de bases não pediu. */
   bases: EstadoBases | null;
+  /** Catálogo da loja (t20-hayd-loja); null até a tela da loja pedir. */
+  loja: EstadoLoja | null;
+  /** Pedidos de compra do personagem aberto, pendentes e recém-decididos. */
+  pedidosLoja: EstadoPedidosLoja | null;
   /** Id do personagem cuja ficha estamos esperando chegar (clique na home). */
   trocandoPara: string | null;
   /** Atalho de leitura: nenhuma escrita é permitida na ficha aberta (companheiro). */
@@ -267,6 +273,10 @@ type FoundryContextValue = {
   movimentarCofre: (negocioId: string, operacao: OperacaoCofre, quantia: number) => void;
   /** Pede as bases do personagem aberto — a tela de Bases chama ao abrir. */
   carregarBases: () => void;
+  /** Pede o catálogo da loja e os pedidos do personagem — a tela da Loja chama ao abrir. */
+  carregarLoja: () => void;
+  /** Manda ao chat dos mestres um pedido de compra; a compra só acontece quando um mestre aprova. */
+  pedirCompra: (itens: { uuid: string; qtd: number }[]) => void;
   /** Início de aventura: paga a manutenção, ou não paga e danifica um cômodo (id ou `"sorteio"`). */
   iniciarAventuraBase: (baseId: string, pagar: boolean, danificarId?: string | null) => void;
   repararComodo: (baseId: string, comodoId: string) => void;
@@ -309,6 +319,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const [combate, setCombate] = useState<EstadoCombate | null>(null);
   const [negocios, setNegocios] = useState<EstadoNegocios | null>(null);
   const [bases, setBases] = useState<EstadoBases | null>(null);
+  const [loja, setLoja] = useState<EstadoLoja | null>(null);
+  const [pedidosLoja, setPedidosLoja] = useState<EstadoPedidosLoja | null>(null);
   const [trocandoPara, setTrocandoPara] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const pathname = usePathname();
@@ -323,6 +335,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
   const pediuCombateRef = useRef(false);
   const pediuNegociosRef = useRef(false);
   const pediuBasesRef = useRef(false);
+  const pediuLojaRef = useRef(false);
   const trocaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Espelho do estado: o handler do EventSource é criado uma vez só e leria
   // sempre o `trocandoPara` do primeiro render se dependesse do state.
@@ -412,6 +425,7 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       if (pediuCombateRef.current) enviar({ tipo: "obterCombate" });
       if (pediuNegociosRef.current) enviar({ tipo: "obterNegocios" });
       if (pediuBasesRef.current) enviar({ tipo: "obterBases" });
+      if (pediuLojaRef.current) enviar({ tipo: "obterLoja" });
     };
 
     stream.onmessage = (evento) => {
@@ -442,6 +456,10 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setNegocios(mensagem.negocios);
       } else if (mensagem.tipo === "bases") {
         setBases(mensagem.bases);
+      } else if (mensagem.tipo === "loja") {
+        setLoja(mensagem.loja);
+      } else if (mensagem.tipo === "pedidosLoja") {
+        setPedidosLoja(mensagem.pedidosLoja);
       } else if (mensagem.tipo === "expulso") {
         // O servidor já derrubou a sessão (e a do Foundry junto); fechamos o
         // stream aqui para o onerror não tratar isto como falha de rede.
@@ -453,6 +471,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
         setCombate(null);
         setNegocios(null);
         setBases(null);
+        setLoja(null);
+        setPedidosLoja(null);
         encerrarTroca();
         setErroServidor(null);
         carregarUsuariosELogin();
@@ -482,6 +502,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setCombate(null);
             setNegocios(null);
             setBases(null);
+            setLoja(null);
+            setPedidosLoja(null);
             encerrarTroca();
             carregarUsuariosELogin();
           }
@@ -534,6 +556,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
             setCombate(null);
             setNegocios(null);
             setBases(null);
+            setLoja(null);
+            setPedidosLoja(null);
             carregarUsuariosELogin();
           }
         })
@@ -629,11 +653,14 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     setCombate(null);
     setNegocios(null);
     setBases(null);
+    setLoja(null);
+    setPedidosLoja(null);
     pediuDiariosRef.current = false;
     pediuCompendioRef.current = false;
     pediuCombateRef.current = false;
     pediuNegociosRef.current = false;
     pediuBasesRef.current = false;
+    pediuLojaRef.current = false;
     encerrarTroca();
     setErroServidor(null);
     setErroLogin(null);
@@ -667,6 +694,8 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
     combate,
     negocios,
     bases,
+    loja,
+    pedidosLoja,
     trocandoPara,
     somenteLeitura: !!ficha?.somenteLeitura,
     login,
@@ -787,6 +816,13 @@ export function FoundryProvider({ children }: { children: ReactNode }) {
       pediuBasesRef.current = true;
       enviar({ tipo: "obterBases" });
     },
+    carregarLoja: () => {
+      pediuLojaRef.current = true;
+      enviar({ tipo: "obterLoja" });
+    },
+    // Sem palpite: nada muda na ficha até um mestre aprovar, e o pedido
+    // pendente chega pelo push assim que a mensagem nasce no chat.
+    pedirCompra: (itens) => enviar({ tipo: "pedirCompra", itens }),
     // Sem palpite: o cômodo sorteado e o card do chat só o Foundry sabe.
     iniciarAventuraBase: (baseId, pagar, danificarId) =>
       enviar({ tipo: "iniciarAventuraBase", baseId, pagar, danificarId: danificarId ?? null }),

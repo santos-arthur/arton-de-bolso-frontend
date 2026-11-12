@@ -557,7 +557,7 @@ export type Ficha = {
   modulos?: ModulosDisponiveis;
 };
 
-export type ModulosDisponiveis = { negocios: boolean; bases?: boolean; engenhocas?: boolean };
+export type ModulosDisponiveis = { negocios: boolean; bases?: boolean; engenhocas?: boolean; loja?: boolean };
 
 /** Resumo de um Actor para os cards da home — não é a ficha inteira. */
 export type PersonagemDisponivel = {
@@ -894,6 +894,8 @@ export type MensagemParaFoundry =
   | { tipo: "movimentarCofre"; negocioId: string; operacao: OperacaoCofre; quantia: number }
   /** Bases do personagem aberto: pedir também inscreve no push. */
   | { tipo: "obterBases" }
+  | { tipo: "obterLoja" }
+  | { tipo: "pedirCompra"; itens: { uuid: string; qtd: number }[] }
   /**
    * Início de aventura: paga a manutenção, ou não paga e um cômodo se
    * danifica — o `danificarId`, ou `"sorteio"`.
@@ -908,6 +910,42 @@ export type MensagemParaFoundry =
 export type OperacaoCofre = "sacar" | "depositar";
 
 /** Mensagens que o relay manda de volta (mesmo canal). */
+/** Um item à venda na loja (módulo t20-hayd-loja). */
+export type ItemDaLoja = {
+  uuid: string;
+  nome: string;
+  img: string;
+  /** Como a loja nomeia o tipo ("Arma", "Equipamento"...). */
+  tipo: string;
+  /** Família para os filtros (arma, equipamento, consumivel, tesouro...). */
+  categoria: string;
+  /** Preço em TP — o tibar de prata, o "T$" do app. */
+  preco: number;
+  espacos: number;
+};
+
+/** O catálogo da loja. `disponivel` falso = o módulo da loja não está ativo no mundo. */
+export type EstadoLoja = { disponivel: boolean; itens: ItemDaLoja[] };
+
+/** Um pedido de compra feito pelo app, que um mestre aprova ou recusa no chat do Foundry. */
+export type PedidoLoja = {
+  id: string;
+  /** `falhou`: a compra parou no meio da aprovação — o mestre confere a ficha. */
+  estado: "pendente" | "aprovado" | "recusado" | "falhou";
+  linhas: { nome: string; img: string; qtd: number; preco: number }[];
+  /** Em TP. */
+  total: number;
+  criadoEm: number;
+  decididoEm: number | null;
+};
+
+/** Os pedidos pendentes do personagem e os últimos decididos. */
+export type EstadoPedidosLoja = {
+  pedidos: PedidoLoja[];
+  /** O que a loja aceita como pagamento, em TP: TO, TP e TC (sem platina). Ausente em módulo antigo. */
+  saldo?: number;
+};
+
 export type MensagemDoFoundry =
   | { tipo: "ficha"; ficha: Ficha }
   | ({ tipo: "personagens" } & ListaPersonagens)
@@ -917,6 +955,8 @@ export type MensagemDoFoundry =
   | { tipo: "combate"; combate: EstadoCombate }
   | { tipo: "negocios"; negocios: EstadoNegocios }
   | { tipo: "bases"; bases: EstadoBases }
+  | { tipo: "loja"; loja: EstadoLoja }
+  | { tipo: "pedidosLoja"; pedidosLoja: EstadoPedidosLoja }
   | { tipo: "erro"; mensagem: string }
   /** O mestre expulsou este jogador pelo Foundry — o stream fecha logo em seguida. */
   | { tipo: "expulso" };
